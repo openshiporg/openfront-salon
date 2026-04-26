@@ -1,11 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs",
+      "Bash(while read file)",
+      "Bash(do sed -i '' 's/searchParams\\.forEach/searchParams?.forEach/g' \"$file\" echo \"Fixed: $file\" done)",
       "mcp__github__search_code",
       "mcp__github__get_file_contents",
-      "Bash(grep:*)"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install:*)",
+      "Bash(npm info:*)",
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(npx madge:*)",
+      "Bash(cat /Users/junaid/code/openfront/.gitignore)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

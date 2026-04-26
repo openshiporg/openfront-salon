@@ -1,0 +1,778 @@
+{
+  "store": {
+    "name": "Glam & Glow Salon",
+    "defaultCurrencyCode": "USD",
+    "metadata": {},
+    "swapLinkTemplate": "https://glamglow.com/swap/{id}",
+    "paymentLinkTemplate": "https://glamglow.com/pay/{id}",
+    "inviteLinkTemplate": "https://glamglow.com/invite/{id}"
+  },
+  "regions": [
+    {
+      "code": "na",
+      "name": "North America",
+      "currencyCode": "usd",
+      "currencySymbol": "$",
+      "currencyName": "US Dollar",
+      "taxRate": 0.08,
+      "paymentProviders": {
+        "connect": [
+          { "code": "pp_stripe_stripe" },
+          { "code": "pp_paypal_paypal" },
+          { "code": "pp_system_default" }
+        ]
+      },
+      "fulfillmentProviders": {
+        "connect": [{ "code": "fp_manual" }]
+      },
+      "countries": [
+        {
+          "iso2": "us",
+          "iso3": "usa",
+          "numCode": 840,
+          "name": "United States",
+          "displayName": "United States"
+        },
+        {
+          "iso2": "ca",
+          "iso3": "can",
+          "numCode": 124,
+          "name": "Canada",
+          "displayName": "Canada"
+        }
+      ]
+    },
+    {
+      "code": "eu",
+      "name": "Europe",
+      "currencyCode": "eur",
+      "currencySymbol": "€",
+      "currencyName": "Euro",
+      "taxRate": 0.21,
+      "paymentProviders": {
+        "connect": [
+          { "code": "pp_stripe_stripe" },
+          { "code": "pp_paypal_paypal" },
+          { "code": "pp_system_default" }
+        ]
+      },
+      "fulfillmentProviders": {
+        "connect": [{ "code": "fp_manual" }]
+      },
+      "countries": [
+        {
+          "iso2": "de",
+          "iso3": "deu",
+          "numCode": 276,
+          "name": "Germany",
+          "displayName": "Germany"
+        },
+        {
+          "iso2": "fr",
+          "iso3": "fra",
+          "numCode": 250,
+          "name": "France",
+          "displayName": "France"
+        }
+      ]
+    },
+    {
+      "code": "uk",
+      "name": "United Kingdom",
+      "currencyCode": "gbp",
+      "currencySymbol": "£",
+      "currencyName": "British Pound",
+      "taxRate": 0.20,
+      "paymentProviders": {
+        "connect": [
+          { "code": "pp_stripe_stripe" },
+          { "code": "pp_paypal_paypal" },
+          { "code": "pp_system_default" }
+        ]
+      },
+      "fulfillmentProviders": {
+        "connect": [{ "code": "fp_manual" }]
+      },
+      "countries": [
+        {
+          "iso2": "gb",
+          "iso3": "gbr",
+          "numCode": 826,
+          "name": "United Kingdom",
+          "displayName": "United Kingdom"
+        }
+      ]
+    }
+  ],
+  "shipping_options": [
+    {
+      "name": "Standard Booking",
+      "regionCode": "all",
+      "providerCode": "fp_manual",
+      "data": { "id": "manual-fulfillment" },
+      "priceType": "flat_rate",
+      "amount": 0
+    }
+  ],
+  "categories": [
+    {
+      "name": "Hair Services",
+      "handle": "hair-services",
+      "isActive": true
+    },
+    {
+      "name": "Nail Services",
+      "handle": "nail-services",
+      "isActive": true
+    },
+    {
+      "name": "Spa Services",
+      "handle": "spa-services",
+      "isActive": true
+    },
+    {
+      "name": "Makeup Services",
+      "handle": "makeup-services",
+      "isActive": true
+    }
+  ],
+  "collections": [
+    {
+      "title": "Popular Services",
+      "handle": "popular-services"
+    },
+    {
+      "title": "New Services",
+      "handle": "new-services"
+    },
+    {
+      "title": "Premium Services",
+      "handle": "premium-services"
+    }
+  ],
+  "products": [
+    {
+      "title": "Women's Haircut & Style",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Professional haircut and styling tailored to your preferences. Includes wash, cut, and blow-dry."
+            }
+          ]
+        }
+      ],
+      "handle": "womens-haircut-style",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "hair-services" }]
+      },
+      "productCollections": {
+        "connect": [
+          { "handle": "popular-services" },
+          { "handle": "new-services" }
+        ]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Hair Length",
+            "productOptionValues": {
+              "create": [
+                { "value": "Short" },
+                { "value": "Medium" },
+                { "value": "Long" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Short Hair",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 4500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 4000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 5000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Short" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Medium Hair",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 5500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 5000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 6000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Medium" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Long Hair",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 6500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 6000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 7000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Long" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    },
+    {
+      "title": "Men's Haircut",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Classic men's haircut with precision styling. Includes wash, cut, and styling."
+            }
+          ]
+        }
+      ],
+      "handle": "mens-haircut",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "hair-services" }]
+      },
+      "productCollections": {
+        "connect": [{ "handle": "popular-services" }]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Service Type",
+            "productOptionValues": {
+              "create": [
+                { "value": "Standard" },
+                { "value": "Premium" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Standard Cut",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 3000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 2800,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 3500,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Standard" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Premium Cut",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 4500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 4000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 5000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Premium" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    },
+    {
+      "title": "Full Color Treatment",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Complete hair color transformation. Includes consultation, color application, and styling."
+            }
+          ]
+        }
+      ],
+      "handle": "full-color-treatment",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "hair-services" }]
+      },
+      "productCollections": {
+        "connect": [
+          { "handle": "popular-services" },
+          { "handle": "premium-services" }
+        ]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Hair Length",
+            "productOptionValues": {
+              "create": [
+                { "value": "Short" },
+                { "value": "Medium" },
+                { "value": "Long" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Short Hair Color",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 8000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 7500,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 9000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Short" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Medium Hair Color",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 10000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 9500,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 11000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Medium" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Long Hair Color",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 12000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 11500,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 13000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Long" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    },
+    {
+      "title": "Manicure",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Professional nail care including shaping, cuticle care, and polish application."
+            }
+          ]
+        }
+      ],
+      "handle": "manicure",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "nail-services" }]
+      },
+      "productCollections": {
+        "connect": [{ "handle": "popular-services" }]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Type",
+            "productOptionValues": {
+              "create": [
+                { "value": "Classic" },
+                { "value": "Gel" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Classic Manicure",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 2500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 2200,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 2800,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Classic" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Gel Manicure",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 4000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 3800,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 4500,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Gel" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    },
+    {
+      "title": "Relaxing Massage",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Therapeutic full-body massage to relieve tension and promote relaxation."
+            }
+          ]
+        }
+      ],
+      "handle": "relaxing-massage",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "spa-services" }]
+      },
+      "productCollections": {
+        "connect": [
+          { "handle": "popular-services" },
+          { "handle": "premium-services" }
+        ]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Duration",
+            "productOptionValues": {
+              "create": [
+                { "value": "30min" },
+                { "value": "60min" },
+                { "value": "90min" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "30 Minute Massage",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 4500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 4000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 5000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "30min" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "60 Minute Massage",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 7500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 7000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 8500,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "60min" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "90 Minute Massage",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 10500,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 10000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 12000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "90min" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    },
+    {
+      "title": "Bridal Makeup",
+      "subtitle": null,
+      "description": [
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "text": "Complete bridal makeup package including trial session and wedding day application."
+            }
+          ]
+        }
+      ],
+      "handle": "bridal-makeup",
+      "isGiftcard": false,
+      "status": "published",
+      "productCategories": {
+        "connect": [{ "handle": "makeup-services" }]
+      },
+      "productCollections": {
+        "connect": [
+          { "handle": "premium-services" },
+          { "handle": "new-services" }
+        ]
+      },
+      "productOptions": {
+        "create": [
+          {
+            "title": "Package",
+            "productOptionValues": {
+              "create": [
+                { "value": "Basic" },
+                { "value": "Premium" }
+              ]
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "title": "Basic Bridal",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 15000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 14000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 17000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Basic" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        },
+        {
+          "title": "Premium Bridal",
+          "prices": [
+            {
+              "currencyCode": "eur",
+              "amount": 25000,
+              "regionCode": "eu"
+            },
+            {
+              "currencyCode": "gbp",
+              "amount": 23000,
+              "regionCode": "uk"
+            },
+            {
+              "currencyCode": "usd",
+              "amount": 28000,
+              "regionCode": "na"
+            }
+          ],
+          "options": [{ "value": "Premium" }],
+          "inventoryQuantity": 100,
+          "manageInventory": false
+        }
+      ]
+    }
+  ],
+  "paymentProviders": [
+    {
+      "name": "Stripe",
+      "code": "pp_stripe_stripe",
+      "isInstalled": true,
+      "createPaymentFunction": "stripe",
+      "capturePaymentFunction": "stripe",
+      "refundPaymentFunction": "stripe",
+      "getPaymentStatusFunction": "stripe",
+      "generatePaymentLinkFunction": "stripe",
+      "handleWebhookFunction": "stripe"
+    },
+    {
+      "name": "PayPal",
+      "code": "pp_paypal_paypal",
+      "isInstalled": true,
+      "createPaymentFunction": "paypal",
+      "capturePaymentFunction": "paypal",
+      "refundPaymentFunction": "paypal",
+      "getPaymentStatusFunction": "paypal",
+      "generatePaymentLinkFunction": "paypal",
+      "handleWebhookFunction": "paypal"
+    },
+    {
+      "name": "Manual",
+      "code": "pp_system_default",
+      "isInstalled": true,
+      "createPaymentFunction": "manual",
+      "capturePaymentFunction": "manual",
+      "refundPaymentFunction": "manual",
+      "getPaymentStatusFunction": "manual",
+      "generatePaymentLinkFunction": "manual",
+      "handleWebhookFunction": "manual"
+    }
+  ]
+}

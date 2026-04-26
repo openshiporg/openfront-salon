@@ -5,6 +5,7 @@ import { models } from "./models";
 import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
+import { permissions } from "./access";
 
 const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
 
@@ -87,7 +88,7 @@ export default withAuth(
       },
     },
     ui: {
-      isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false,
+      isAccessAllowed: ({ session }) => permissions.canAccessDashboard({ session }),
     },
     session: statelessSessions(sessionConfig),
     graphql: {

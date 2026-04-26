@@ -12,16 +12,29 @@ generator client {
 }
 
 model User {
-  id                      String    @id @default(cuid())
-  name                    String    @default("")
-  email                   String    @unique @default("")
-  password                String
-  role                    Role?     @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?   @map("role")
-  tasks                   Todo[]    @relation("Todo_assignedTo")
-  passwordResetToken      String?
-  passwordResetIssuedAt   DateTime?
-  passwordResetRedeemedAt DateTime?
+  id                           String             @id @default(cuid())
+  name                         String             @default("")
+  email                        String             @unique @default("")
+  password                     String
+  role                         Role?              @relation("User_role", fields: [roleId], references: [id])
+  roleId                       String?            @map("role")
+  passwordResetToken           String?
+  passwordResetIssuedAt        DateTime?
+  passwordResetRedeemedAt      DateTime?
+  from_Stylist_user            Stylist[]          @relation("Stylist_user")
+  from_Client_user             Client[]           @relation("Client_user")
+  from_ClientNote_author       ClientNote[]       @relation("ClientNote_author")
+  from_Payment_processedBy     Payment[]          @relation("Payment_processedBy")
+  from_ClientPoints_client     ClientPoints[]     @relation("ClientPoints_client")
+  from_Referral_referrer       Referral[]         @relation("Referral_referrer")
+  from_Referral_referred       Referral[]         @relation("Referral_referred")
+  from_MessageLog_recipient    MessageLog[]       @relation("MessageLog_recipient")
+  from_GiftCard_purchasedBy    GiftCard[]         @relation("GiftCard_purchasedBy")
+  from_ClientMembership_client ClientMembership[] @relation("ClientMembership_client")
+  from_WaitlistEntry_client    WaitlistEntry[]    @relation("WaitlistEntry_client")
+  from_FormSubmission_client   FormSubmission[]   @relation("FormSubmission_client")
+  from_ProductSale_soldBy      ProductSale[]      @relation("ProductSale_soldBy")
+  from_ClientPackage_client    ClientPackage[]    @relation("ClientPackage_client")
 
   @@index([roleId])
 }
@@ -39,42 +52,777 @@ model Role {
   assignedTo         User[]  @relation("User_role")
 }
 
-model Todo {
-  id                   String      @id @default(cuid())
-  label                String      @default("")
-  description          Json        @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  isComplete           Boolean     @default(false)
-  status               String?     @default("todo")
-  priority             Int?        @default(1)
-  tags                 Json        @default("[]")
-  dueDate              DateTime?
-  weight               Float?      @default(1)
-  budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)
-  isPrivate            Boolean     @default(false)
-  largeNumber          BigInt?
-  metadata             Json?
-  secretNote           String?
-  coverImage_id        String?
-  coverImage_filesize  Int?
-  coverImage_width     Int?
-  coverImage_height    Int?
-  coverImage_extension String?
-  todoImages           TodoImage[] @relation("Todo_todoImages")
-  assignedTo           User?       @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId         String?     @map("assignedTo")
-
-  @@index([assignedToId])
+model SalonImage {
+  id                      String         @id @default(cuid())
+  image_id                String?
+  image_filesize          Int?
+  image_width             Int?
+  image_height            Int?
+  image_extension         String?
+  altText                 String         @default("")
+  metadata                Json?
+  from_Service_image      Service[]      @relation("Service_image")
+  from_Stylist_photo      Stylist[]      @relation("Stylist_photo")
+  from_ClientNote_photos  ClientNote[]   @relation("ClientNote_photos")
+  from_ColorFormula_photo ColorFormula[] @relation("ColorFormula_photo")
+  from_Product_image      Product[]      @relation("Product_image")
 }
 
-model TodoImage {
+model ServiceCategory {
+  id                                      String            @id @default(cuid())
+  name                                    String            @default("")
+  description                             String            @default("")
+  slug                                    String            @unique @default("")
+  parent                                  ServiceCategory?  @relation("ServiceCategory_parent", fields: [parentId], references: [id])
+  parentId                                String?           @map("parent")
+  displayOrder                            Int?              @default(0)
+  sortOrder                               Int?              @default(0)
+  isVisible                               Boolean           @default(true)
+  icon                                    String            @default("")
+  services                                Service[]         @relation("Service_category")
+  from_ServiceCategory_parent             ServiceCategory[] @relation("ServiceCategory_parent")
+  from_FormTemplate_requiredForCategories FormTemplate[]    @relation("FormTemplate_requiredForCategories")
+
+  @@index([parentId])
+}
+
+model Service {
+  id                                    String                     @id @default(cuid())
+  name                                  String                     @default("")
+  description                           String                     @default("")
+  baseDuration                          Int
+  price                                 Int
+  basePrice                             Float?
+  depositRequired                       Boolean                    @default(false)
+  depositAmount                         Int?
+  status                                ServiceStatusType?         @default(active)
+  metadata                              Json?
+  pricingTier                           Json?
+  requiresConsultation                  Boolean                    @default(false)
+  requiresPatchTest                     Boolean                    @default(false)
+  category                              ServiceCategory?           @relation("Service_category", fields: [categoryId], references: [id])
+  categoryId                            String?                    @map("category")
+  image                                 SalonImage?                @relation("Service_image", fields: [imageId], references: [id])
+  imageId                               String?                    @map("image")
+  specialists                           Stylist[]                  @relation("Service_specialists")
+  reviews                               Review[]                   @relation("Review_service")
+  variants                              ServiceVariant[]           @relation("ServiceVariant_service")
+  from_Appointment_services             Appointment[]              @relation("Appointment_services")
+  from_AppointmentLineItem_service      AppointmentLineItem[]      @relation("AppointmentLineItem_service")
+  from_IntakeForm_requiredForServices   IntakeForm[]               @relation("IntakeForm_requiredForServices")
+  from_ServicePackage_services          ServicePackage[]           @relation("ServicePackage_services")
+  from_Membership_includedServices      Membership[]               @relation("Membership_includedServices")
+  from_WaitlistEntry_service            WaitlistEntry[]            @relation("WaitlistEntry_service")
+  from_Commission_service               Commission[]               @relation("Commission_service")
+  from_SalonTransactionLineItem_service SalonTransactionLineItem[] @relation("SalonTransactionLineItem_service")
+  from_ClientPackageUsage_service       ClientPackageUsage[]       @relation("ClientPackageUsage_service")
+
+  @@index([categoryId])
+  @@index([imageId])
+}
+
+model ServiceVariant {
+  id           String   @id @default(cuid())
+  name         String   @default("")
+  service      Service? @relation("ServiceVariant_service", fields: [serviceId], references: [id])
+  serviceId    String?  @map("service")
+  price        Int
+  duration     Int?
+  staffLevel   String   @default("")
+  displayOrder Int?     @default(0)
+
+  @@index([serviceId])
+}
+
+model Stylist {
+  id                                  String                     @id @default(cuid())
+  user                                User?                      @relation("Stylist_user", fields: [userId], references: [id])
+  userId                              String?                    @map("user")
+  role                                StylistRoleType?
+  tier                                StylistTierType?           @default(junior)
+  bio                                 String                     @default("")
+  baseCommissionRate                  Float?                     @default(0.5)
+  commissionRate                      Float?                     @default(0.5)
+  certifications                      Json?
+  hireDate                            DateTime?
+  employmentType                      StylistEmploymentTypeType?
+  status                              StylistStatusType?         @default(active)
+  isActive                            Boolean                    @default(true)
+  photoUrl                            String                     @default("")
+  socialMedia                         Json?
+  photo                               SalonImage?                @relation("Stylist_photo", fields: [photoId], references: [id])
+  photoId                             String?                    @map("photo")
+  specializations                     Service[]                  @relation("Service_specialists")
+  schedules                           StylistSchedule[]          @relation("StylistSchedule_stylist")
+  appointments                        Appointment[]              @relation("Appointment_stylist")
+  preferredByClients                  Client[]                   @relation("Client_preferredStylist")
+  colorFormulas                       ColorFormula[]             @relation("ColorFormula_stylist")
+  waitlistEntries                     WaitlistEntry[]            @relation("Stylist_waitlistEntries")
+  reviews                             Review[]                   @relation("Review_stylist")
+  from_AppointmentLineItem_staff      AppointmentLineItem[]      @relation("AppointmentLineItem_staff")
+  from_Commission_stylist             Commission[]               @relation("Commission_stylist")
+  from_SalonTransaction_staff         SalonTransaction[]         @relation("SalonTransaction_staff")
+  from_SalonTransactionLineItem_staff SalonTransactionLineItem[] @relation("SalonTransactionLineItem_staff")
+
+  @@index([userId])
+  @@index([photoId])
+}
+
+model Client {
+  id                           String              @id @default(cuid())
+  user                         User?               @relation("Client_user", fields: [userId], references: [id])
+  userId                       String?             @map("user")
+  dateOfBirth                  DateTime?
+  preferredStylist             Stylist?            @relation("Client_preferredStylist", fields: [preferredStylistId], references: [id])
+  preferredStylistId           String?             @map("preferredStylist")
+  allergies                    String              @default("")
+  skinSensitivities            String              @default("")
+  skinType                     ClientSkinTypeType?
+  hairType                     ClientHairTypeType?
+  hairTexture                  String?
+  scalpCondition               String?
+  notes                        String              @default("")
+  firstVisit                   DateTime?
+  lastVisit                    DateTime?
+  totalVisits                  Int?                @default(0)
+  lifetimeValue                Float?              @default(0)
+  photoConsent                 Boolean             @default(false)
+  marketingConsent             Boolean             @default(false)
+  appointments                 Appointment[]       @relation("Appointment_client")
+  colorFormulas                ColorFormula[]      @relation("ColorFormula_client")
+  reviews                      Review[]            @relation("Review_client")
+  from_ClientNote_client       ClientNote[]        @relation("ClientNote_client")
+  from_SalonTransaction_client SalonTransaction[]  @relation("SalonTransaction_client")
+
+  @@index([userId])
+  @@index([preferredStylistId])
+}
+
+model ClientNote {
+  id            String       @id @default(cuid())
+  client        Client?      @relation("ClientNote_client", fields: [clientId], references: [id])
+  clientId      String?      @map("client")
+  author        User?        @relation("ClientNote_author", fields: [authorId], references: [id])
+  authorId      String?      @map("author")
+  content       String       @default("")
+  isPrivate     Boolean      @default(true)
+  appointment   Appointment? @relation("ClientNote_appointment", fields: [appointmentId], references: [id])
+  appointmentId String?      @map("appointment")
+  photos        SalonImage[] @relation("ClientNote_photos")
+  createdAt     DateTime?    @default(now())
+  updatedAt     DateTime?    @updatedAt
+
+  @@index([clientId])
+  @@index([authorId])
+  @@index([appointmentId])
+}
+
+model ColorFormula {
+  id             String       @id @default(cuid())
+  formulaName    String       @default("")
+  products       String       @default("")
+  measurements   String       @default("")
+  processingTime Int?
+  result         String       @default("")
+  createdAt      DateTime?    @default(now())
+  client         Client?      @relation("ColorFormula_client", fields: [clientId], references: [id])
+  clientId       String?      @map("client")
+  stylist        Stylist?     @relation("ColorFormula_stylist", fields: [stylistId], references: [id])
+  stylistId      String?      @map("stylist")
+  appointment    Appointment? @relation("Appointment_colorFormula")
+  photo          SalonImage?  @relation("ColorFormula_photo", fields: [photoId], references: [id])
+  photoId        String?      @map("photo")
+
+  @@index([clientId])
+  @@index([stylistId])
+  @@index([photoId])
+}
+
+model StylistSchedule {
+  id              String                              @id @default(cuid())
+  type            StylistScheduleTypeType             @default(recurring)
+  dayOfWeek       Int?
+  dayOfWeekLegacy StylistScheduleDayOfWeekLegacyType?
+  date            DateTime?
+  startTime       String                              @default("")
+  endTime         String                              @default("")
+  isAvailable     Boolean                             @default(true)
+  breakStart      String                              @default("")
+  breakEnd        String                              @default("")
+  reason          String                              @default("")
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  effectiveDate   DateTime?
+  endDate         DateTime?
+  stylist         Stylist?                            @relation("StylistSchedule_stylist", fields: [stylistId], references: [id])
+  stylistId       String?                             @map("stylist")
+
+  @@index([stylistId])
+}
+
+model Appointment {
+  id                                   String                @id @default(cuid())
+  startTime                            DateTime
+  endTime                              DateTime?
+  duration                             Int?                  @default(60)
+  status                               AppointmentStatusType @default(pending)
+  depositAmount                        Int?
+  depositPaid                          Boolean               @default(false)
+  metadata                             Json?
+  bookedAt                             DateTime?             @default(now())
+  confirmedAt                          DateTime?
+  cancelledAt                          DateTime?
+  cancellationReason                   String                @default("")
+  notes                                String                @default("")
+  clientNotes                          String                @default("")
+  internalNotes                        String                @default("")
+  client                               Client?               @relation("Appointment_client", fields: [clientId], references: [id])
+  clientId                             String?               @map("client")
+  stylist                              Stylist?              @relation("Appointment_stylist", fields: [stylistId], references: [id])
+  stylistId                            String?               @map("stylist")
+  services                             Service[]             @relation("Appointment_services")
+  lineItems                            AppointmentLineItem[] @relation("AppointmentLineItem_appointment")
+  colorFormula                         ColorFormula?         @relation("Appointment_colorFormula", fields: [colorFormulaId], references: [id])
+  colorFormulaId                       String?               @unique @map("colorFormula")
+  payment                              Payment?              @relation("Appointment_payment", fields: [paymentId], references: [id])
+  paymentId                            String?               @unique @map("payment")
+  review                               Review?               @relation("Appointment_review", fields: [reviewId], references: [id])
+  reviewId                             String?               @unique @map("review")
+  from_ClientNote_appointment          ClientNote[]          @relation("ClientNote_appointment")
+  from_GiftCardTransaction_appointment GiftCardTransaction[] @relation("GiftCardTransaction_appointment")
+  from_FormSubmission_appointment      FormSubmission[]      @relation("FormSubmission_appointment")
+  from_ProductSale_appointment         ProductSale[]         @relation("ProductSale_appointment")
+  from_ClientPackageUsage_appointment  ClientPackageUsage[]  @relation("ClientPackageUsage_appointment")
+
+  @@index([clientId])
+  @@index([stylistId])
+}
+
+model AppointmentLineItem {
+  id            String       @id @default(cuid())
+  service       Service?     @relation("AppointmentLineItem_service", fields: [serviceId], references: [id])
+  serviceId     String?      @map("service")
+  staff         Stylist?     @relation("AppointmentLineItem_staff", fields: [staffId], references: [id])
+  staffId       String?      @map("staff")
+  duration      Int?         @default(60)
+  price         Int
+  quantity      Int          @default(1)
+  notes         String       @default("")
+  appointment   Appointment? @relation("AppointmentLineItem_appointment", fields: [appointmentId], references: [id])
+  appointmentId String?      @map("appointment")
+  metadata      Json?
+
+  @@index([serviceId])
+  @@index([staffId])
+  @@index([appointmentId])
+}
+
+model Payment {
+  id                      String       @id @default(cuid())
+  subtotal                Float
+  tax                     Float?       @default(0)
+  tip                     Float?       @default(0)
+  discount                Float?       @default(0)
+  totalAmount             Float
+  paymentMethod           String       @default("credit_card")
+  status                  String       @default("pending")
+  stripePaymentIntentId   String       @default("")
+  stripeChargeId          String       @default("")
+  stripeRefundId          String       @default("")
+  cardBrand               String       @default("")
+  cardLast4               String       @default("")
+  refundedAmount          Float?       @default(0)
+  refundReason            String       @default("")
+  tipDistributed          Boolean      @default(false)
+  createdAt               DateTime?    @default(now())
+  processedAt             DateTime?
+  refundedAt              DateTime?
+  notes                   String       @default("")
+  appointment             Appointment? @relation("Appointment_payment")
+  processedBy             User?        @relation("Payment_processedBy", fields: [processedById], references: [id])
+  processedById           String?      @map("processedBy")
+  receiptSent             Boolean      @default(false)
+  receiptEmail            String       @default("")
+  from_Commission_payment Commission[] @relation("Commission_payment")
+
+  @@index([processedById])
+}
+
+model ClientPoints {
+  id           String  @id @default(cuid())
+  client       User?   @relation("ClientPoints_client", fields: [clientId], references: [id])
+  clientId     String? @map("client")
+  points       Int     @default(0)
+  tier         String  @default("bronze")
+  transactions Json?   @default("[]")
+
+  @@index([clientId])
+}
+
+model Referral {
+  id           String    @id @default(cuid())
+  referrer     User?     @relation("Referral_referrer", fields: [referrerId], references: [id])
+  referrerId   String?   @map("referrer")
+  referred     User?     @relation("Referral_referred", fields: [referredId], references: [id])
+  referredId   String?   @map("referred")
+  rewardAmount Float     @default(0)
+  rewardType   String    @default("points")
+  status       String    @default("pending")
+  createdAt    DateTime? @default(now())
+  completedAt  DateTime?
+
+  @@index([referrerId])
+  @@index([referredId])
+}
+
+model MessageTemplate {
+  id                       String       @id @default(cuid())
+  name                     String       @default("")
+  type                     String
+  content                  String       @default("")
+  variables                Json?
+  isActive                 Boolean      @default(true)
+  from_MessageLog_template MessageLog[] @relation("MessageLog_template")
+}
+
+model MessageLog {
+  id           String           @id @default(cuid())
+  recipient    User?            @relation("MessageLog_recipient", fields: [recipientId], references: [id])
+  recipientId  String?          @map("recipient")
+  template     MessageTemplate? @relation("MessageLog_template", fields: [templateId], references: [id])
+  templateId   String?          @map("template")
+  sentAt       DateTime?        @default(now())
+  channel      String
+  status       String?          @default("sent")
+  errorMessage String           @default("")
+
+  @@index([recipientId])
+  @@index([templateId])
+}
+
+model GiftCard {
+  id             String                @id @default(cuid())
+  code           String                @unique @default("")
+  initialValue   Float
+  currentBalance Float
+  recipientEmail String                @default("")
+  recipientName  String                @default("")
+  message        String                @default("")
+  expiresAt      DateTime?
+  isActive       Boolean               @default(true)
+  createdAt      DateTime?             @default(now())
+  purchasedBy    User?                 @relation("GiftCard_purchasedBy", fields: [purchasedById], references: [id])
+  purchasedById  String?               @map("purchasedBy")
+  transactions   GiftCardTransaction[] @relation("GiftCardTransaction_giftCard")
+
+  @@index([purchasedById])
+}
+
+model GiftCardTransaction {
+  id            String       @id @default(cuid())
+  amount        Float
+  type          String
+  createdAt     DateTime?    @default(now())
+  notes         String       @default("")
+  giftCard      GiftCard?    @relation("GiftCardTransaction_giftCard", fields: [giftCardId], references: [id])
+  giftCardId    String?      @map("giftCard")
+  appointment   Appointment? @relation("GiftCardTransaction_appointment", fields: [appointmentId], references: [id])
+  appointmentId String?      @map("appointment")
+
+  @@index([giftCardId])
+  @@index([appointmentId])
+}
+
+model ClientMembership {
+  id              String      @id @default(cuid())
+  client          User?       @relation("ClientMembership_client", fields: [clientId], references: [id])
+  clientId        String?     @map("client")
+  membership      Membership? @relation("ClientMembership_membership", fields: [membershipId], references: [id])
+  membershipId    String?     @map("membership")
+  startDate       DateTime
+  nextBillingDate DateTime?
+  status          String?     @default("active")
+  pausedUntil     DateTime?
+
+  @@index([clientId])
+  @@index([membershipId])
+}
+
+model IntakeForm {
+  id                  String           @id @default(cuid())
+  name                String           @default("")
+  fields              Json?
+  requiredForServices Service[]        @relation("IntakeForm_requiredForServices")
+  isActive            Boolean          @default(true)
+  submissions         FormSubmission[] @relation("FormSubmission_form")
+}
+
+model ServicePackage {
+  id                         String          @id @default(cuid())
+  name                       String          @default("")
+  description                String          @default("")
+  totalPrice                 Float
+  savingsAmount              Float?          @default(0)
+  validDays                  Int?            @default(30)
+  isActive                   Boolean         @default(true)
+  services                   Service[]       @relation("ServicePackage_services")
+  from_ClientPackage_package ClientPackage[] @relation("ClientPackage_package")
+}
+
+model Membership {
+  id                               String             @id @default(cuid())
+  name                             String             @default("")
+  description                      String             @default("")
+  monthlyPrice                     Float
+  discountPercent                  Int?               @default(0)
+  isActive                         Boolean            @default(true)
+  includedServices                 Service[]          @relation("Membership_includedServices")
+  from_ClientMembership_membership ClientMembership[] @relation("ClientMembership_membership")
+}
+
+model WaitlistEntry {
+  id                 String    @id @default(cuid())
+  client             User?     @relation("WaitlistEntry_client", fields: [clientId], references: [id])
+  clientId           String?   @map("client")
+  service            Service?  @relation("WaitlistEntry_service", fields: [serviceId], references: [id])
+  serviceId          String?   @map("service")
+  preferredStylists  Stylist[] @relation("Stylist_waitlistEntries")
+  preferredDays      Json?
+  preferredTimeRange String    @default("")
+  dateRangeStart     DateTime?
+  dateRangeEnd       DateTime?
+  isActive           Boolean   @default(true)
+  notifiedAt         DateTime?
+  notes              String    @default("")
+  createdAt          DateTime? @default(now())
+
+  @@index([clientId])
+  @@index([serviceId])
+}
+
+model WidgetConfiguration {
+  id             String  @id @default(cuid())
+  name           String  @unique @default("")
+  primaryColor   String  @default("#000000")
+  secondaryColor String  @default("#FFFFFF")
+  logoUrl        String  @default("")
+  showServices   Boolean @default(true)
+  showStylists   Boolean @default(true)
+  customCSS      String  @default("")
+  embedCode      String  @default("")
+  buttonText     String  @default("Book Now")
+  welcomeMessage String  @default("")
+  width          String  @default("100%")
+  height         String  @default("600px")
+}
+
+model FormSubmission {
+  id            String        @id @default(cuid())
+  data          Json?
+  signature     String        @default("")
+  submittedAt   DateTime?     @default(now())
+  client        User?         @relation("FormSubmission_client", fields: [clientId], references: [id])
+  clientId      String?       @map("client")
+  form          IntakeForm?   @relation("FormSubmission_form", fields: [formId], references: [id])
+  formId        String?       @map("form")
+  template      FormTemplate? @relation("FormSubmission_template", fields: [templateId], references: [id])
+  templateId    String?       @map("template")
+  appointment   Appointment?  @relation("FormSubmission_appointment", fields: [appointmentId], references: [id])
+  appointmentId String?       @map("appointment")
+
+  @@index([clientId])
+  @@index([formId])
+  @@index([templateId])
+  @@index([appointmentId])
+}
+
+model FormTemplate {
+  id                    String            @id @default(cuid())
+  name                  String            @default("")
+  type                  String?           @default("intake")
+  description           String            @default("")
+  fields                Json?
+  isActive              Boolean           @default(true)
+  requiredForCategories ServiceCategory[] @relation("FormTemplate_requiredForCategories")
+  submissions           FormSubmission[]  @relation("FormSubmission_template")
+  metadata              Json?
+}
+
+model LoyaltyProgram {
   id              String  @id @default(cuid())
-  image_id        String?
-  image_filesize  Int?
-  image_width     Int?
-  image_height    Int?
-  image_extension String?
-  imagePath       String  @default("")
-  altText         String  @default("")
-  todos           Todo[]  @relation("Todo_todoImages")
-  metadata        Json?
+  name            String  @default("")
+  pointsPerDollar Float   @default(1)
+  redemptionRate  Float   @default(0.01)
+  tiers           Json?
+  isActive        Boolean @default(true)
+}
+
+model Location {
+  id       String  @id @default(cuid())
+  name     String  @default("")
+  address  String  @default("")
+  city     String  @default("")
+  state    String  @default("")
+  zipCode  String  @default("")
+  phone    String  @default("")
+  email    String  @default("")
+  hours    Json?   @default("{\"monday\":{\"open\":\"09:00\",\"close\":\"18:00\",\"closed\":false},\"tuesday\":{\"open\":\"09:00\",\"close\":\"18:00\",\"closed\":false},\"wednesday\":{\"open\":\"09:00\",\"close\":\"18:00\",\"closed\":false},\"thursday\":{\"open\":\"09:00\",\"close\":\"18:00\",\"closed\":false},\"friday\":{\"open\":\"09:00\",\"close\":\"18:00\",\"closed\":false},\"saturday\":{\"open\":\"09:00\",\"close\":\"17:00\",\"closed\":false},\"sunday\":{\"open\":null,\"close\":null,\"closed\":true}}")
+  timezone String  @default("America/New_York")
+  isActive Boolean @default(true)
+}
+
+model Product {
+  id                                    String                     @id @default(cuid())
+  name                                  String                     @default("")
+  sku                                   String                     @unique @default("")
+  price                                 Float
+  cost                                  Float?
+  quantity                              Int?                       @default(0)
+  reorderPoint                          Int?                       @default(5)
+  category                              String                     @default("")
+  description                           String                     @default("")
+  image                                 SalonImage?                @relation("Product_image", fields: [imageId], references: [id])
+  imageId                               String?                    @map("image")
+  isActive                              Boolean                    @default(true)
+  from_SalonTransactionLineItem_product SalonTransactionLineItem[] @relation("SalonTransactionLineItem_product")
+
+  @@index([imageId])
+}
+
+model ProductSale {
+  id            String       @id @default(cuid())
+  appointment   Appointment? @relation("ProductSale_appointment", fields: [appointmentId], references: [id])
+  appointmentId String?      @map("appointment")
+  products      Json?        @default("[]")
+  total         Float
+  soldBy        User?        @relation("ProductSale_soldBy", fields: [soldById], references: [id])
+  soldById      String?      @map("soldBy")
+  soldAt        DateTime?    @default(now())
+
+  @@index([appointmentId])
+  @@index([soldById])
+}
+
+model Commission {
+  id               String    @id @default(cuid())
+  saleAmount       Float
+  commissionRate   Float
+  commissionAmount Float
+  isPaid           Boolean   @default(false)
+  paidAt           DateTime?
+  createdAt        DateTime? @default(now())
+  notes            String    @default("")
+  stylist          Stylist?  @relation("Commission_stylist", fields: [stylistId], references: [id])
+  stylistId        String?   @map("stylist")
+  service          Service?  @relation("Commission_service", fields: [serviceId], references: [id])
+  serviceId        String?   @map("service")
+  payment          Payment?  @relation("Commission_payment", fields: [paymentId], references: [id])
+  paymentId        String?   @map("payment")
+
+  @@index([stylistId])
+  @@index([serviceId])
+  @@index([paymentId])
+}
+
+model Review {
+  id          String       @id @default(cuid())
+  rating      Int
+  comment     String       @default("")
+  isApproved  Boolean      @default(false)
+  createdAt   DateTime?    @default(now())
+  client      Client?      @relation("Review_client", fields: [clientId], references: [id])
+  clientId    String?      @map("client")
+  service     Service?     @relation("Review_service", fields: [serviceId], references: [id])
+  serviceId   String?      @map("service")
+  stylist     Stylist?     @relation("Review_stylist", fields: [stylistId], references: [id])
+  stylistId   String?      @map("stylist")
+  appointment Appointment? @relation("Appointment_review")
+
+  @@index([clientId])
+  @@index([serviceId])
+  @@index([stylistId])
+}
+
+model SalonTransaction {
+  id            String                             @id @default(cuid())
+  type          SalonTransactionTypeType           @default(appointment)
+  client        Client?                            @relation("SalonTransaction_client", fields: [clientId], references: [id])
+  clientId      String?                            @map("client")
+  staff         Stylist?                           @relation("SalonTransaction_staff", fields: [staffId], references: [id])
+  staffId       String?                            @map("staff")
+  lineItems     SalonTransactionLineItem[]         @relation("SalonTransactionLineItem_transaction")
+  tip           Int?                               @default(0)
+  paymentMethod SalonTransactionPaymentMethodType?
+  paymentStatus SalonTransactionPaymentStatusType  @default(pending)
+  status        SalonTransactionStatusType         @default(open)
+  metadata      Json?
+  completedAt   DateTime?
+  createdAt     DateTime?                          @default(now())
+
+  @@index([clientId])
+  @@index([staffId])
+}
+
+model SalonTransactionLineItem {
+  id             String                               @id @default(cuid())
+  transaction    SalonTransaction?                    @relation("SalonTransactionLineItem_transaction", fields: [transactionId], references: [id])
+  transactionId  String?                              @map("transaction")
+  itemType       SalonTransactionLineItemItemTypeType
+  service        Service?                             @relation("SalonTransactionLineItem_service", fields: [serviceId], references: [id])
+  serviceId      String?                              @map("service")
+  product        Product?                             @relation("SalonTransactionLineItem_product", fields: [productId], references: [id])
+  productId      String?                              @map("product")
+  staff          Stylist?                             @relation("SalonTransactionLineItem_staff", fields: [staffId], references: [id])
+  staffId        String?                              @map("staff")
+  quantity       Int                                  @default(1)
+  unitPrice      Int
+  discount       Int?                                 @default(0)
+  commissionRate Float?
+  metadata       Json?
+
+  @@index([transactionId])
+  @@index([serviceId])
+  @@index([productId])
+  @@index([staffId])
+}
+
+model ClientPackage {
+  id           String               @id @default(cuid())
+  client       User?                @relation("ClientPackage_client", fields: [clientId], references: [id])
+  clientId     String?              @map("client")
+  package      ServicePackage?      @relation("ClientPackage_package", fields: [packageId], references: [id])
+  packageId    String?              @map("package")
+  purchasedAt  DateTime?            @default(now())
+  expiresAt    DateTime?
+  status       String?              @default("active")
+  totalValue   Int
+  paidAmount   Int
+  usedValue    Int?                 @default(0)
+  usageHistory ClientPackageUsage[] @relation("ClientPackageUsage_clientPackage")
+  metadata     Json?
+
+  @@index([clientId])
+  @@index([packageId])
+}
+
+model ClientPackageUsage {
+  id              String         @id @default(cuid())
+  clientPackage   ClientPackage? @relation("ClientPackageUsage_clientPackage", fields: [clientPackageId], references: [id])
+  clientPackageId String?        @map("clientPackage")
+  appointment     Appointment?   @relation("ClientPackageUsage_appointment", fields: [appointmentId], references: [id])
+  appointmentId   String?        @map("appointment")
+  service         Service?       @relation("ClientPackageUsage_service", fields: [serviceId], references: [id])
+  serviceId       String?        @map("service")
+  quantityUsed    Int?           @default(1)
+  valueUsed       Int
+  usedAt          DateTime?      @default(now())
+
+  @@index([clientPackageId])
+  @@index([appointmentId])
+  @@index([serviceId])
+}
+
+enum ServiceStatusType {
+  active
+  inactive
+}
+
+enum StylistRoleType {
+  stylist
+  colorist
+  nail_tech
+  esthetician
+  massage_therapist
+  manager
+  receptionist
+}
+
+enum StylistTierType {
+  junior
+  senior
+  master
+  celebrity
+}
+
+enum StylistEmploymentTypeType {
+  full_time
+  part_time
+  contractor
+}
+
+enum StylistStatusType {
+  active
+  on_leave
+  inactive
+}
+
+enum ClientSkinTypeType {
+  oily
+  dry
+  combination
+  sensitive
+}
+
+enum ClientHairTypeType {
+  straight
+  wavy
+  curly
+  coily
+}
+
+enum StylistScheduleTypeType {
+  recurring
+  one_time
+  time_off
+}
+
+enum StylistScheduleDayOfWeekLegacyType {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+enum AppointmentStatusType {
+  pending
+  confirmed
+  in_progress
+  completed
+  cancelled
+  no_show
+}
+
+enum SalonTransactionTypeType {
+  appointment
+  walk_in
+  retail
+}
+
+enum SalonTransactionPaymentMethodType {
+  cash
+  card
+  split
+  gift_card
+  package
+}
+
+enum SalonTransactionPaymentStatusType {
+  pending
+  paid
+  partially_paid
+  refunded
+}
+
+enum SalonTransactionStatusType {
+  open
+  completed
+  voided
+}
+
+enum SalonTransactionLineItemItemTypeType {
+  service
+  product
 }

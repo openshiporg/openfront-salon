@@ -8,7 +8,7 @@ export const Role = list({
   access: {
     operation: {
       ...allOperations(permissions.canManageRoles),
-      query: isSignedIn,
+      query: () => true,
     },
   },
   ui: {

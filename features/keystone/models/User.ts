@@ -8,15 +8,9 @@ import type { Session } from '../access'
 export const User = list({
   access: {
     operation: {
-      ...allOperations(isSignedIn),
-      create: (args) => {
-        // Allow public sign-ups if environment variable is set to true
-        if (process.env.PUBLIC_SIGNUPS_ALLOWED === 'true') {
-          return true;
-        }
-        // Otherwise, require canManagePeople permission
-        return permissions.canManagePeople(args);
-      },
+      create: () => true,  // Allow public creation for init
+      query: isSignedIn,
+      update: isSignedIn,
       delete: permissions.canManagePeople,
     },
     filter: {
@@ -28,7 +22,7 @@ export const User = list({
     hideCreate: args => !permissions.canManagePeople(args),
     hideDelete: args => !permissions.canManagePeople(args),
     listView: {
-      initialColumns: ['name', 'email', 'role', 'tasks'],
+      initialColumns: ['name', 'email', 'role'],
     },
     itemView: {
       defaultFieldMode: ({ session, item }) => {
@@ -75,21 +69,6 @@ export const User = list({
         itemView: {
           fieldMode: args => (permissions.canManagePeople(args) ? 'edit' : 'read'),
         },
-      },
-    }),
-    tasks: relationship({
-      ref: 'Todo.assignedTo',
-      many: true,
-      access: {
-        create: permissions.canManageAllTodos,
-        update: ({ session, item }) =>
-          permissions.canManageAllTodos({ session }) || session?.itemId === item.id,
-      },
-      ui: {
-        createView: {
-          fieldMode: args => (permissions.canManageAllTodos(args) ? 'edit' : 'hidden'),
-        },
-        // itemView: { fieldMode: 'read' },
       },
     }),
   },

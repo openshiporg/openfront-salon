@@ -7,8 +7,6 @@ type User {
   email: String
   password: PasswordState
   role: Role
-  tasks(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  tasksCount(where: TodoWhereInput! = {}): Int
   passwordResetToken: PasswordState
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -31,7 +29,6 @@ input UserWhereInput {
   id: IDFilter
   name: StringFilter
   role: RoleWhereInput
-  tasks: TodoManyRelationFilter
   passwordResetToken: PasswordFilter
   passwordResetIssuedAt: DateTimeNullableFilter
   passwordResetRedeemedAt: DateTimeNullableFilter
@@ -82,12 +79,6 @@ input NestedStringFilter {
   not: NestedStringFilter
 }
 
-input TodoManyRelationFilter {
-  every: TodoWhereInput
-  some: TodoWhereInput
-  none: TodoWhereInput
-}
-
 input PasswordFilter {
   isSet: Boolean!
 }
@@ -120,7 +111,6 @@ input UserUpdateInput {
   email: String
   password: String
   role: RoleRelateToOneForUpdateInput
-  tasks: TodoRelateToManyForUpdateInput
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -130,13 +120,6 @@ input RoleRelateToOneForUpdateInput {
   create: RoleCreateInput
   connect: RoleWhereUniqueInput
   disconnect: Boolean
-}
-
-input TodoRelateToManyForUpdateInput {
-  disconnect: [TodoWhereUniqueInput!]
-  set: [TodoWhereUniqueInput!]
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
 }
 
 input UserUpdateArgs {
@@ -149,7 +132,6 @@ input UserCreateInput {
   email: String
   password: String
   role: RoleRelateToOneForCreateInput
-  tasks: TodoRelateToManyForCreateInput
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -158,11 +140,6 @@ input UserCreateInput {
 input RoleRelateToOneForCreateInput {
   create: RoleCreateInput
   connect: RoleWhereUniqueInput
-}
-
-input TodoRelateToManyForCreateInput {
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
 }
 
 type Role {
@@ -263,34 +240,12 @@ input UserRelateToManyForCreateInput {
   connect: [UserWhereUniqueInput!]
 }
 
-type Todo {
+type SalonImage {
   id: ID!
-  label: String
-  description: Todo_description_Document
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
+  image: ImageFieldOutput
+  altText: String
   metadata: JSON
-  secretNote: PasswordState
-  coverImage: ImageFieldOutput
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
-  assignedTo: User
 }
-
-type Todo_description_Document {
-  document(hydrateRelationships: Boolean! = false): JSON!
-}
-
-scalar Decimal
-
-scalar BigInt
 
 type ImageFieldOutput {
   id: ID!
@@ -308,27 +263,811 @@ enum ImageExtension {
   gif
 }
 
-input TodoWhereUniqueInput {
+input SalonImageWhereUniqueInput {
   id: ID
 }
 
-input TodoWhereInput {
-  AND: [TodoWhereInput!]
-  OR: [TodoWhereInput!]
-  NOT: [TodoWhereInput!]
+input SalonImageWhereInput {
+  AND: [SalonImageWhereInput!]
+  OR: [SalonImageWhereInput!]
+  NOT: [SalonImageWhereInput!]
   id: IDFilter
-  label: StringFilter
-  isComplete: BooleanFilter
-  status: StringNullableFilter
-  priority: IntNullableFilter
-  dueDate: DateTimeNullableFilter
-  weight: FloatNullableFilter
-  budget: DecimalNullableFilter
-  isPrivate: BooleanFilter
-  largeNumber: BigIntNullableFilter
-  secretNote: PasswordFilter
-  todoImages: TodoImageManyRelationFilter
-  assignedTo: UserWhereInput
+  altText: StringFilter
+}
+
+input SalonImageOrderByInput {
+  id: OrderDirection
+  altText: OrderDirection
+}
+
+input SalonImageUpdateInput {
+  image: ImageFieldInput
+  altText: String
+  metadata: JSON
+}
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+input SalonImageUpdateArgs {
+  where: SalonImageWhereUniqueInput!
+  data: SalonImageUpdateInput!
+}
+
+input SalonImageCreateInput {
+  image: ImageFieldInput
+  altText: String
+  metadata: JSON
+}
+
+type ServiceCategory {
+  id: ID!
+  name: String
+  description: String
+  slug: String
+  parent: ServiceCategory
+  displayOrder: Int
+  sortOrder: Int
+  isVisible: Boolean
+  icon: String
+  services(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  servicesCount(where: ServiceWhereInput! = {}): Int
+}
+
+input ServiceCategoryWhereUniqueInput {
+  id: ID
+  slug: String
+}
+
+input ServiceCategoryWhereInput {
+  AND: [ServiceCategoryWhereInput!]
+  OR: [ServiceCategoryWhereInput!]
+  NOT: [ServiceCategoryWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  description: StringFilter
+  slug: StringFilter
+  parent: ServiceCategoryWhereInput
+  displayOrder: IntNullableFilter
+  sortOrder: IntNullableFilter
+  isVisible: BooleanFilter
+  icon: StringFilter
+  services: ServiceManyRelationFilter
+}
+
+input IntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntNullableFilter
+}
+
+input ServiceManyRelationFilter {
+  every: ServiceWhereInput
+  some: ServiceWhereInput
+  none: ServiceWhereInput
+}
+
+input ServiceCategoryOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  description: OrderDirection
+  slug: OrderDirection
+  displayOrder: OrderDirection
+  sortOrder: OrderDirection
+  isVisible: OrderDirection
+  icon: OrderDirection
+}
+
+input ServiceCategoryUpdateInput {
+  name: String
+  description: String
+  slug: String
+  parent: ServiceCategoryRelateToOneForUpdateInput
+  displayOrder: Int
+  sortOrder: Int
+  isVisible: Boolean
+  icon: String
+  services: ServiceRelateToManyForUpdateInput
+}
+
+input ServiceCategoryRelateToOneForUpdateInput {
+  create: ServiceCategoryCreateInput
+  connect: ServiceCategoryWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ServiceRelateToManyForUpdateInput {
+  disconnect: [ServiceWhereUniqueInput!]
+  set: [ServiceWhereUniqueInput!]
+  create: [ServiceCreateInput!]
+  connect: [ServiceWhereUniqueInput!]
+}
+
+input ServiceCategoryUpdateArgs {
+  where: ServiceCategoryWhereUniqueInput!
+  data: ServiceCategoryUpdateInput!
+}
+
+input ServiceCategoryCreateInput {
+  name: String
+  description: String
+  slug: String
+  parent: ServiceCategoryRelateToOneForCreateInput
+  displayOrder: Int
+  sortOrder: Int
+  isVisible: Boolean
+  icon: String
+  services: ServiceRelateToManyForCreateInput
+}
+
+input ServiceCategoryRelateToOneForCreateInput {
+  create: ServiceCategoryCreateInput
+  connect: ServiceCategoryWhereUniqueInput
+}
+
+input ServiceRelateToManyForCreateInput {
+  create: [ServiceCreateInput!]
+  connect: [ServiceWhereUniqueInput!]
+}
+
+type Service {
+  id: ID!
+  name: String
+  description: String
+  baseDuration: Int
+  price: Int
+  basePrice: Float
+  depositRequired: Boolean
+  depositAmount: Int
+  status: ServiceStatusType
+  metadata: JSON
+  pricingTier: JSON
+  requiresConsultation: Boolean
+  requiresPatchTest: Boolean
+  category: ServiceCategory
+  image: SalonImage
+  specialists(where: StylistWhereInput! = {}, orderBy: [StylistOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StylistWhereUniqueInput): [Stylist!]
+  specialistsCount(where: StylistWhereInput! = {}): Int
+  reviews(where: ReviewWhereInput! = {}, orderBy: [ReviewOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReviewWhereUniqueInput): [Review!]
+  reviewsCount(where: ReviewWhereInput! = {}): Int
+  variants(where: ServiceVariantWhereInput! = {}, orderBy: [ServiceVariantOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceVariantWhereUniqueInput): [ServiceVariant!]
+  variantsCount(where: ServiceVariantWhereInput! = {}): Int
+  formattedPrice: String
+}
+
+enum ServiceStatusType {
+  active
+  inactive
+}
+
+input ServiceWhereUniqueInput {
+  id: ID
+}
+
+input ServiceWhereInput {
+  AND: [ServiceWhereInput!]
+  OR: [ServiceWhereInput!]
+  NOT: [ServiceWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  description: StringFilter
+  baseDuration: IntFilter
+  price: IntFilter
+  basePrice: FloatNullableFilter
+  depositRequired: BooleanFilter
+  depositAmount: IntNullableFilter
+  status: ServiceStatusTypeNullableFilter
+  requiresConsultation: BooleanFilter
+  requiresPatchTest: BooleanFilter
+  category: ServiceCategoryWhereInput
+  image: SalonImageWhereInput
+  specialists: StylistManyRelationFilter
+  reviews: ReviewManyRelationFilter
+  variants: ServiceVariantManyRelationFilter
+}
+
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
+input FloatNullableFilter {
+  equals: Float
+  in: [Float!]
+  notIn: [Float!]
+  lt: Float
+  lte: Float
+  gt: Float
+  gte: Float
+  not: FloatNullableFilter
+}
+
+input ServiceStatusTypeNullableFilter {
+  equals: ServiceStatusType
+  in: [ServiceStatusType!]
+  notIn: [ServiceStatusType!]
+  not: ServiceStatusTypeNullableFilter
+}
+
+input StylistManyRelationFilter {
+  every: StylistWhereInput
+  some: StylistWhereInput
+  none: StylistWhereInput
+}
+
+input ReviewManyRelationFilter {
+  every: ReviewWhereInput
+  some: ReviewWhereInput
+  none: ReviewWhereInput
+}
+
+input ServiceVariantManyRelationFilter {
+  every: ServiceVariantWhereInput
+  some: ServiceVariantWhereInput
+  none: ServiceVariantWhereInput
+}
+
+input ServiceOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  description: OrderDirection
+  baseDuration: OrderDirection
+  price: OrderDirection
+  basePrice: OrderDirection
+  depositRequired: OrderDirection
+  depositAmount: OrderDirection
+  status: OrderDirection
+  requiresConsultation: OrderDirection
+  requiresPatchTest: OrderDirection
+}
+
+input ServiceUpdateInput {
+  name: String
+  description: String
+  baseDuration: Int
+  price: Int
+  basePrice: Float
+  depositRequired: Boolean
+  depositAmount: Int
+  status: ServiceStatusType
+  metadata: JSON
+  pricingTier: JSON
+  requiresConsultation: Boolean
+  requiresPatchTest: Boolean
+  category: ServiceCategoryRelateToOneForUpdateInput
+  image: SalonImageRelateToOneForUpdateInput
+  specialists: StylistRelateToManyForUpdateInput
+  reviews: ReviewRelateToManyForUpdateInput
+  variants: ServiceVariantRelateToManyForUpdateInput
+}
+
+input SalonImageRelateToOneForUpdateInput {
+  create: SalonImageCreateInput
+  connect: SalonImageWhereUniqueInput
+  disconnect: Boolean
+}
+
+input StylistRelateToManyForUpdateInput {
+  disconnect: [StylistWhereUniqueInput!]
+  set: [StylistWhereUniqueInput!]
+  create: [StylistCreateInput!]
+  connect: [StylistWhereUniqueInput!]
+}
+
+input ReviewRelateToManyForUpdateInput {
+  disconnect: [ReviewWhereUniqueInput!]
+  set: [ReviewWhereUniqueInput!]
+  create: [ReviewCreateInput!]
+  connect: [ReviewWhereUniqueInput!]
+}
+
+input ServiceVariantRelateToManyForUpdateInput {
+  disconnect: [ServiceVariantWhereUniqueInput!]
+  set: [ServiceVariantWhereUniqueInput!]
+  create: [ServiceVariantCreateInput!]
+  connect: [ServiceVariantWhereUniqueInput!]
+}
+
+input ServiceUpdateArgs {
+  where: ServiceWhereUniqueInput!
+  data: ServiceUpdateInput!
+}
+
+input ServiceCreateInput {
+  name: String
+  description: String
+  baseDuration: Int
+  price: Int
+  basePrice: Float
+  depositRequired: Boolean
+  depositAmount: Int
+  status: ServiceStatusType
+  metadata: JSON
+  pricingTier: JSON
+  requiresConsultation: Boolean
+  requiresPatchTest: Boolean
+  category: ServiceCategoryRelateToOneForCreateInput
+  image: SalonImageRelateToOneForCreateInput
+  specialists: StylistRelateToManyForCreateInput
+  reviews: ReviewRelateToManyForCreateInput
+  variants: ServiceVariantRelateToManyForCreateInput
+}
+
+input SalonImageRelateToOneForCreateInput {
+  create: SalonImageCreateInput
+  connect: SalonImageWhereUniqueInput
+}
+
+input StylistRelateToManyForCreateInput {
+  create: [StylistCreateInput!]
+  connect: [StylistWhereUniqueInput!]
+}
+
+input ReviewRelateToManyForCreateInput {
+  create: [ReviewCreateInput!]
+  connect: [ReviewWhereUniqueInput!]
+}
+
+input ServiceVariantRelateToManyForCreateInput {
+  create: [ServiceVariantCreateInput!]
+  connect: [ServiceVariantWhereUniqueInput!]
+}
+
+type ServiceVariant {
+  id: ID!
+  name: String
+  service: Service
+  price: Int
+  duration: Int
+  staffLevel: String
+  displayOrder: Int
+  formattedPrice: String
+}
+
+input ServiceVariantWhereUniqueInput {
+  id: ID
+}
+
+input ServiceVariantWhereInput {
+  AND: [ServiceVariantWhereInput!]
+  OR: [ServiceVariantWhereInput!]
+  NOT: [ServiceVariantWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  service: ServiceWhereInput
+  price: IntFilter
+  duration: IntNullableFilter
+  staffLevel: StringFilter
+  displayOrder: IntNullableFilter
+}
+
+input ServiceVariantOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  price: OrderDirection
+  duration: OrderDirection
+  staffLevel: OrderDirection
+  displayOrder: OrderDirection
+}
+
+input ServiceVariantUpdateInput {
+  name: String
+  service: ServiceRelateToOneForUpdateInput
+  price: Int
+  duration: Int
+  staffLevel: String
+  displayOrder: Int
+}
+
+input ServiceRelateToOneForUpdateInput {
+  create: ServiceCreateInput
+  connect: ServiceWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ServiceVariantUpdateArgs {
+  where: ServiceVariantWhereUniqueInput!
+  data: ServiceVariantUpdateInput!
+}
+
+input ServiceVariantCreateInput {
+  name: String
+  service: ServiceRelateToOneForCreateInput
+  price: Int
+  duration: Int
+  staffLevel: String
+  displayOrder: Int
+}
+
+input ServiceRelateToOneForCreateInput {
+  create: ServiceCreateInput
+  connect: ServiceWhereUniqueInput
+}
+
+type Stylist {
+  id: ID!
+  user: User
+  role: StylistRoleType
+  tier: StylistTierType
+  bio: String
+  baseCommissionRate: Float
+  commissionRate: Float
+  certifications: JSON
+  hireDate: DateTime
+  employmentType: StylistEmploymentTypeType
+  status: StylistStatusType
+  isActive: Boolean
+  photoUrl: String
+  socialMedia: JSON
+  photo: SalonImage
+  specializations(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  specializationsCount(where: ServiceWhereInput! = {}): Int
+  schedules(where: StylistScheduleWhereInput! = {}, orderBy: [StylistScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StylistScheduleWhereUniqueInput): [StylistSchedule!]
+  schedulesCount(where: StylistScheduleWhereInput! = {}): Int
+  appointments(where: AppointmentWhereInput! = {}, orderBy: [AppointmentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentWhereUniqueInput): [Appointment!]
+  appointmentsCount(where: AppointmentWhereInput! = {}): Int
+  preferredByClients(where: ClientWhereInput! = {}, orderBy: [ClientOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientWhereUniqueInput): [Client!]
+  preferredByClientsCount(where: ClientWhereInput! = {}): Int
+  colorFormulas(where: ColorFormulaWhereInput! = {}, orderBy: [ColorFormulaOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ColorFormulaWhereUniqueInput): [ColorFormula!]
+  colorFormulasCount(where: ColorFormulaWhereInput! = {}): Int
+  waitlistEntries(where: WaitlistEntryWhereInput! = {}, orderBy: [WaitlistEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WaitlistEntryWhereUniqueInput): [WaitlistEntry!]
+  waitlistEntriesCount(where: WaitlistEntryWhereInput! = {}): Int
+  reviews(where: ReviewWhereInput! = {}, orderBy: [ReviewOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReviewWhereUniqueInput): [Review!]
+  reviewsCount(where: ReviewWhereInput! = {}): Int
+}
+
+enum StylistRoleType {
+  stylist
+  colorist
+  nail_tech
+  esthetician
+  massage_therapist
+  manager
+  receptionist
+}
+
+enum StylistTierType {
+  junior
+  senior
+  master
+  celebrity
+}
+
+enum StylistEmploymentTypeType {
+  full_time
+  part_time
+  contractor
+}
+
+enum StylistStatusType {
+  active
+  on_leave
+  inactive
+}
+
+input StylistWhereUniqueInput {
+  id: ID
+}
+
+input StylistWhereInput {
+  AND: [StylistWhereInput!]
+  OR: [StylistWhereInput!]
+  NOT: [StylistWhereInput!]
+  id: IDFilter
+  user: UserWhereInput
+  role: StylistRoleTypeNullableFilter
+  tier: StylistTierTypeNullableFilter
+  bio: StringFilter
+  baseCommissionRate: FloatNullableFilter
+  commissionRate: FloatNullableFilter
+  hireDate: DateTimeNullableFilter
+  employmentType: StylistEmploymentTypeTypeNullableFilter
+  status: StylistStatusTypeNullableFilter
+  isActive: BooleanFilter
+  photoUrl: StringFilter
+  photo: SalonImageWhereInput
+  specializations: ServiceManyRelationFilter
+  schedules: StylistScheduleManyRelationFilter
+  appointments: AppointmentManyRelationFilter
+  preferredByClients: ClientManyRelationFilter
+  colorFormulas: ColorFormulaManyRelationFilter
+  waitlistEntries: WaitlistEntryManyRelationFilter
+  reviews: ReviewManyRelationFilter
+}
+
+input StylistRoleTypeNullableFilter {
+  equals: StylistRoleType
+  in: [StylistRoleType!]
+  notIn: [StylistRoleType!]
+  not: StylistRoleTypeNullableFilter
+}
+
+input StylistTierTypeNullableFilter {
+  equals: StylistTierType
+  in: [StylistTierType!]
+  notIn: [StylistTierType!]
+  not: StylistTierTypeNullableFilter
+}
+
+input StylistEmploymentTypeTypeNullableFilter {
+  equals: StylistEmploymentTypeType
+  in: [StylistEmploymentTypeType!]
+  notIn: [StylistEmploymentTypeType!]
+  not: StylistEmploymentTypeTypeNullableFilter
+}
+
+input StylistStatusTypeNullableFilter {
+  equals: StylistStatusType
+  in: [StylistStatusType!]
+  notIn: [StylistStatusType!]
+  not: StylistStatusTypeNullableFilter
+}
+
+input StylistScheduleManyRelationFilter {
+  every: StylistScheduleWhereInput
+  some: StylistScheduleWhereInput
+  none: StylistScheduleWhereInput
+}
+
+input AppointmentManyRelationFilter {
+  every: AppointmentWhereInput
+  some: AppointmentWhereInput
+  none: AppointmentWhereInput
+}
+
+input ClientManyRelationFilter {
+  every: ClientWhereInput
+  some: ClientWhereInput
+  none: ClientWhereInput
+}
+
+input ColorFormulaManyRelationFilter {
+  every: ColorFormulaWhereInput
+  some: ColorFormulaWhereInput
+  none: ColorFormulaWhereInput
+}
+
+input WaitlistEntryManyRelationFilter {
+  every: WaitlistEntryWhereInput
+  some: WaitlistEntryWhereInput
+  none: WaitlistEntryWhereInput
+}
+
+input StylistOrderByInput {
+  id: OrderDirection
+  role: OrderDirection
+  tier: OrderDirection
+  bio: OrderDirection
+  baseCommissionRate: OrderDirection
+  commissionRate: OrderDirection
+  hireDate: OrderDirection
+  employmentType: OrderDirection
+  status: OrderDirection
+  isActive: OrderDirection
+  photoUrl: OrderDirection
+}
+
+input StylistUpdateInput {
+  user: UserRelateToOneForUpdateInput
+  role: StylistRoleType
+  tier: StylistTierType
+  bio: String
+  baseCommissionRate: Float
+  commissionRate: Float
+  certifications: JSON
+  hireDate: DateTime
+  employmentType: StylistEmploymentTypeType
+  status: StylistStatusType
+  isActive: Boolean
+  photoUrl: String
+  socialMedia: JSON
+  photo: SalonImageRelateToOneForUpdateInput
+  specializations: ServiceRelateToManyForUpdateInput
+  schedules: StylistScheduleRelateToManyForUpdateInput
+  appointments: AppointmentRelateToManyForUpdateInput
+  preferredByClients: ClientRelateToManyForUpdateInput
+  colorFormulas: ColorFormulaRelateToManyForUpdateInput
+  waitlistEntries: WaitlistEntryRelateToManyForUpdateInput
+  reviews: ReviewRelateToManyForUpdateInput
+}
+
+input UserRelateToOneForUpdateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+}
+
+input StylistScheduleRelateToManyForUpdateInput {
+  disconnect: [StylistScheduleWhereUniqueInput!]
+  set: [StylistScheduleWhereUniqueInput!]
+  create: [StylistScheduleCreateInput!]
+  connect: [StylistScheduleWhereUniqueInput!]
+}
+
+input AppointmentRelateToManyForUpdateInput {
+  disconnect: [AppointmentWhereUniqueInput!]
+  set: [AppointmentWhereUniqueInput!]
+  create: [AppointmentCreateInput!]
+  connect: [AppointmentWhereUniqueInput!]
+}
+
+input ClientRelateToManyForUpdateInput {
+  disconnect: [ClientWhereUniqueInput!]
+  set: [ClientWhereUniqueInput!]
+  create: [ClientCreateInput!]
+  connect: [ClientWhereUniqueInput!]
+}
+
+input ColorFormulaRelateToManyForUpdateInput {
+  disconnect: [ColorFormulaWhereUniqueInput!]
+  set: [ColorFormulaWhereUniqueInput!]
+  create: [ColorFormulaCreateInput!]
+  connect: [ColorFormulaWhereUniqueInput!]
+}
+
+input WaitlistEntryRelateToManyForUpdateInput {
+  disconnect: [WaitlistEntryWhereUniqueInput!]
+  set: [WaitlistEntryWhereUniqueInput!]
+  create: [WaitlistEntryCreateInput!]
+  connect: [WaitlistEntryWhereUniqueInput!]
+}
+
+input StylistUpdateArgs {
+  where: StylistWhereUniqueInput!
+  data: StylistUpdateInput!
+}
+
+input StylistCreateInput {
+  user: UserRelateToOneForCreateInput
+  role: StylistRoleType
+  tier: StylistTierType
+  bio: String
+  baseCommissionRate: Float
+  commissionRate: Float
+  certifications: JSON
+  hireDate: DateTime
+  employmentType: StylistEmploymentTypeType
+  status: StylistStatusType
+  isActive: Boolean
+  photoUrl: String
+  socialMedia: JSON
+  photo: SalonImageRelateToOneForCreateInput
+  specializations: ServiceRelateToManyForCreateInput
+  schedules: StylistScheduleRelateToManyForCreateInput
+  appointments: AppointmentRelateToManyForCreateInput
+  preferredByClients: ClientRelateToManyForCreateInput
+  colorFormulas: ColorFormulaRelateToManyForCreateInput
+  waitlistEntries: WaitlistEntryRelateToManyForCreateInput
+  reviews: ReviewRelateToManyForCreateInput
+}
+
+input UserRelateToOneForCreateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+}
+
+input StylistScheduleRelateToManyForCreateInput {
+  create: [StylistScheduleCreateInput!]
+  connect: [StylistScheduleWhereUniqueInput!]
+}
+
+input AppointmentRelateToManyForCreateInput {
+  create: [AppointmentCreateInput!]
+  connect: [AppointmentWhereUniqueInput!]
+}
+
+input ClientRelateToManyForCreateInput {
+  create: [ClientCreateInput!]
+  connect: [ClientWhereUniqueInput!]
+}
+
+input ColorFormulaRelateToManyForCreateInput {
+  create: [ColorFormulaCreateInput!]
+  connect: [ColorFormulaWhereUniqueInput!]
+}
+
+input WaitlistEntryRelateToManyForCreateInput {
+  create: [WaitlistEntryCreateInput!]
+  connect: [WaitlistEntryWhereUniqueInput!]
+}
+
+type Client {
+  id: ID!
+  user: User
+  dateOfBirth: DateTime
+  preferredStylist: Stylist
+  allergies: String
+  skinSensitivities: String
+  skinType: ClientSkinTypeType
+  hairType: ClientHairTypeType
+  hairTexture: String
+  scalpCondition: String
+  notes: String
+  firstVisit: DateTime
+  lastVisit: DateTime
+  totalVisits: Int
+  lifetimeValue: Float
+  photoConsent: Boolean
+  marketingConsent: Boolean
+  appointments(where: AppointmentWhereInput! = {}, orderBy: [AppointmentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentWhereUniqueInput): [Appointment!]
+  appointmentsCount(where: AppointmentWhereInput! = {}): Int
+  colorFormulas(where: ColorFormulaWhereInput! = {}, orderBy: [ColorFormulaOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ColorFormulaWhereUniqueInput): [ColorFormula!]
+  colorFormulasCount(where: ColorFormulaWhereInput! = {}): Int
+  reviews(where: ReviewWhereInput! = {}, orderBy: [ReviewOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReviewWhereUniqueInput): [Review!]
+  reviewsCount(where: ReviewWhereInput! = {}): Int
+}
+
+enum ClientSkinTypeType {
+  oily
+  dry
+  combination
+  sensitive
+}
+
+enum ClientHairTypeType {
+  straight
+  wavy
+  curly
+  coily
+}
+
+input ClientWhereUniqueInput {
+  id: ID
+}
+
+input ClientWhereInput {
+  AND: [ClientWhereInput!]
+  OR: [ClientWhereInput!]
+  NOT: [ClientWhereInput!]
+  id: IDFilter
+  user: UserWhereInput
+  dateOfBirth: DateTimeNullableFilter
+  preferredStylist: StylistWhereInput
+  allergies: StringFilter
+  skinSensitivities: StringFilter
+  skinType: ClientSkinTypeTypeNullableFilter
+  hairType: ClientHairTypeTypeNullableFilter
+  hairTexture: StringNullableFilter
+  scalpCondition: StringNullableFilter
+  notes: StringFilter
+  firstVisit: DateTimeNullableFilter
+  lastVisit: DateTimeNullableFilter
+  totalVisits: IntNullableFilter
+  lifetimeValue: FloatNullableFilter
+  photoConsent: BooleanFilter
+  marketingConsent: BooleanFilter
+  appointments: AppointmentManyRelationFilter
+  colorFormulas: ColorFormulaManyRelationFilter
+  reviews: ReviewManyRelationFilter
+}
+
+input ClientSkinTypeTypeNullableFilter {
+  equals: ClientSkinTypeType
+  in: [ClientSkinTypeType!]
+  notIn: [ClientSkinTypeType!]
+  not: ClientSkinTypeTypeNullableFilter
+}
+
+input ClientHairTypeTypeNullableFilter {
+  equals: ClientHairTypeType
+  in: [ClientHairTypeType!]
+  notIn: [ClientHairTypeType!]
+  not: ClientHairTypeTypeNullableFilter
 }
 
 input StringNullableFilter {
@@ -346,18 +1085,744 @@ input StringNullableFilter {
   not: StringNullableFilter
 }
 
-input IntNullableFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntNullableFilter
+input ClientOrderByInput {
+  id: OrderDirection
+  dateOfBirth: OrderDirection
+  allergies: OrderDirection
+  skinSensitivities: OrderDirection
+  skinType: OrderDirection
+  hairType: OrderDirection
+  hairTexture: OrderDirection
+  scalpCondition: OrderDirection
+  notes: OrderDirection
+  firstVisit: OrderDirection
+  lastVisit: OrderDirection
+  totalVisits: OrderDirection
+  lifetimeValue: OrderDirection
+  photoConsent: OrderDirection
+  marketingConsent: OrderDirection
 }
 
-input FloatNullableFilter {
+input ClientUpdateInput {
+  user: UserRelateToOneForUpdateInput
+  dateOfBirth: DateTime
+  preferredStylist: StylistRelateToOneForUpdateInput
+  allergies: String
+  skinSensitivities: String
+  skinType: ClientSkinTypeType
+  hairType: ClientHairTypeType
+  hairTexture: String
+  scalpCondition: String
+  notes: String
+  firstVisit: DateTime
+  lastVisit: DateTime
+  totalVisits: Int
+  lifetimeValue: Float
+  photoConsent: Boolean
+  marketingConsent: Boolean
+  appointments: AppointmentRelateToManyForUpdateInput
+  colorFormulas: ColorFormulaRelateToManyForUpdateInput
+  reviews: ReviewRelateToManyForUpdateInput
+}
+
+input StylistRelateToOneForUpdateInput {
+  create: StylistCreateInput
+  connect: StylistWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientUpdateArgs {
+  where: ClientWhereUniqueInput!
+  data: ClientUpdateInput!
+}
+
+input ClientCreateInput {
+  user: UserRelateToOneForCreateInput
+  dateOfBirth: DateTime
+  preferredStylist: StylistRelateToOneForCreateInput
+  allergies: String
+  skinSensitivities: String
+  skinType: ClientSkinTypeType
+  hairType: ClientHairTypeType
+  hairTexture: String
+  scalpCondition: String
+  notes: String
+  firstVisit: DateTime
+  lastVisit: DateTime
+  totalVisits: Int
+  lifetimeValue: Float
+  photoConsent: Boolean
+  marketingConsent: Boolean
+  appointments: AppointmentRelateToManyForCreateInput
+  colorFormulas: ColorFormulaRelateToManyForCreateInput
+  reviews: ReviewRelateToManyForCreateInput
+}
+
+input StylistRelateToOneForCreateInput {
+  create: StylistCreateInput
+  connect: StylistWhereUniqueInput
+}
+
+type ClientNote {
+  id: ID!
+  client: Client
+  author: User
+  content: String
+  isPrivate: Boolean
+  appointment: Appointment
+  photos(where: SalonImageWhereInput! = {}, orderBy: [SalonImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SalonImageWhereUniqueInput): [SalonImage!]
+  photosCount(where: SalonImageWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientNoteWhereUniqueInput {
+  id: ID
+}
+
+input ClientNoteWhereInput {
+  AND: [ClientNoteWhereInput!]
+  OR: [ClientNoteWhereInput!]
+  NOT: [ClientNoteWhereInput!]
+  id: IDFilter
+  client: ClientWhereInput
+  author: UserWhereInput
+  content: StringFilter
+  isPrivate: BooleanFilter
+  appointment: AppointmentWhereInput
+  photos: SalonImageManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+}
+
+input SalonImageManyRelationFilter {
+  every: SalonImageWhereInput
+  some: SalonImageWhereInput
+  none: SalonImageWhereInput
+}
+
+input ClientNoteOrderByInput {
+  id: OrderDirection
+  content: OrderDirection
+  isPrivate: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ClientNoteUpdateInput {
+  client: ClientRelateToOneForUpdateInput
+  author: UserRelateToOneForUpdateInput
+  content: String
+  isPrivate: Boolean
+  appointment: AppointmentRelateToOneForUpdateInput
+  photos: SalonImageRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientRelateToOneForUpdateInput {
+  create: ClientCreateInput
+  connect: ClientWhereUniqueInput
+  disconnect: Boolean
+}
+
+input AppointmentRelateToOneForUpdateInput {
+  create: AppointmentCreateInput
+  connect: AppointmentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input SalonImageRelateToManyForUpdateInput {
+  disconnect: [SalonImageWhereUniqueInput!]
+  set: [SalonImageWhereUniqueInput!]
+  create: [SalonImageCreateInput!]
+  connect: [SalonImageWhereUniqueInput!]
+}
+
+input ClientNoteUpdateArgs {
+  where: ClientNoteWhereUniqueInput!
+  data: ClientNoteUpdateInput!
+}
+
+input ClientNoteCreateInput {
+  client: ClientRelateToOneForCreateInput
+  author: UserRelateToOneForCreateInput
+  content: String
+  isPrivate: Boolean
+  appointment: AppointmentRelateToOneForCreateInput
+  photos: SalonImageRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientRelateToOneForCreateInput {
+  create: ClientCreateInput
+  connect: ClientWhereUniqueInput
+}
+
+input AppointmentRelateToOneForCreateInput {
+  create: AppointmentCreateInput
+  connect: AppointmentWhereUniqueInput
+}
+
+input SalonImageRelateToManyForCreateInput {
+  create: [SalonImageCreateInput!]
+  connect: [SalonImageWhereUniqueInput!]
+}
+
+type ColorFormula {
+  id: ID!
+  formulaName: String
+  products: String
+  measurements: String
+  processingTime: Int
+  result: String
+  createdAt: DateTime
+  client: Client
+  stylist: Stylist
+  appointment: Appointment
+  photo: SalonImage
+}
+
+input ColorFormulaWhereUniqueInput {
+  id: ID
+  appointment: AppointmentWhereUniqueInput
+}
+
+input ColorFormulaWhereInput {
+  AND: [ColorFormulaWhereInput!]
+  OR: [ColorFormulaWhereInput!]
+  NOT: [ColorFormulaWhereInput!]
+  id: IDFilter
+  formulaName: StringFilter
+  products: StringFilter
+  measurements: StringFilter
+  processingTime: IntNullableFilter
+  result: StringFilter
+  createdAt: DateTimeNullableFilter
+  client: ClientWhereInput
+  stylist: StylistWhereInput
+  appointment: AppointmentWhereInput
+  photo: SalonImageWhereInput
+}
+
+input ColorFormulaOrderByInput {
+  id: OrderDirection
+  formulaName: OrderDirection
+  products: OrderDirection
+  measurements: OrderDirection
+  processingTime: OrderDirection
+  result: OrderDirection
+  createdAt: OrderDirection
+}
+
+input ColorFormulaUpdateInput {
+  formulaName: String
+  products: String
+  measurements: String
+  processingTime: Int
+  result: String
+  createdAt: DateTime
+  client: ClientRelateToOneForUpdateInput
+  stylist: StylistRelateToOneForUpdateInput
+  appointment: AppointmentRelateToOneForUpdateInput
+  photo: SalonImageRelateToOneForUpdateInput
+}
+
+input ColorFormulaUpdateArgs {
+  where: ColorFormulaWhereUniqueInput!
+  data: ColorFormulaUpdateInput!
+}
+
+input ColorFormulaCreateInput {
+  formulaName: String
+  products: String
+  measurements: String
+  processingTime: Int
+  result: String
+  createdAt: DateTime
+  client: ClientRelateToOneForCreateInput
+  stylist: StylistRelateToOneForCreateInput
+  appointment: AppointmentRelateToOneForCreateInput
+  photo: SalonImageRelateToOneForCreateInput
+}
+
+type StylistSchedule {
+  id: ID!
+  type: StylistScheduleTypeType
+  dayOfWeek: Int
+  dayOfWeekLegacy: StylistScheduleDayOfWeekLegacyType
+  date: DateTime
+  startTime: String
+  endTime: String
+  isAvailable: Boolean
+  breakStart: String
+  breakEnd: String
+  reason: String
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  effectiveDate: DateTime
+  endDate: DateTime
+  stylist: Stylist
+}
+
+enum StylistScheduleTypeType {
+  recurring
+  one_time
+  time_off
+}
+
+enum StylistScheduleDayOfWeekLegacyType {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+input StylistScheduleWhereUniqueInput {
+  id: ID
+}
+
+input StylistScheduleWhereInput {
+  AND: [StylistScheduleWhereInput!]
+  OR: [StylistScheduleWhereInput!]
+  NOT: [StylistScheduleWhereInput!]
+  id: IDFilter
+  type: StylistScheduleTypeTypeNullableFilter
+  dayOfWeek: IntNullableFilter
+  dayOfWeekLegacy: StylistScheduleDayOfWeekLegacyTypeNullableFilter
+  date: DateTimeNullableFilter
+  startTime: StringFilter
+  endTime: StringFilter
+  isAvailable: BooleanFilter
+  breakStart: StringFilter
+  breakEnd: StringFilter
+  reason: StringFilter
+  effectiveFrom: DateTimeNullableFilter
+  effectiveTo: DateTimeNullableFilter
+  effectiveDate: DateTimeNullableFilter
+  endDate: DateTimeNullableFilter
+  stylist: StylistWhereInput
+}
+
+input StylistScheduleTypeTypeNullableFilter {
+  equals: StylistScheduleTypeType
+  in: [StylistScheduleTypeType!]
+  notIn: [StylistScheduleTypeType!]
+  not: StylistScheduleTypeTypeNullableFilter
+}
+
+input StylistScheduleDayOfWeekLegacyTypeNullableFilter {
+  equals: StylistScheduleDayOfWeekLegacyType
+  in: [StylistScheduleDayOfWeekLegacyType!]
+  notIn: [StylistScheduleDayOfWeekLegacyType!]
+  not: StylistScheduleDayOfWeekLegacyTypeNullableFilter
+}
+
+input StylistScheduleOrderByInput {
+  id: OrderDirection
+  type: OrderDirection
+  dayOfWeek: OrderDirection
+  dayOfWeekLegacy: OrderDirection
+  date: OrderDirection
+  startTime: OrderDirection
+  endTime: OrderDirection
+  isAvailable: OrderDirection
+  breakStart: OrderDirection
+  breakEnd: OrderDirection
+  reason: OrderDirection
+  effectiveFrom: OrderDirection
+  effectiveTo: OrderDirection
+  effectiveDate: OrderDirection
+  endDate: OrderDirection
+}
+
+input StylistScheduleUpdateInput {
+  type: StylistScheduleTypeType
+  dayOfWeek: Int
+  dayOfWeekLegacy: StylistScheduleDayOfWeekLegacyType
+  date: DateTime
+  startTime: String
+  endTime: String
+  isAvailable: Boolean
+  breakStart: String
+  breakEnd: String
+  reason: String
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  effectiveDate: DateTime
+  endDate: DateTime
+  stylist: StylistRelateToOneForUpdateInput
+}
+
+input StylistScheduleUpdateArgs {
+  where: StylistScheduleWhereUniqueInput!
+  data: StylistScheduleUpdateInput!
+}
+
+input StylistScheduleCreateInput {
+  type: StylistScheduleTypeType
+  dayOfWeek: Int
+  dayOfWeekLegacy: StylistScheduleDayOfWeekLegacyType
+  date: DateTime
+  startTime: String
+  endTime: String
+  isAvailable: Boolean
+  breakStart: String
+  breakEnd: String
+  reason: String
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  effectiveDate: DateTime
+  endDate: DateTime
+  stylist: StylistRelateToOneForCreateInput
+}
+
+type Appointment {
+  id: ID!
+  startTime: DateTime
+  endTime: DateTime
+  duration: Int
+  status: AppointmentStatusType
+  depositAmount: Int
+  depositPaid: Boolean
+  metadata: JSON
+  bookedAt: DateTime
+  confirmedAt: DateTime
+  cancelledAt: DateTime
+  cancellationReason: String
+  notes: String
+  clientNotes: String
+  internalNotes: String
+  client: Client
+  stylist: Stylist
+  services(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  servicesCount(where: ServiceWhereInput! = {}): Int
+  lineItems(where: AppointmentLineItemWhereInput! = {}, orderBy: [AppointmentLineItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentLineItemWhereUniqueInput): [AppointmentLineItem!]
+  lineItemsCount(where: AppointmentLineItemWhereInput! = {}): Int
+  colorFormula: ColorFormula
+  payment: Payment
+  review: Review
+  formattedDuration: String
+  isUpcoming: Boolean
+  isPast: Boolean
+}
+
+enum AppointmentStatusType {
+  pending
+  confirmed
+  in_progress
+  completed
+  cancelled
+  no_show
+}
+
+input AppointmentWhereUniqueInput {
+  id: ID
+  colorFormula: ColorFormulaWhereUniqueInput
+  payment: PaymentWhereUniqueInput
+  review: ReviewWhereUniqueInput
+}
+
+input AppointmentWhereInput {
+  AND: [AppointmentWhereInput!]
+  OR: [AppointmentWhereInput!]
+  NOT: [AppointmentWhereInput!]
+  id: IDFilter
+  startTime: DateTimeFilter
+  endTime: DateTimeNullableFilter
+  duration: IntNullableFilter
+  status: AppointmentStatusTypeNullableFilter
+  depositAmount: IntNullableFilter
+  depositPaid: BooleanFilter
+  bookedAt: DateTimeNullableFilter
+  confirmedAt: DateTimeNullableFilter
+  cancelledAt: DateTimeNullableFilter
+  cancellationReason: StringFilter
+  notes: StringFilter
+  clientNotes: StringFilter
+  internalNotes: StringFilter
+  client: ClientWhereInput
+  stylist: StylistWhereInput
+  services: ServiceManyRelationFilter
+  lineItems: AppointmentLineItemManyRelationFilter
+  colorFormula: ColorFormulaWhereInput
+  payment: PaymentWhereInput
+  review: ReviewWhereInput
+}
+
+input DateTimeFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeFilter
+}
+
+input AppointmentStatusTypeNullableFilter {
+  equals: AppointmentStatusType
+  in: [AppointmentStatusType!]
+  notIn: [AppointmentStatusType!]
+  not: AppointmentStatusTypeNullableFilter
+}
+
+input AppointmentLineItemManyRelationFilter {
+  every: AppointmentLineItemWhereInput
+  some: AppointmentLineItemWhereInput
+  none: AppointmentLineItemWhereInput
+}
+
+input AppointmentOrderByInput {
+  id: OrderDirection
+  startTime: OrderDirection
+  endTime: OrderDirection
+  duration: OrderDirection
+  status: OrderDirection
+  depositAmount: OrderDirection
+  depositPaid: OrderDirection
+  bookedAt: OrderDirection
+  confirmedAt: OrderDirection
+  cancelledAt: OrderDirection
+  cancellationReason: OrderDirection
+  notes: OrderDirection
+  clientNotes: OrderDirection
+  internalNotes: OrderDirection
+}
+
+input AppointmentUpdateInput {
+  startTime: DateTime
+  endTime: DateTime
+  duration: Int
+  status: AppointmentStatusType
+  depositAmount: Int
+  depositPaid: Boolean
+  metadata: JSON
+  bookedAt: DateTime
+  confirmedAt: DateTime
+  cancelledAt: DateTime
+  cancellationReason: String
+  notes: String
+  clientNotes: String
+  internalNotes: String
+  client: ClientRelateToOneForUpdateInput
+  stylist: StylistRelateToOneForUpdateInput
+  services: ServiceRelateToManyForUpdateInput
+  lineItems: AppointmentLineItemRelateToManyForUpdateInput
+  colorFormula: ColorFormulaRelateToOneForUpdateInput
+  payment: PaymentRelateToOneForUpdateInput
+  review: ReviewRelateToOneForUpdateInput
+}
+
+input AppointmentLineItemRelateToManyForUpdateInput {
+  disconnect: [AppointmentLineItemWhereUniqueInput!]
+  set: [AppointmentLineItemWhereUniqueInput!]
+  create: [AppointmentLineItemCreateInput!]
+  connect: [AppointmentLineItemWhereUniqueInput!]
+}
+
+input ColorFormulaRelateToOneForUpdateInput {
+  create: ColorFormulaCreateInput
+  connect: ColorFormulaWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PaymentRelateToOneForUpdateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ReviewRelateToOneForUpdateInput {
+  create: ReviewCreateInput
+  connect: ReviewWhereUniqueInput
+  disconnect: Boolean
+}
+
+input AppointmentUpdateArgs {
+  where: AppointmentWhereUniqueInput!
+  data: AppointmentUpdateInput!
+}
+
+input AppointmentCreateInput {
+  startTime: DateTime
+  endTime: DateTime
+  duration: Int
+  status: AppointmentStatusType
+  depositAmount: Int
+  depositPaid: Boolean
+  metadata: JSON
+  bookedAt: DateTime
+  confirmedAt: DateTime
+  cancelledAt: DateTime
+  cancellationReason: String
+  notes: String
+  clientNotes: String
+  internalNotes: String
+  client: ClientRelateToOneForCreateInput
+  stylist: StylistRelateToOneForCreateInput
+  services: ServiceRelateToManyForCreateInput
+  lineItems: AppointmentLineItemRelateToManyForCreateInput
+  colorFormula: ColorFormulaRelateToOneForCreateInput
+  payment: PaymentRelateToOneForCreateInput
+  review: ReviewRelateToOneForCreateInput
+}
+
+input AppointmentLineItemRelateToManyForCreateInput {
+  create: [AppointmentLineItemCreateInput!]
+  connect: [AppointmentLineItemWhereUniqueInput!]
+}
+
+input ColorFormulaRelateToOneForCreateInput {
+  create: ColorFormulaCreateInput
+  connect: ColorFormulaWhereUniqueInput
+}
+
+input PaymentRelateToOneForCreateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+}
+
+input ReviewRelateToOneForCreateInput {
+  create: ReviewCreateInput
+  connect: ReviewWhereUniqueInput
+}
+
+type AppointmentLineItem {
+  id: ID!
+  service: Service
+  staff: Stylist
+  duration: Int
+  price: Int
+  quantity: Int
+  notes: String
+  appointment: Appointment
+  metadata: JSON
+  formattedPrice: String
+  formattedTotal: String
+}
+
+input AppointmentLineItemWhereUniqueInput {
+  id: ID
+}
+
+input AppointmentLineItemWhereInput {
+  AND: [AppointmentLineItemWhereInput!]
+  OR: [AppointmentLineItemWhereInput!]
+  NOT: [AppointmentLineItemWhereInput!]
+  id: IDFilter
+  service: ServiceWhereInput
+  staff: StylistWhereInput
+  duration: IntNullableFilter
+  price: IntFilter
+  quantity: IntFilter
+  notes: StringFilter
+  appointment: AppointmentWhereInput
+}
+
+input AppointmentLineItemOrderByInput {
+  id: OrderDirection
+  duration: OrderDirection
+  price: OrderDirection
+  quantity: OrderDirection
+  notes: OrderDirection
+}
+
+input AppointmentLineItemUpdateInput {
+  service: ServiceRelateToOneForUpdateInput
+  staff: StylistRelateToOneForUpdateInput
+  duration: Int
+  price: Int
+  quantity: Int
+  notes: String
+  appointment: AppointmentRelateToOneForUpdateInput
+  metadata: JSON
+}
+
+input AppointmentLineItemUpdateArgs {
+  where: AppointmentLineItemWhereUniqueInput!
+  data: AppointmentLineItemUpdateInput!
+}
+
+input AppointmentLineItemCreateInput {
+  service: ServiceRelateToOneForCreateInput
+  staff: StylistRelateToOneForCreateInput
+  duration: Int
+  price: Int
+  quantity: Int
+  notes: String
+  appointment: AppointmentRelateToOneForCreateInput
+  metadata: JSON
+}
+
+type Payment {
+  id: ID!
+  subtotal: Float
+  tax: Float
+  tip: Float
+  discount: Float
+  totalAmount: Float
+  paymentMethod: String
+  status: String
+  stripePaymentIntentId: String
+  stripeChargeId: String
+  stripeRefundId: String
+  cardBrand: String
+  cardLast4: String
+  refundedAmount: Float
+  refundReason: String
+  tipDistributed: Boolean
+  createdAt: DateTime
+  processedAt: DateTime
+  refundedAt: DateTime
+  notes: String
+  appointment: Appointment
+  processedBy: User
+  receiptSent: Boolean
+  receiptEmail: String
+}
+
+input PaymentWhereUniqueInput {
+  id: ID
+  appointment: AppointmentWhereUniqueInput
+}
+
+input PaymentWhereInput {
+  AND: [PaymentWhereInput!]
+  OR: [PaymentWhereInput!]
+  NOT: [PaymentWhereInput!]
+  id: IDFilter
+  subtotal: FloatFilter
+  tax: FloatNullableFilter
+  tip: FloatNullableFilter
+  discount: FloatNullableFilter
+  totalAmount: FloatFilter
+  paymentMethod: StringFilter
+  status: StringFilter
+  stripePaymentIntentId: StringFilter
+  stripeChargeId: StringFilter
+  stripeRefundId: StringFilter
+  cardBrand: StringFilter
+  cardLast4: StringFilter
+  refundedAmount: FloatNullableFilter
+  refundReason: StringFilter
+  tipDistributed: BooleanFilter
+  createdAt: DateTimeNullableFilter
+  processedAt: DateTimeNullableFilter
+  refundedAt: DateTimeNullableFilter
+  notes: StringFilter
+  appointment: AppointmentWhereInput
+  processedBy: UserWhereInput
+  receiptSent: BooleanFilter
+  receiptEmail: StringFilter
+}
+
+input FloatFilter {
   equals: Float
   in: [Float!]
   notIn: [Float!]
@@ -365,172 +1830,1946 @@ input FloatNullableFilter {
   lte: Float
   gt: Float
   gte: Float
-  not: FloatNullableFilter
+  not: FloatFilter
 }
 
-input DecimalNullableFilter {
-  equals: Decimal
-  in: [Decimal!]
-  notIn: [Decimal!]
-  lt: Decimal
-  lte: Decimal
-  gt: Decimal
-  gte: Decimal
-  not: DecimalNullableFilter
-}
-
-input BigIntNullableFilter {
-  equals: BigInt
-  in: [BigInt!]
-  notIn: [BigInt!]
-  lt: BigInt
-  lte: BigInt
-  gt: BigInt
-  gte: BigInt
-  not: BigIntNullableFilter
-}
-
-input TodoImageManyRelationFilter {
-  every: TodoImageWhereInput
-  some: TodoImageWhereInput
-  none: TodoImageWhereInput
-}
-
-input TodoOrderByInput {
+input PaymentOrderByInput {
   id: OrderDirection
-  label: OrderDirection
-  isComplete: OrderDirection
+  subtotal: OrderDirection
+  tax: OrderDirection
+  tip: OrderDirection
+  discount: OrderDirection
+  totalAmount: OrderDirection
+  paymentMethod: OrderDirection
   status: OrderDirection
-  priority: OrderDirection
-  dueDate: OrderDirection
-  weight: OrderDirection
-  budget: OrderDirection
-  isPrivate: OrderDirection
-  largeNumber: OrderDirection
+  stripePaymentIntentId: OrderDirection
+  stripeChargeId: OrderDirection
+  stripeRefundId: OrderDirection
+  cardBrand: OrderDirection
+  cardLast4: OrderDirection
+  refundedAmount: OrderDirection
+  refundReason: OrderDirection
+  tipDistributed: OrderDirection
+  createdAt: OrderDirection
+  processedAt: OrderDirection
+  refundedAt: OrderDirection
+  notes: OrderDirection
+  receiptSent: OrderDirection
+  receiptEmail: OrderDirection
 }
 
-input TodoUpdateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
+input PaymentUpdateInput {
+  subtotal: Float
+  tax: Float
+  tip: Float
+  discount: Float
+  totalAmount: Float
+  paymentMethod: String
   status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForUpdateInput
-  assignedTo: UserRelateToOneForUpdateInput
+  stripePaymentIntentId: String
+  stripeChargeId: String
+  stripeRefundId: String
+  cardBrand: String
+  cardLast4: String
+  refundedAmount: Float
+  refundReason: String
+  tipDistributed: Boolean
+  createdAt: DateTime
+  processedAt: DateTime
+  refundedAt: DateTime
+  notes: String
+  appointment: AppointmentRelateToOneForUpdateInput
+  processedBy: UserRelateToOneForUpdateInput
+  receiptSent: Boolean
+  receiptEmail: String
 }
 
-input ImageFieldInput {
-  upload: Upload!
+input PaymentUpdateArgs {
+  where: PaymentWhereUniqueInput!
+  data: PaymentUpdateInput!
 }
 
-"""The `Upload` scalar type represents a file upload."""
-scalar Upload
-
-input TodoImageRelateToManyForUpdateInput {
-  disconnect: [TodoImageWhereUniqueInput!]
-  set: [TodoImageWhereUniqueInput!]
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
-}
-
-input UserRelateToOneForUpdateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-  disconnect: Boolean
-}
-
-input TodoUpdateArgs {
-  where: TodoWhereUniqueInput!
-  data: TodoUpdateInput!
-}
-
-input TodoCreateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
+input PaymentCreateInput {
+  subtotal: Float
+  tax: Float
+  tip: Float
+  discount: Float
+  totalAmount: Float
+  paymentMethod: String
   status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForCreateInput
-  assignedTo: UserRelateToOneForCreateInput
+  stripePaymentIntentId: String
+  stripeChargeId: String
+  stripeRefundId: String
+  cardBrand: String
+  cardLast4: String
+  refundedAmount: Float
+  refundReason: String
+  tipDistributed: Boolean
+  createdAt: DateTime
+  processedAt: DateTime
+  refundedAt: DateTime
+  notes: String
+  appointment: AppointmentRelateToOneForCreateInput
+  processedBy: UserRelateToOneForCreateInput
+  receiptSent: Boolean
+  receiptEmail: String
 }
 
-input TodoImageRelateToManyForCreateInput {
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
-}
-
-input UserRelateToOneForCreateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-}
-
-type TodoImage {
+type ClientPoints {
   id: ID!
-  image: ImageFieldOutput
-  imagePath: String
-  altText: String
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  metadata: JSON
+  client: User
+  points: Int
+  tier: String
+  transactions: JSON
 }
 
-input TodoImageWhereUniqueInput {
+input ClientPointsWhereUniqueInput {
   id: ID
 }
 
-input TodoImageWhereInput {
-  AND: [TodoImageWhereInput!]
-  OR: [TodoImageWhereInput!]
-  NOT: [TodoImageWhereInput!]
+input ClientPointsWhereInput {
+  AND: [ClientPointsWhereInput!]
+  OR: [ClientPointsWhereInput!]
+  NOT: [ClientPointsWhereInput!]
   id: IDFilter
-  imagePath: StringFilter
-  altText: StringFilter
-  todos: TodoManyRelationFilter
+  client: UserWhereInput
+  points: IntFilter
+  tier: StringFilter
 }
 
-input TodoImageOrderByInput {
+input ClientPointsOrderByInput {
   id: OrderDirection
-  imagePath: OrderDirection
-  altText: OrderDirection
+  points: OrderDirection
+  tier: OrderDirection
 }
 
-input TodoImageUpdateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForUpdateInput
+input ClientPointsUpdateInput {
+  client: UserRelateToOneForUpdateInput
+  points: Int
+  tier: String
+  transactions: JSON
+}
+
+input ClientPointsUpdateArgs {
+  where: ClientPointsWhereUniqueInput!
+  data: ClientPointsUpdateInput!
+}
+
+input ClientPointsCreateInput {
+  client: UserRelateToOneForCreateInput
+  points: Int
+  tier: String
+  transactions: JSON
+}
+
+type Referral {
+  id: ID!
+  referrer: User
+  referred: User
+  rewardAmount: Float
+  rewardType: String
+  status: String
+  createdAt: DateTime
+  completedAt: DateTime
+}
+
+input ReferralWhereUniqueInput {
+  id: ID
+}
+
+input ReferralWhereInput {
+  AND: [ReferralWhereInput!]
+  OR: [ReferralWhereInput!]
+  NOT: [ReferralWhereInput!]
+  id: IDFilter
+  referrer: UserWhereInput
+  referred: UserWhereInput
+  rewardAmount: FloatFilter
+  rewardType: StringFilter
+  status: StringFilter
+  createdAt: DateTimeNullableFilter
+  completedAt: DateTimeNullableFilter
+}
+
+input ReferralOrderByInput {
+  id: OrderDirection
+  rewardAmount: OrderDirection
+  rewardType: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  completedAt: OrderDirection
+}
+
+input ReferralUpdateInput {
+  referrer: UserRelateToOneForUpdateInput
+  referred: UserRelateToOneForUpdateInput
+  rewardAmount: Float
+  rewardType: String
+  status: String
+  createdAt: DateTime
+  completedAt: DateTime
+}
+
+input ReferralUpdateArgs {
+  where: ReferralWhereUniqueInput!
+  data: ReferralUpdateInput!
+}
+
+input ReferralCreateInput {
+  referrer: UserRelateToOneForCreateInput
+  referred: UserRelateToOneForCreateInput
+  rewardAmount: Float
+  rewardType: String
+  status: String
+  createdAt: DateTime
+  completedAt: DateTime
+}
+
+type MessageTemplate {
+  id: ID!
+  name: String
+  type: String
+  content: String
+  variables: JSON
+  isActive: Boolean
+}
+
+input MessageTemplateWhereUniqueInput {
+  id: ID
+}
+
+input MessageTemplateWhereInput {
+  AND: [MessageTemplateWhereInput!]
+  OR: [MessageTemplateWhereInput!]
+  NOT: [MessageTemplateWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  type: StringFilter
+  content: StringFilter
+  isActive: BooleanFilter
+}
+
+input MessageTemplateOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  type: OrderDirection
+  content: OrderDirection
+  isActive: OrderDirection
+}
+
+input MessageTemplateUpdateInput {
+  name: String
+  type: String
+  content: String
+  variables: JSON
+  isActive: Boolean
+}
+
+input MessageTemplateUpdateArgs {
+  where: MessageTemplateWhereUniqueInput!
+  data: MessageTemplateUpdateInput!
+}
+
+input MessageTemplateCreateInput {
+  name: String
+  type: String
+  content: String
+  variables: JSON
+  isActive: Boolean
+}
+
+type MessageLog {
+  id: ID!
+  recipient: User
+  template: MessageTemplate
+  sentAt: DateTime
+  channel: String
+  status: String
+  errorMessage: String
+}
+
+input MessageLogWhereUniqueInput {
+  id: ID
+}
+
+input MessageLogWhereInput {
+  AND: [MessageLogWhereInput!]
+  OR: [MessageLogWhereInput!]
+  NOT: [MessageLogWhereInput!]
+  id: IDFilter
+  recipient: UserWhereInput
+  template: MessageTemplateWhereInput
+  sentAt: DateTimeNullableFilter
+  channel: StringFilter
+  status: StringNullableFilter
+  errorMessage: StringFilter
+}
+
+input MessageLogOrderByInput {
+  id: OrderDirection
+  sentAt: OrderDirection
+  channel: OrderDirection
+  status: OrderDirection
+  errorMessage: OrderDirection
+}
+
+input MessageLogUpdateInput {
+  recipient: UserRelateToOneForUpdateInput
+  template: MessageTemplateRelateToOneForUpdateInput
+  sentAt: DateTime
+  channel: String
+  status: String
+  errorMessage: String
+}
+
+input MessageTemplateRelateToOneForUpdateInput {
+  create: MessageTemplateCreateInput
+  connect: MessageTemplateWhereUniqueInput
+  disconnect: Boolean
+}
+
+input MessageLogUpdateArgs {
+  where: MessageLogWhereUniqueInput!
+  data: MessageLogUpdateInput!
+}
+
+input MessageLogCreateInput {
+  recipient: UserRelateToOneForCreateInput
+  template: MessageTemplateRelateToOneForCreateInput
+  sentAt: DateTime
+  channel: String
+  status: String
+  errorMessage: String
+}
+
+input MessageTemplateRelateToOneForCreateInput {
+  create: MessageTemplateCreateInput
+  connect: MessageTemplateWhereUniqueInput
+}
+
+type GiftCard {
+  id: ID!
+  code: String
+  initialValue: Float
+  currentBalance: Float
+  recipientEmail: String
+  recipientName: String
+  message: String
+  expiresAt: DateTime
+  isActive: Boolean
+  createdAt: DateTime
+  purchasedBy: User
+  transactions(where: GiftCardTransactionWhereInput! = {}, orderBy: [GiftCardTransactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardTransactionWhereUniqueInput): [GiftCardTransaction!]
+  transactionsCount(where: GiftCardTransactionWhereInput! = {}): Int
+}
+
+input GiftCardWhereUniqueInput {
+  id: ID
+  code: String
+}
+
+input GiftCardWhereInput {
+  AND: [GiftCardWhereInput!]
+  OR: [GiftCardWhereInput!]
+  NOT: [GiftCardWhereInput!]
+  id: IDFilter
+  code: StringFilter
+  initialValue: FloatFilter
+  currentBalance: FloatFilter
+  recipientEmail: StringFilter
+  recipientName: StringFilter
+  message: StringFilter
+  expiresAt: DateTimeNullableFilter
+  isActive: BooleanFilter
+  createdAt: DateTimeNullableFilter
+  purchasedBy: UserWhereInput
+  transactions: GiftCardTransactionManyRelationFilter
+}
+
+input GiftCardTransactionManyRelationFilter {
+  every: GiftCardTransactionWhereInput
+  some: GiftCardTransactionWhereInput
+  none: GiftCardTransactionWhereInput
+}
+
+input GiftCardOrderByInput {
+  id: OrderDirection
+  code: OrderDirection
+  initialValue: OrderDirection
+  currentBalance: OrderDirection
+  recipientEmail: OrderDirection
+  recipientName: OrderDirection
+  message: OrderDirection
+  expiresAt: OrderDirection
+  isActive: OrderDirection
+  createdAt: OrderDirection
+}
+
+input GiftCardUpdateInput {
+  code: String
+  initialValue: Float
+  currentBalance: Float
+  recipientEmail: String
+  recipientName: String
+  message: String
+  expiresAt: DateTime
+  isActive: Boolean
+  createdAt: DateTime
+  purchasedBy: UserRelateToOneForUpdateInput
+  transactions: GiftCardTransactionRelateToManyForUpdateInput
+}
+
+input GiftCardTransactionRelateToManyForUpdateInput {
+  disconnect: [GiftCardTransactionWhereUniqueInput!]
+  set: [GiftCardTransactionWhereUniqueInput!]
+  create: [GiftCardTransactionCreateInput!]
+  connect: [GiftCardTransactionWhereUniqueInput!]
+}
+
+input GiftCardUpdateArgs {
+  where: GiftCardWhereUniqueInput!
+  data: GiftCardUpdateInput!
+}
+
+input GiftCardCreateInput {
+  code: String
+  initialValue: Float
+  currentBalance: Float
+  recipientEmail: String
+  recipientName: String
+  message: String
+  expiresAt: DateTime
+  isActive: Boolean
+  createdAt: DateTime
+  purchasedBy: UserRelateToOneForCreateInput
+  transactions: GiftCardTransactionRelateToManyForCreateInput
+}
+
+input GiftCardTransactionRelateToManyForCreateInput {
+  create: [GiftCardTransactionCreateInput!]
+  connect: [GiftCardTransactionWhereUniqueInput!]
+}
+
+type GiftCardTransaction {
+  id: ID!
+  amount: Float
+  type: String
+  createdAt: DateTime
+  notes: String
+  giftCard: GiftCard
+  appointment: Appointment
+}
+
+input GiftCardTransactionWhereUniqueInput {
+  id: ID
+}
+
+input GiftCardTransactionWhereInput {
+  AND: [GiftCardTransactionWhereInput!]
+  OR: [GiftCardTransactionWhereInput!]
+  NOT: [GiftCardTransactionWhereInput!]
+  id: IDFilter
+  amount: FloatFilter
+  type: StringFilter
+  createdAt: DateTimeNullableFilter
+  notes: StringFilter
+  giftCard: GiftCardWhereInput
+  appointment: AppointmentWhereInput
+}
+
+input GiftCardTransactionOrderByInput {
+  id: OrderDirection
+  amount: OrderDirection
+  type: OrderDirection
+  createdAt: OrderDirection
+  notes: OrderDirection
+}
+
+input GiftCardTransactionUpdateInput {
+  amount: Float
+  type: String
+  createdAt: DateTime
+  notes: String
+  giftCard: GiftCardRelateToOneForUpdateInput
+  appointment: AppointmentRelateToOneForUpdateInput
+}
+
+input GiftCardRelateToOneForUpdateInput {
+  create: GiftCardCreateInput
+  connect: GiftCardWhereUniqueInput
+  disconnect: Boolean
+}
+
+input GiftCardTransactionUpdateArgs {
+  where: GiftCardTransactionWhereUniqueInput!
+  data: GiftCardTransactionUpdateInput!
+}
+
+input GiftCardTransactionCreateInput {
+  amount: Float
+  type: String
+  createdAt: DateTime
+  notes: String
+  giftCard: GiftCardRelateToOneForCreateInput
+  appointment: AppointmentRelateToOneForCreateInput
+}
+
+input GiftCardRelateToOneForCreateInput {
+  create: GiftCardCreateInput
+  connect: GiftCardWhereUniqueInput
+}
+
+type ClientMembership {
+  id: ID!
+  client: User
+  membership: Membership
+  startDate: DateTime
+  nextBillingDate: DateTime
+  status: String
+  pausedUntil: DateTime
+}
+
+input ClientMembershipWhereUniqueInput {
+  id: ID
+}
+
+input ClientMembershipWhereInput {
+  AND: [ClientMembershipWhereInput!]
+  OR: [ClientMembershipWhereInput!]
+  NOT: [ClientMembershipWhereInput!]
+  id: IDFilter
+  client: UserWhereInput
+  membership: MembershipWhereInput
+  startDate: DateTimeFilter
+  nextBillingDate: DateTimeNullableFilter
+  status: StringNullableFilter
+  pausedUntil: DateTimeNullableFilter
+}
+
+input ClientMembershipOrderByInput {
+  id: OrderDirection
+  startDate: OrderDirection
+  nextBillingDate: OrderDirection
+  status: OrderDirection
+  pausedUntil: OrderDirection
+}
+
+input ClientMembershipUpdateInput {
+  client: UserRelateToOneForUpdateInput
+  membership: MembershipRelateToOneForUpdateInput
+  startDate: DateTime
+  nextBillingDate: DateTime
+  status: String
+  pausedUntil: DateTime
+}
+
+input MembershipRelateToOneForUpdateInput {
+  create: MembershipCreateInput
+  connect: MembershipWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientMembershipUpdateArgs {
+  where: ClientMembershipWhereUniqueInput!
+  data: ClientMembershipUpdateInput!
+}
+
+input ClientMembershipCreateInput {
+  client: UserRelateToOneForCreateInput
+  membership: MembershipRelateToOneForCreateInput
+  startDate: DateTime
+  nextBillingDate: DateTime
+  status: String
+  pausedUntil: DateTime
+}
+
+input MembershipRelateToOneForCreateInput {
+  create: MembershipCreateInput
+  connect: MembershipWhereUniqueInput
+}
+
+type IntakeForm {
+  id: ID!
+  name: String
+  fields: JSON
+  requiredForServices(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  requiredForServicesCount(where: ServiceWhereInput! = {}): Int
+  isActive: Boolean
+  submissions(where: FormSubmissionWhereInput! = {}, orderBy: [FormSubmissionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: FormSubmissionWhereUniqueInput): [FormSubmission!]
+  submissionsCount(where: FormSubmissionWhereInput! = {}): Int
+}
+
+input IntakeFormWhereUniqueInput {
+  id: ID
+}
+
+input IntakeFormWhereInput {
+  AND: [IntakeFormWhereInput!]
+  OR: [IntakeFormWhereInput!]
+  NOT: [IntakeFormWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  requiredForServices: ServiceManyRelationFilter
+  isActive: BooleanFilter
+  submissions: FormSubmissionManyRelationFilter
+}
+
+input FormSubmissionManyRelationFilter {
+  every: FormSubmissionWhereInput
+  some: FormSubmissionWhereInput
+  none: FormSubmissionWhereInput
+}
+
+input IntakeFormOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  isActive: OrderDirection
+}
+
+input IntakeFormUpdateInput {
+  name: String
+  fields: JSON
+  requiredForServices: ServiceRelateToManyForUpdateInput
+  isActive: Boolean
+  submissions: FormSubmissionRelateToManyForUpdateInput
+}
+
+input FormSubmissionRelateToManyForUpdateInput {
+  disconnect: [FormSubmissionWhereUniqueInput!]
+  set: [FormSubmissionWhereUniqueInput!]
+  create: [FormSubmissionCreateInput!]
+  connect: [FormSubmissionWhereUniqueInput!]
+}
+
+input IntakeFormUpdateArgs {
+  where: IntakeFormWhereUniqueInput!
+  data: IntakeFormUpdateInput!
+}
+
+input IntakeFormCreateInput {
+  name: String
+  fields: JSON
+  requiredForServices: ServiceRelateToManyForCreateInput
+  isActive: Boolean
+  submissions: FormSubmissionRelateToManyForCreateInput
+}
+
+input FormSubmissionRelateToManyForCreateInput {
+  create: [FormSubmissionCreateInput!]
+  connect: [FormSubmissionWhereUniqueInput!]
+}
+
+type ServicePackage {
+  id: ID!
+  name: String
+  description: String
+  totalPrice: Float
+  savingsAmount: Float
+  validDays: Int
+  isActive: Boolean
+  services(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  servicesCount(where: ServiceWhereInput! = {}): Int
+}
+
+input ServicePackageWhereUniqueInput {
+  id: ID
+}
+
+input ServicePackageWhereInput {
+  AND: [ServicePackageWhereInput!]
+  OR: [ServicePackageWhereInput!]
+  NOT: [ServicePackageWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  description: StringFilter
+  totalPrice: FloatFilter
+  savingsAmount: FloatNullableFilter
+  validDays: IntNullableFilter
+  isActive: BooleanFilter
+  services: ServiceManyRelationFilter
+}
+
+input ServicePackageOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  description: OrderDirection
+  totalPrice: OrderDirection
+  savingsAmount: OrderDirection
+  validDays: OrderDirection
+  isActive: OrderDirection
+}
+
+input ServicePackageUpdateInput {
+  name: String
+  description: String
+  totalPrice: Float
+  savingsAmount: Float
+  validDays: Int
+  isActive: Boolean
+  services: ServiceRelateToManyForUpdateInput
+}
+
+input ServicePackageUpdateArgs {
+  where: ServicePackageWhereUniqueInput!
+  data: ServicePackageUpdateInput!
+}
+
+input ServicePackageCreateInput {
+  name: String
+  description: String
+  totalPrice: Float
+  savingsAmount: Float
+  validDays: Int
+  isActive: Boolean
+  services: ServiceRelateToManyForCreateInput
+}
+
+type Membership {
+  id: ID!
+  name: String
+  description: String
+  monthlyPrice: Float
+  discountPercent: Int
+  isActive: Boolean
+  includedServices(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  includedServicesCount(where: ServiceWhereInput! = {}): Int
+}
+
+input MembershipWhereUniqueInput {
+  id: ID
+}
+
+input MembershipWhereInput {
+  AND: [MembershipWhereInput!]
+  OR: [MembershipWhereInput!]
+  NOT: [MembershipWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  description: StringFilter
+  monthlyPrice: FloatFilter
+  discountPercent: IntNullableFilter
+  isActive: BooleanFilter
+  includedServices: ServiceManyRelationFilter
+}
+
+input MembershipOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  description: OrderDirection
+  monthlyPrice: OrderDirection
+  discountPercent: OrderDirection
+  isActive: OrderDirection
+}
+
+input MembershipUpdateInput {
+  name: String
+  description: String
+  monthlyPrice: Float
+  discountPercent: Int
+  isActive: Boolean
+  includedServices: ServiceRelateToManyForUpdateInput
+}
+
+input MembershipUpdateArgs {
+  where: MembershipWhereUniqueInput!
+  data: MembershipUpdateInput!
+}
+
+input MembershipCreateInput {
+  name: String
+  description: String
+  monthlyPrice: Float
+  discountPercent: Int
+  isActive: Boolean
+  includedServices: ServiceRelateToManyForCreateInput
+}
+
+type WaitlistEntry {
+  id: ID!
+  client: User
+  service: Service
+  preferredStylists(where: StylistWhereInput! = {}, orderBy: [StylistOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StylistWhereUniqueInput): [Stylist!]
+  preferredStylistsCount(where: StylistWhereInput! = {}): Int
+  preferredDays: JSON
+  preferredTimeRange: String
+  dateRangeStart: DateTime
+  dateRangeEnd: DateTime
+  isActive: Boolean
+  notifiedAt: DateTime
+  notes: String
+  createdAt: DateTime
+}
+
+input WaitlistEntryWhereUniqueInput {
+  id: ID
+}
+
+input WaitlistEntryWhereInput {
+  AND: [WaitlistEntryWhereInput!]
+  OR: [WaitlistEntryWhereInput!]
+  NOT: [WaitlistEntryWhereInput!]
+  id: IDFilter
+  client: UserWhereInput
+  service: ServiceWhereInput
+  preferredStylists: StylistManyRelationFilter
+  preferredTimeRange: StringFilter
+  dateRangeStart: DateTimeNullableFilter
+  dateRangeEnd: DateTimeNullableFilter
+  isActive: BooleanFilter
+  notifiedAt: DateTimeNullableFilter
+  notes: StringFilter
+  createdAt: DateTimeNullableFilter
+}
+
+input WaitlistEntryOrderByInput {
+  id: OrderDirection
+  preferredTimeRange: OrderDirection
+  dateRangeStart: OrderDirection
+  dateRangeEnd: OrderDirection
+  isActive: OrderDirection
+  notifiedAt: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+}
+
+input WaitlistEntryUpdateInput {
+  client: UserRelateToOneForUpdateInput
+  service: ServiceRelateToOneForUpdateInput
+  preferredStylists: StylistRelateToManyForUpdateInput
+  preferredDays: JSON
+  preferredTimeRange: String
+  dateRangeStart: DateTime
+  dateRangeEnd: DateTime
+  isActive: Boolean
+  notifiedAt: DateTime
+  notes: String
+  createdAt: DateTime
+}
+
+input WaitlistEntryUpdateArgs {
+  where: WaitlistEntryWhereUniqueInput!
+  data: WaitlistEntryUpdateInput!
+}
+
+input WaitlistEntryCreateInput {
+  client: UserRelateToOneForCreateInput
+  service: ServiceRelateToOneForCreateInput
+  preferredStylists: StylistRelateToManyForCreateInput
+  preferredDays: JSON
+  preferredTimeRange: String
+  dateRangeStart: DateTime
+  dateRangeEnd: DateTime
+  isActive: Boolean
+  notifiedAt: DateTime
+  notes: String
+  createdAt: DateTime
+}
+
+type WidgetConfiguration {
+  id: ID!
+  name: String
+  primaryColor: String
+  secondaryColor: String
+  logoUrl: String
+  showServices: Boolean
+  showStylists: Boolean
+  customCSS: String
+  embedCode: String
+  buttonText: String
+  welcomeMessage: String
+  width: String
+  height: String
+}
+
+input WidgetConfigurationWhereUniqueInput {
+  id: ID
+  name: String
+}
+
+input WidgetConfigurationWhereInput {
+  AND: [WidgetConfigurationWhereInput!]
+  OR: [WidgetConfigurationWhereInput!]
+  NOT: [WidgetConfigurationWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  primaryColor: StringFilter
+  secondaryColor: StringFilter
+  logoUrl: StringFilter
+  showServices: BooleanFilter
+  showStylists: BooleanFilter
+  customCSS: StringFilter
+  embedCode: StringFilter
+  buttonText: StringFilter
+  welcomeMessage: StringFilter
+  width: StringFilter
+  height: StringFilter
+}
+
+input WidgetConfigurationOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  primaryColor: OrderDirection
+  secondaryColor: OrderDirection
+  logoUrl: OrderDirection
+  showServices: OrderDirection
+  showStylists: OrderDirection
+  customCSS: OrderDirection
+  embedCode: OrderDirection
+  buttonText: OrderDirection
+  welcomeMessage: OrderDirection
+  width: OrderDirection
+  height: OrderDirection
+}
+
+input WidgetConfigurationUpdateInput {
+  name: String
+  primaryColor: String
+  secondaryColor: String
+  logoUrl: String
+  showServices: Boolean
+  showStylists: Boolean
+  customCSS: String
+  embedCode: String
+  buttonText: String
+  welcomeMessage: String
+  width: String
+  height: String
+}
+
+input WidgetConfigurationUpdateArgs {
+  where: WidgetConfigurationWhereUniqueInput!
+  data: WidgetConfigurationUpdateInput!
+}
+
+input WidgetConfigurationCreateInput {
+  name: String
+  primaryColor: String
+  secondaryColor: String
+  logoUrl: String
+  showServices: Boolean
+  showStylists: Boolean
+  customCSS: String
+  embedCode: String
+  buttonText: String
+  welcomeMessage: String
+  width: String
+  height: String
+}
+
+type FormSubmission {
+  id: ID!
+  data: JSON
+  signature: String
+  submittedAt: DateTime
+  client: User
+  form: IntakeForm
+  template: FormTemplate
+  appointment: Appointment
+}
+
+input FormSubmissionWhereUniqueInput {
+  id: ID
+}
+
+input FormSubmissionWhereInput {
+  AND: [FormSubmissionWhereInput!]
+  OR: [FormSubmissionWhereInput!]
+  NOT: [FormSubmissionWhereInput!]
+  id: IDFilter
+  signature: StringFilter
+  submittedAt: DateTimeNullableFilter
+  client: UserWhereInput
+  form: IntakeFormWhereInput
+  template: FormTemplateWhereInput
+  appointment: AppointmentWhereInput
+}
+
+input FormSubmissionOrderByInput {
+  id: OrderDirection
+  signature: OrderDirection
+  submittedAt: OrderDirection
+}
+
+input FormSubmissionUpdateInput {
+  data: JSON
+  signature: String
+  submittedAt: DateTime
+  client: UserRelateToOneForUpdateInput
+  form: IntakeFormRelateToOneForUpdateInput
+  template: FormTemplateRelateToOneForUpdateInput
+  appointment: AppointmentRelateToOneForUpdateInput
+}
+
+input IntakeFormRelateToOneForUpdateInput {
+  create: IntakeFormCreateInput
+  connect: IntakeFormWhereUniqueInput
+  disconnect: Boolean
+}
+
+input FormTemplateRelateToOneForUpdateInput {
+  create: FormTemplateCreateInput
+  connect: FormTemplateWhereUniqueInput
+  disconnect: Boolean
+}
+
+input FormSubmissionUpdateArgs {
+  where: FormSubmissionWhereUniqueInput!
+  data: FormSubmissionUpdateInput!
+}
+
+input FormSubmissionCreateInput {
+  data: JSON
+  signature: String
+  submittedAt: DateTime
+  client: UserRelateToOneForCreateInput
+  form: IntakeFormRelateToOneForCreateInput
+  template: FormTemplateRelateToOneForCreateInput
+  appointment: AppointmentRelateToOneForCreateInput
+}
+
+input IntakeFormRelateToOneForCreateInput {
+  create: IntakeFormCreateInput
+  connect: IntakeFormWhereUniqueInput
+}
+
+input FormTemplateRelateToOneForCreateInput {
+  create: FormTemplateCreateInput
+  connect: FormTemplateWhereUniqueInput
+}
+
+type FormTemplate {
+  id: ID!
+  name: String
+  type: String
+  description: String
+  fields: JSON
+  isActive: Boolean
+  requiredForCategories(where: ServiceCategoryWhereInput! = {}, orderBy: [ServiceCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceCategoryWhereUniqueInput): [ServiceCategory!]
+  requiredForCategoriesCount(where: ServiceCategoryWhereInput! = {}): Int
+  submissions(where: FormSubmissionWhereInput! = {}, orderBy: [FormSubmissionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: FormSubmissionWhereUniqueInput): [FormSubmission!]
+  submissionsCount(where: FormSubmissionWhereInput! = {}): Int
   metadata: JSON
 }
 
-input TodoImageUpdateArgs {
-  where: TodoImageWhereUniqueInput!
-  data: TodoImageUpdateInput!
+input FormTemplateWhereUniqueInput {
+  id: ID
 }
 
-input TodoImageCreateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForCreateInput
+input FormTemplateWhereInput {
+  AND: [FormTemplateWhereInput!]
+  OR: [FormTemplateWhereInput!]
+  NOT: [FormTemplateWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  type: StringNullableFilter
+  description: StringFilter
+  isActive: BooleanFilter
+  requiredForCategories: ServiceCategoryManyRelationFilter
+  submissions: FormSubmissionManyRelationFilter
+}
+
+input ServiceCategoryManyRelationFilter {
+  every: ServiceCategoryWhereInput
+  some: ServiceCategoryWhereInput
+  none: ServiceCategoryWhereInput
+}
+
+input FormTemplateOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  type: OrderDirection
+  description: OrderDirection
+  isActive: OrderDirection
+}
+
+input FormTemplateUpdateInput {
+  name: String
+  type: String
+  description: String
+  fields: JSON
+  isActive: Boolean
+  requiredForCategories: ServiceCategoryRelateToManyForUpdateInput
+  submissions: FormSubmissionRelateToManyForUpdateInput
   metadata: JSON
+}
+
+input ServiceCategoryRelateToManyForUpdateInput {
+  disconnect: [ServiceCategoryWhereUniqueInput!]
+  set: [ServiceCategoryWhereUniqueInput!]
+  create: [ServiceCategoryCreateInput!]
+  connect: [ServiceCategoryWhereUniqueInput!]
+}
+
+input FormTemplateUpdateArgs {
+  where: FormTemplateWhereUniqueInput!
+  data: FormTemplateUpdateInput!
+}
+
+input FormTemplateCreateInput {
+  name: String
+  type: String
+  description: String
+  fields: JSON
+  isActive: Boolean
+  requiredForCategories: ServiceCategoryRelateToManyForCreateInput
+  submissions: FormSubmissionRelateToManyForCreateInput
+  metadata: JSON
+}
+
+input ServiceCategoryRelateToManyForCreateInput {
+  create: [ServiceCategoryCreateInput!]
+  connect: [ServiceCategoryWhereUniqueInput!]
+}
+
+type LoyaltyProgram {
+  id: ID!
+  name: String
+  pointsPerDollar: Float
+  redemptionRate: Float
+  tiers: JSON
+  isActive: Boolean
+}
+
+input LoyaltyProgramWhereUniqueInput {
+  id: ID
+}
+
+input LoyaltyProgramWhereInput {
+  AND: [LoyaltyProgramWhereInput!]
+  OR: [LoyaltyProgramWhereInput!]
+  NOT: [LoyaltyProgramWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  pointsPerDollar: FloatFilter
+  redemptionRate: FloatFilter
+  isActive: BooleanFilter
+}
+
+input LoyaltyProgramOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  pointsPerDollar: OrderDirection
+  redemptionRate: OrderDirection
+  isActive: OrderDirection
+}
+
+input LoyaltyProgramUpdateInput {
+  name: String
+  pointsPerDollar: Float
+  redemptionRate: Float
+  tiers: JSON
+  isActive: Boolean
+}
+
+input LoyaltyProgramUpdateArgs {
+  where: LoyaltyProgramWhereUniqueInput!
+  data: LoyaltyProgramUpdateInput!
+}
+
+input LoyaltyProgramCreateInput {
+  name: String
+  pointsPerDollar: Float
+  redemptionRate: Float
+  tiers: JSON
+  isActive: Boolean
+}
+
+type Location {
+  id: ID!
+  name: String
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  phone: String
+  email: String
+  hours: JSON
+  timezone: String
+  isActive: Boolean
+}
+
+input LocationWhereUniqueInput {
+  id: ID
+}
+
+input LocationWhereInput {
+  AND: [LocationWhereInput!]
+  OR: [LocationWhereInput!]
+  NOT: [LocationWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  address: StringFilter
+  city: StringFilter
+  state: StringFilter
+  zipCode: StringFilter
+  phone: StringFilter
+  email: StringFilter
+  timezone: StringFilter
+  isActive: BooleanFilter
+}
+
+input LocationOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  address: OrderDirection
+  city: OrderDirection
+  state: OrderDirection
+  zipCode: OrderDirection
+  phone: OrderDirection
+  email: OrderDirection
+  timezone: OrderDirection
+  isActive: OrderDirection
+}
+
+input LocationUpdateInput {
+  name: String
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  phone: String
+  email: String
+  hours: JSON
+  timezone: String
+  isActive: Boolean
+}
+
+input LocationUpdateArgs {
+  where: LocationWhereUniqueInput!
+  data: LocationUpdateInput!
+}
+
+input LocationCreateInput {
+  name: String
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  phone: String
+  email: String
+  hours: JSON
+  timezone: String
+  isActive: Boolean
+}
+
+type Product {
+  id: ID!
+  name: String
+  sku: String
+  price: Float
+  cost: Float
+  quantity: Int
+  reorderPoint: Int
+  category: String
+  description: String
+  image: SalonImage
+  isActive: Boolean
+}
+
+input ProductWhereUniqueInput {
+  id: ID
+  sku: String
+}
+
+input ProductWhereInput {
+  AND: [ProductWhereInput!]
+  OR: [ProductWhereInput!]
+  NOT: [ProductWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  sku: StringFilter
+  price: FloatFilter
+  cost: FloatNullableFilter
+  quantity: IntNullableFilter
+  reorderPoint: IntNullableFilter
+  category: StringFilter
+  description: StringFilter
+  image: SalonImageWhereInput
+  isActive: BooleanFilter
+}
+
+input ProductOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  sku: OrderDirection
+  price: OrderDirection
+  cost: OrderDirection
+  quantity: OrderDirection
+  reorderPoint: OrderDirection
+  category: OrderDirection
+  description: OrderDirection
+  isActive: OrderDirection
+}
+
+input ProductUpdateInput {
+  name: String
+  sku: String
+  price: Float
+  cost: Float
+  quantity: Int
+  reorderPoint: Int
+  category: String
+  description: String
+  image: SalonImageRelateToOneForUpdateInput
+  isActive: Boolean
+}
+
+input ProductUpdateArgs {
+  where: ProductWhereUniqueInput!
+  data: ProductUpdateInput!
+}
+
+input ProductCreateInput {
+  name: String
+  sku: String
+  price: Float
+  cost: Float
+  quantity: Int
+  reorderPoint: Int
+  category: String
+  description: String
+  image: SalonImageRelateToOneForCreateInput
+  isActive: Boolean
+}
+
+type ProductSale {
+  id: ID!
+  appointment: Appointment
+  products: JSON
+  total: Float
+  soldBy: User
+  soldAt: DateTime
+}
+
+input ProductSaleWhereUniqueInput {
+  id: ID
+}
+
+input ProductSaleWhereInput {
+  AND: [ProductSaleWhereInput!]
+  OR: [ProductSaleWhereInput!]
+  NOT: [ProductSaleWhereInput!]
+  id: IDFilter
+  appointment: AppointmentWhereInput
+  total: FloatFilter
+  soldBy: UserWhereInput
+  soldAt: DateTimeNullableFilter
+}
+
+input ProductSaleOrderByInput {
+  id: OrderDirection
+  total: OrderDirection
+  soldAt: OrderDirection
+}
+
+input ProductSaleUpdateInput {
+  appointment: AppointmentRelateToOneForUpdateInput
+  products: JSON
+  total: Float
+  soldBy: UserRelateToOneForUpdateInput
+  soldAt: DateTime
+}
+
+input ProductSaleUpdateArgs {
+  where: ProductSaleWhereUniqueInput!
+  data: ProductSaleUpdateInput!
+}
+
+input ProductSaleCreateInput {
+  appointment: AppointmentRelateToOneForCreateInput
+  products: JSON
+  total: Float
+  soldBy: UserRelateToOneForCreateInput
+  soldAt: DateTime
+}
+
+type Commission {
+  id: ID!
+  saleAmount: Float
+  commissionRate: Float
+  commissionAmount: Float
+  isPaid: Boolean
+  paidAt: DateTime
+  createdAt: DateTime
+  notes: String
+  stylist: Stylist
+  service: Service
+  payment: Payment
+}
+
+input CommissionWhereUniqueInput {
+  id: ID
+}
+
+input CommissionWhereInput {
+  AND: [CommissionWhereInput!]
+  OR: [CommissionWhereInput!]
+  NOT: [CommissionWhereInput!]
+  id: IDFilter
+  saleAmount: FloatFilter
+  commissionRate: FloatFilter
+  commissionAmount: FloatFilter
+  isPaid: BooleanFilter
+  paidAt: DateTimeNullableFilter
+  createdAt: DateTimeNullableFilter
+  notes: StringFilter
+  stylist: StylistWhereInput
+  service: ServiceWhereInput
+  payment: PaymentWhereInput
+}
+
+input CommissionOrderByInput {
+  id: OrderDirection
+  saleAmount: OrderDirection
+  commissionRate: OrderDirection
+  commissionAmount: OrderDirection
+  isPaid: OrderDirection
+  paidAt: OrderDirection
+  createdAt: OrderDirection
+  notes: OrderDirection
+}
+
+input CommissionUpdateInput {
+  saleAmount: Float
+  commissionRate: Float
+  commissionAmount: Float
+  isPaid: Boolean
+  paidAt: DateTime
+  createdAt: DateTime
+  notes: String
+  stylist: StylistRelateToOneForUpdateInput
+  service: ServiceRelateToOneForUpdateInput
+  payment: PaymentRelateToOneForUpdateInput
+}
+
+input CommissionUpdateArgs {
+  where: CommissionWhereUniqueInput!
+  data: CommissionUpdateInput!
+}
+
+input CommissionCreateInput {
+  saleAmount: Float
+  commissionRate: Float
+  commissionAmount: Float
+  isPaid: Boolean
+  paidAt: DateTime
+  createdAt: DateTime
+  notes: String
+  stylist: StylistRelateToOneForCreateInput
+  service: ServiceRelateToOneForCreateInput
+  payment: PaymentRelateToOneForCreateInput
+}
+
+type Review {
+  id: ID!
+  rating: Int
+  comment: String
+  isApproved: Boolean
+  createdAt: DateTime
+  client: Client
+  service: Service
+  stylist: Stylist
+  appointment: Appointment
+}
+
+input ReviewWhereUniqueInput {
+  id: ID
+  appointment: AppointmentWhereUniqueInput
+}
+
+input ReviewWhereInput {
+  AND: [ReviewWhereInput!]
+  OR: [ReviewWhereInput!]
+  NOT: [ReviewWhereInput!]
+  id: IDFilter
+  rating: IntFilter
+  comment: StringFilter
+  isApproved: BooleanFilter
+  createdAt: DateTimeNullableFilter
+  client: ClientWhereInput
+  service: ServiceWhereInput
+  stylist: StylistWhereInput
+  appointment: AppointmentWhereInput
+}
+
+input ReviewOrderByInput {
+  id: OrderDirection
+  rating: OrderDirection
+  comment: OrderDirection
+  isApproved: OrderDirection
+  createdAt: OrderDirection
+}
+
+input ReviewUpdateInput {
+  rating: Int
+  comment: String
+  isApproved: Boolean
+  createdAt: DateTime
+  client: ClientRelateToOneForUpdateInput
+  service: ServiceRelateToOneForUpdateInput
+  stylist: StylistRelateToOneForUpdateInput
+  appointment: AppointmentRelateToOneForUpdateInput
+}
+
+input ReviewUpdateArgs {
+  where: ReviewWhereUniqueInput!
+  data: ReviewUpdateInput!
+}
+
+input ReviewCreateInput {
+  rating: Int
+  comment: String
+  isApproved: Boolean
+  createdAt: DateTime
+  client: ClientRelateToOneForCreateInput
+  service: ServiceRelateToOneForCreateInput
+  stylist: StylistRelateToOneForCreateInput
+  appointment: AppointmentRelateToOneForCreateInput
+}
+
+type SalonTransaction {
+  id: ID!
+  type: SalonTransactionTypeType
+  client: Client
+  staff: Stylist
+  lineItems(where: SalonTransactionLineItemWhereInput! = {}, orderBy: [SalonTransactionLineItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SalonTransactionLineItemWhereUniqueInput): [SalonTransactionLineItem!]
+  lineItemsCount(where: SalonTransactionLineItemWhereInput! = {}): Int
+  tip: Int
+  paymentMethod: SalonTransactionPaymentMethodType
+  paymentStatus: SalonTransactionPaymentStatusType
+  status: SalonTransactionStatusType
+  metadata: JSON
+  completedAt: DateTime
+  createdAt: DateTime
+  subtotal: String
+  tax: String
+  discount: String
+  total: String
+}
+
+enum SalonTransactionTypeType {
+  appointment
+  walk_in
+  retail
+}
+
+enum SalonTransactionPaymentMethodType {
+  cash
+  card
+  split
+  gift_card
+  package
+}
+
+enum SalonTransactionPaymentStatusType {
+  pending
+  paid
+  partially_paid
+  refunded
+}
+
+enum SalonTransactionStatusType {
+  open
+  completed
+  voided
+}
+
+input SalonTransactionWhereUniqueInput {
+  id: ID
+}
+
+input SalonTransactionWhereInput {
+  AND: [SalonTransactionWhereInput!]
+  OR: [SalonTransactionWhereInput!]
+  NOT: [SalonTransactionWhereInput!]
+  id: IDFilter
+  type: SalonTransactionTypeTypeNullableFilter
+  client: ClientWhereInput
+  staff: StylistWhereInput
+  lineItems: SalonTransactionLineItemManyRelationFilter
+  tip: IntNullableFilter
+  paymentMethod: SalonTransactionPaymentMethodTypeNullableFilter
+  paymentStatus: SalonTransactionPaymentStatusTypeNullableFilter
+  status: SalonTransactionStatusTypeNullableFilter
+  completedAt: DateTimeNullableFilter
+  createdAt: DateTimeNullableFilter
+}
+
+input SalonTransactionTypeTypeNullableFilter {
+  equals: SalonTransactionTypeType
+  in: [SalonTransactionTypeType!]
+  notIn: [SalonTransactionTypeType!]
+  not: SalonTransactionTypeTypeNullableFilter
+}
+
+input SalonTransactionLineItemManyRelationFilter {
+  every: SalonTransactionLineItemWhereInput
+  some: SalonTransactionLineItemWhereInput
+  none: SalonTransactionLineItemWhereInput
+}
+
+input SalonTransactionPaymentMethodTypeNullableFilter {
+  equals: SalonTransactionPaymentMethodType
+  in: [SalonTransactionPaymentMethodType!]
+  notIn: [SalonTransactionPaymentMethodType!]
+  not: SalonTransactionPaymentMethodTypeNullableFilter
+}
+
+input SalonTransactionPaymentStatusTypeNullableFilter {
+  equals: SalonTransactionPaymentStatusType
+  in: [SalonTransactionPaymentStatusType!]
+  notIn: [SalonTransactionPaymentStatusType!]
+  not: SalonTransactionPaymentStatusTypeNullableFilter
+}
+
+input SalonTransactionStatusTypeNullableFilter {
+  equals: SalonTransactionStatusType
+  in: [SalonTransactionStatusType!]
+  notIn: [SalonTransactionStatusType!]
+  not: SalonTransactionStatusTypeNullableFilter
+}
+
+input SalonTransactionOrderByInput {
+  id: OrderDirection
+  type: OrderDirection
+  tip: OrderDirection
+  paymentMethod: OrderDirection
+  paymentStatus: OrderDirection
+  status: OrderDirection
+  completedAt: OrderDirection
+  createdAt: OrderDirection
+}
+
+input SalonTransactionUpdateInput {
+  type: SalonTransactionTypeType
+  client: ClientRelateToOneForUpdateInput
+  staff: StylistRelateToOneForUpdateInput
+  lineItems: SalonTransactionLineItemRelateToManyForUpdateInput
+  tip: Int
+  paymentMethod: SalonTransactionPaymentMethodType
+  paymentStatus: SalonTransactionPaymentStatusType
+  status: SalonTransactionStatusType
+  metadata: JSON
+  completedAt: DateTime
+  createdAt: DateTime
+}
+
+input SalonTransactionLineItemRelateToManyForUpdateInput {
+  disconnect: [SalonTransactionLineItemWhereUniqueInput!]
+  set: [SalonTransactionLineItemWhereUniqueInput!]
+  create: [SalonTransactionLineItemCreateInput!]
+  connect: [SalonTransactionLineItemWhereUniqueInput!]
+}
+
+input SalonTransactionUpdateArgs {
+  where: SalonTransactionWhereUniqueInput!
+  data: SalonTransactionUpdateInput!
+}
+
+input SalonTransactionCreateInput {
+  type: SalonTransactionTypeType
+  client: ClientRelateToOneForCreateInput
+  staff: StylistRelateToOneForCreateInput
+  lineItems: SalonTransactionLineItemRelateToManyForCreateInput
+  tip: Int
+  paymentMethod: SalonTransactionPaymentMethodType
+  paymentStatus: SalonTransactionPaymentStatusType
+  status: SalonTransactionStatusType
+  metadata: JSON
+  completedAt: DateTime
+  createdAt: DateTime
+}
+
+input SalonTransactionLineItemRelateToManyForCreateInput {
+  create: [SalonTransactionLineItemCreateInput!]
+  connect: [SalonTransactionLineItemWhereUniqueInput!]
+}
+
+type SalonTransactionLineItem {
+  id: ID!
+  transaction: SalonTransaction
+  itemType: SalonTransactionLineItemItemTypeType
+  service: Service
+  product: Product
+  staff: Stylist
+  quantity: Int
+  unitPrice: Int
+  discount: Int
+  commissionRate: Float
+  metadata: JSON
+  formattedPrice: String
+  formattedTotal: String
+  commissionAmount: String
+}
+
+enum SalonTransactionLineItemItemTypeType {
+  service
+  product
+}
+
+input SalonTransactionLineItemWhereUniqueInput {
+  id: ID
+}
+
+input SalonTransactionLineItemWhereInput {
+  AND: [SalonTransactionLineItemWhereInput!]
+  OR: [SalonTransactionLineItemWhereInput!]
+  NOT: [SalonTransactionLineItemWhereInput!]
+  id: IDFilter
+  transaction: SalonTransactionWhereInput
+  itemType: SalonTransactionLineItemItemTypeTypeNullableFilter
+  service: ServiceWhereInput
+  product: ProductWhereInput
+  staff: StylistWhereInput
+  quantity: IntFilter
+  unitPrice: IntFilter
+  discount: IntNullableFilter
+  commissionRate: FloatNullableFilter
+}
+
+input SalonTransactionLineItemItemTypeTypeNullableFilter {
+  equals: SalonTransactionLineItemItemTypeType
+  in: [SalonTransactionLineItemItemTypeType!]
+  notIn: [SalonTransactionLineItemItemTypeType!]
+  not: SalonTransactionLineItemItemTypeTypeNullableFilter
+}
+
+input SalonTransactionLineItemOrderByInput {
+  id: OrderDirection
+  itemType: OrderDirection
+  quantity: OrderDirection
+  unitPrice: OrderDirection
+  discount: OrderDirection
+  commissionRate: OrderDirection
+}
+
+input SalonTransactionLineItemUpdateInput {
+  transaction: SalonTransactionRelateToOneForUpdateInput
+  itemType: SalonTransactionLineItemItemTypeType
+  service: ServiceRelateToOneForUpdateInput
+  product: ProductRelateToOneForUpdateInput
+  staff: StylistRelateToOneForUpdateInput
+  quantity: Int
+  unitPrice: Int
+  discount: Int
+  commissionRate: Float
+  metadata: JSON
+}
+
+input SalonTransactionRelateToOneForUpdateInput {
+  create: SalonTransactionCreateInput
+  connect: SalonTransactionWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ProductRelateToOneForUpdateInput {
+  create: ProductCreateInput
+  connect: ProductWhereUniqueInput
+  disconnect: Boolean
+}
+
+input SalonTransactionLineItemUpdateArgs {
+  where: SalonTransactionLineItemWhereUniqueInput!
+  data: SalonTransactionLineItemUpdateInput!
+}
+
+input SalonTransactionLineItemCreateInput {
+  transaction: SalonTransactionRelateToOneForCreateInput
+  itemType: SalonTransactionLineItemItemTypeType
+  service: ServiceRelateToOneForCreateInput
+  product: ProductRelateToOneForCreateInput
+  staff: StylistRelateToOneForCreateInput
+  quantity: Int
+  unitPrice: Int
+  discount: Int
+  commissionRate: Float
+  metadata: JSON
+}
+
+input SalonTransactionRelateToOneForCreateInput {
+  create: SalonTransactionCreateInput
+  connect: SalonTransactionWhereUniqueInput
+}
+
+input ProductRelateToOneForCreateInput {
+  create: ProductCreateInput
+  connect: ProductWhereUniqueInput
+}
+
+type ClientPackage {
+  id: ID!
+  client: User
+  package: ServicePackage
+  purchasedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  totalValue: Int
+  paidAmount: Int
+  usedValue: Int
+  usageHistory(where: ClientPackageUsageWhereInput! = {}, orderBy: [ClientPackageUsageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientPackageUsageWhereUniqueInput): [ClientPackageUsage!]
+  usageHistoryCount(where: ClientPackageUsageWhereInput! = {}): Int
+  metadata: JSON
+  remainingValue: Int
+  formattedRemainingValue: String
+}
+
+input ClientPackageWhereUniqueInput {
+  id: ID
+}
+
+input ClientPackageWhereInput {
+  AND: [ClientPackageWhereInput!]
+  OR: [ClientPackageWhereInput!]
+  NOT: [ClientPackageWhereInput!]
+  id: IDFilter
+  client: UserWhereInput
+  package: ServicePackageWhereInput
+  purchasedAt: DateTimeNullableFilter
+  expiresAt: DateTimeNullableFilter
+  status: StringNullableFilter
+  totalValue: IntFilter
+  paidAmount: IntFilter
+  usedValue: IntNullableFilter
+  usageHistory: ClientPackageUsageManyRelationFilter
+}
+
+input ClientPackageUsageManyRelationFilter {
+  every: ClientPackageUsageWhereInput
+  some: ClientPackageUsageWhereInput
+  none: ClientPackageUsageWhereInput
+}
+
+input ClientPackageOrderByInput {
+  id: OrderDirection
+  purchasedAt: OrderDirection
+  expiresAt: OrderDirection
+  status: OrderDirection
+  totalValue: OrderDirection
+  paidAmount: OrderDirection
+  usedValue: OrderDirection
+}
+
+input ClientPackageUpdateInput {
+  client: UserRelateToOneForUpdateInput
+  package: ServicePackageRelateToOneForUpdateInput
+  purchasedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  totalValue: Int
+  paidAmount: Int
+  usedValue: Int
+  usageHistory: ClientPackageUsageRelateToManyForUpdateInput
+  metadata: JSON
+}
+
+input ServicePackageRelateToOneForUpdateInput {
+  create: ServicePackageCreateInput
+  connect: ServicePackageWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientPackageUsageRelateToManyForUpdateInput {
+  disconnect: [ClientPackageUsageWhereUniqueInput!]
+  set: [ClientPackageUsageWhereUniqueInput!]
+  create: [ClientPackageUsageCreateInput!]
+  connect: [ClientPackageUsageWhereUniqueInput!]
+}
+
+input ClientPackageUpdateArgs {
+  where: ClientPackageWhereUniqueInput!
+  data: ClientPackageUpdateInput!
+}
+
+input ClientPackageCreateInput {
+  client: UserRelateToOneForCreateInput
+  package: ServicePackageRelateToOneForCreateInput
+  purchasedAt: DateTime
+  expiresAt: DateTime
+  status: String
+  totalValue: Int
+  paidAmount: Int
+  usedValue: Int
+  usageHistory: ClientPackageUsageRelateToManyForCreateInput
+  metadata: JSON
+}
+
+input ServicePackageRelateToOneForCreateInput {
+  create: ServicePackageCreateInput
+  connect: ServicePackageWhereUniqueInput
+}
+
+input ClientPackageUsageRelateToManyForCreateInput {
+  create: [ClientPackageUsageCreateInput!]
+  connect: [ClientPackageUsageWhereUniqueInput!]
+}
+
+type ClientPackageUsage {
+  id: ID!
+  clientPackage: ClientPackage
+  appointment: Appointment
+  service: Service
+  quantityUsed: Int
+  valueUsed: Int
+  usedAt: DateTime
+  formattedValueUsed: String
+}
+
+input ClientPackageUsageWhereUniqueInput {
+  id: ID
+}
+
+input ClientPackageUsageWhereInput {
+  AND: [ClientPackageUsageWhereInput!]
+  OR: [ClientPackageUsageWhereInput!]
+  NOT: [ClientPackageUsageWhereInput!]
+  id: IDFilter
+  clientPackage: ClientPackageWhereInput
+  appointment: AppointmentWhereInput
+  service: ServiceWhereInput
+  quantityUsed: IntNullableFilter
+  valueUsed: IntFilter
+  usedAt: DateTimeNullableFilter
+}
+
+input ClientPackageUsageOrderByInput {
+  id: OrderDirection
+  quantityUsed: OrderDirection
+  valueUsed: OrderDirection
+  usedAt: OrderDirection
+}
+
+input ClientPackageUsageUpdateInput {
+  clientPackage: ClientPackageRelateToOneForUpdateInput
+  appointment: AppointmentRelateToOneForUpdateInput
+  service: ServiceRelateToOneForUpdateInput
+  quantityUsed: Int
+  valueUsed: Int
+  usedAt: DateTime
+}
+
+input ClientPackageRelateToOneForUpdateInput {
+  create: ClientPackageCreateInput
+  connect: ClientPackageWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientPackageUsageUpdateArgs {
+  where: ClientPackageUsageWhereUniqueInput!
+  data: ClientPackageUsageUpdateInput!
+}
+
+input ClientPackageUsageCreateInput {
+  clientPackage: ClientPackageRelateToOneForCreateInput
+  appointment: AppointmentRelateToOneForCreateInput
+  service: ServiceRelateToOneForCreateInput
+  quantityUsed: Int
+  valueUsed: Int
+  usedAt: DateTime
+}
+
+input ClientPackageRelateToOneForCreateInput {
+  create: ClientPackageCreateInput
+  connect: ClientPackageWhereUniqueInput
 }
 
 """
@@ -551,23 +3790,269 @@ type Mutation {
   updateRoles(data: [RoleUpdateArgs!]!): [Role]
   deleteRole(where: RoleWhereUniqueInput!): Role
   deleteRoles(where: [RoleWhereUniqueInput!]!): [Role]
-  createTodo(data: TodoCreateInput!): Todo
-  createTodos(data: [TodoCreateInput!]!): [Todo]
-  updateTodo(where: TodoWhereUniqueInput!, data: TodoUpdateInput!): Todo
-  updateTodos(data: [TodoUpdateArgs!]!): [Todo]
-  deleteTodo(where: TodoWhereUniqueInput!): Todo
-  deleteTodos(where: [TodoWhereUniqueInput!]!): [Todo]
-  createTodoImage(data: TodoImageCreateInput!): TodoImage
-  createTodoImages(data: [TodoImageCreateInput!]!): [TodoImage]
-  updateTodoImage(where: TodoImageWhereUniqueInput!, data: TodoImageUpdateInput!): TodoImage
-  updateTodoImages(data: [TodoImageUpdateArgs!]!): [TodoImage]
-  deleteTodoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  deleteTodoImages(where: [TodoImageWhereUniqueInput!]!): [TodoImage]
+  createSalonImage(data: SalonImageCreateInput!): SalonImage
+  createSalonImages(data: [SalonImageCreateInput!]!): [SalonImage]
+  updateSalonImage(where: SalonImageWhereUniqueInput!, data: SalonImageUpdateInput!): SalonImage
+  updateSalonImages(data: [SalonImageUpdateArgs!]!): [SalonImage]
+  deleteSalonImage(where: SalonImageWhereUniqueInput!): SalonImage
+  deleteSalonImages(where: [SalonImageWhereUniqueInput!]!): [SalonImage]
+  createServiceCategory(data: ServiceCategoryCreateInput!): ServiceCategory
+  createServiceCategories(data: [ServiceCategoryCreateInput!]!): [ServiceCategory]
+  updateServiceCategory(where: ServiceCategoryWhereUniqueInput!, data: ServiceCategoryUpdateInput!): ServiceCategory
+  updateServiceCategories(data: [ServiceCategoryUpdateArgs!]!): [ServiceCategory]
+  deleteServiceCategory(where: ServiceCategoryWhereUniqueInput!): ServiceCategory
+  deleteServiceCategories(where: [ServiceCategoryWhereUniqueInput!]!): [ServiceCategory]
+  createService(data: ServiceCreateInput!): Service
+  createServices(data: [ServiceCreateInput!]!): [Service]
+  updateService(where: ServiceWhereUniqueInput!, data: ServiceUpdateInput!): Service
+  updateServices(data: [ServiceUpdateArgs!]!): [Service]
+  deleteService(where: ServiceWhereUniqueInput!): Service
+  deleteServices(where: [ServiceWhereUniqueInput!]!): [Service]
+  createServiceVariant(data: ServiceVariantCreateInput!): ServiceVariant
+  createServiceVariants(data: [ServiceVariantCreateInput!]!): [ServiceVariant]
+  updateServiceVariant(where: ServiceVariantWhereUniqueInput!, data: ServiceVariantUpdateInput!): ServiceVariant
+  updateServiceVariants(data: [ServiceVariantUpdateArgs!]!): [ServiceVariant]
+  deleteServiceVariant(where: ServiceVariantWhereUniqueInput!): ServiceVariant
+  deleteServiceVariants(where: [ServiceVariantWhereUniqueInput!]!): [ServiceVariant]
+  createStylist(data: StylistCreateInput!): Stylist
+  createStylists(data: [StylistCreateInput!]!): [Stylist]
+  updateStylist(where: StylistWhereUniqueInput!, data: StylistUpdateInput!): Stylist
+  updateStylists(data: [StylistUpdateArgs!]!): [Stylist]
+  deleteStylist(where: StylistWhereUniqueInput!): Stylist
+  deleteStylists(where: [StylistWhereUniqueInput!]!): [Stylist]
+  createClient(data: ClientCreateInput!): Client
+  createClients(data: [ClientCreateInput!]!): [Client]
+  updateClient(where: ClientWhereUniqueInput!, data: ClientUpdateInput!): Client
+  updateClients(data: [ClientUpdateArgs!]!): [Client]
+  deleteClient(where: ClientWhereUniqueInput!): Client
+  deleteClients(where: [ClientWhereUniqueInput!]!): [Client]
+  createClientNote(data: ClientNoteCreateInput!): ClientNote
+  createClientNotes(data: [ClientNoteCreateInput!]!): [ClientNote]
+  updateClientNote(where: ClientNoteWhereUniqueInput!, data: ClientNoteUpdateInput!): ClientNote
+  updateClientNotes(data: [ClientNoteUpdateArgs!]!): [ClientNote]
+  deleteClientNote(where: ClientNoteWhereUniqueInput!): ClientNote
+  deleteClientNotes(where: [ClientNoteWhereUniqueInput!]!): [ClientNote]
+  createColorFormula(data: ColorFormulaCreateInput!): ColorFormula
+  createColorFormulas(data: [ColorFormulaCreateInput!]!): [ColorFormula]
+  updateColorFormula(where: ColorFormulaWhereUniqueInput!, data: ColorFormulaUpdateInput!): ColorFormula
+  updateColorFormulas(data: [ColorFormulaUpdateArgs!]!): [ColorFormula]
+  deleteColorFormula(where: ColorFormulaWhereUniqueInput!): ColorFormula
+  deleteColorFormulas(where: [ColorFormulaWhereUniqueInput!]!): [ColorFormula]
+  createStylistSchedule(data: StylistScheduleCreateInput!): StylistSchedule
+  createStylistSchedules(data: [StylistScheduleCreateInput!]!): [StylistSchedule]
+  updateStylistSchedule(where: StylistScheduleWhereUniqueInput!, data: StylistScheduleUpdateInput!): StylistSchedule
+  updateStylistSchedules(data: [StylistScheduleUpdateArgs!]!): [StylistSchedule]
+  deleteStylistSchedule(where: StylistScheduleWhereUniqueInput!): StylistSchedule
+  deleteStylistSchedules(where: [StylistScheduleWhereUniqueInput!]!): [StylistSchedule]
+  createAppointment(data: AppointmentCreateInput!): Appointment
+  createAppointments(data: [AppointmentCreateInput!]!): [Appointment]
+  updateAppointment(where: AppointmentWhereUniqueInput!, data: AppointmentUpdateInput!): Appointment
+  updateAppointments(data: [AppointmentUpdateArgs!]!): [Appointment]
+  deleteAppointment(where: AppointmentWhereUniqueInput!): Appointment
+  deleteAppointments(where: [AppointmentWhereUniqueInput!]!): [Appointment]
+  createAppointmentLineItem(data: AppointmentLineItemCreateInput!): AppointmentLineItem
+  createAppointmentLineItems(data: [AppointmentLineItemCreateInput!]!): [AppointmentLineItem]
+  updateAppointmentLineItem(where: AppointmentLineItemWhereUniqueInput!, data: AppointmentLineItemUpdateInput!): AppointmentLineItem
+  updateAppointmentLineItems(data: [AppointmentLineItemUpdateArgs!]!): [AppointmentLineItem]
+  deleteAppointmentLineItem(where: AppointmentLineItemWhereUniqueInput!): AppointmentLineItem
+  deleteAppointmentLineItems(where: [AppointmentLineItemWhereUniqueInput!]!): [AppointmentLineItem]
+  createPayment(data: PaymentCreateInput!): Payment
+  createPayments(data: [PaymentCreateInput!]!): [Payment]
+  updatePayment(where: PaymentWhereUniqueInput!, data: PaymentUpdateInput!): Payment
+  updatePayments(data: [PaymentUpdateArgs!]!): [Payment]
+  deletePayment(where: PaymentWhereUniqueInput!): Payment
+  deletePayments(where: [PaymentWhereUniqueInput!]!): [Payment]
+  createClientPoints(data: ClientPointsCreateInput!): ClientPoints
+  createClientPointsRecords(data: [ClientPointsCreateInput!]!): [ClientPoints]
+  updateClientPoints(where: ClientPointsWhereUniqueInput!, data: ClientPointsUpdateInput!): ClientPoints
+  updateClientPointsRecords(data: [ClientPointsUpdateArgs!]!): [ClientPoints]
+  deleteClientPoints(where: ClientPointsWhereUniqueInput!): ClientPoints
+  deleteClientPointsRecords(where: [ClientPointsWhereUniqueInput!]!): [ClientPoints]
+  createReferral(data: ReferralCreateInput!): Referral
+  createReferrals(data: [ReferralCreateInput!]!): [Referral]
+  updateReferral(where: ReferralWhereUniqueInput!, data: ReferralUpdateInput!): Referral
+  updateReferrals(data: [ReferralUpdateArgs!]!): [Referral]
+  deleteReferral(where: ReferralWhereUniqueInput!): Referral
+  deleteReferrals(where: [ReferralWhereUniqueInput!]!): [Referral]
+  createMessageTemplate(data: MessageTemplateCreateInput!): MessageTemplate
+  createMessageTemplates(data: [MessageTemplateCreateInput!]!): [MessageTemplate]
+  updateMessageTemplate(where: MessageTemplateWhereUniqueInput!, data: MessageTemplateUpdateInput!): MessageTemplate
+  updateMessageTemplates(data: [MessageTemplateUpdateArgs!]!): [MessageTemplate]
+  deleteMessageTemplate(where: MessageTemplateWhereUniqueInput!): MessageTemplate
+  deleteMessageTemplates(where: [MessageTemplateWhereUniqueInput!]!): [MessageTemplate]
+  createMessageLog(data: MessageLogCreateInput!): MessageLog
+  createMessageLogs(data: [MessageLogCreateInput!]!): [MessageLog]
+  updateMessageLog(where: MessageLogWhereUniqueInput!, data: MessageLogUpdateInput!): MessageLog
+  updateMessageLogs(data: [MessageLogUpdateArgs!]!): [MessageLog]
+  deleteMessageLog(where: MessageLogWhereUniqueInput!): MessageLog
+  deleteMessageLogs(where: [MessageLogWhereUniqueInput!]!): [MessageLog]
+  createGiftCard(data: GiftCardCreateInput!): GiftCard
+  createGiftCards(data: [GiftCardCreateInput!]!): [GiftCard]
+  updateGiftCard(where: GiftCardWhereUniqueInput!, data: GiftCardUpdateInput!): GiftCard
+  updateGiftCards(data: [GiftCardUpdateArgs!]!): [GiftCard]
+  deleteGiftCard(where: GiftCardWhereUniqueInput!): GiftCard
+  deleteGiftCards(where: [GiftCardWhereUniqueInput!]!): [GiftCard]
+  createGiftCardTransaction(data: GiftCardTransactionCreateInput!): GiftCardTransaction
+  createGiftCardTransactions(data: [GiftCardTransactionCreateInput!]!): [GiftCardTransaction]
+  updateGiftCardTransaction(where: GiftCardTransactionWhereUniqueInput!, data: GiftCardTransactionUpdateInput!): GiftCardTransaction
+  updateGiftCardTransactions(data: [GiftCardTransactionUpdateArgs!]!): [GiftCardTransaction]
+  deleteGiftCardTransaction(where: GiftCardTransactionWhereUniqueInput!): GiftCardTransaction
+  deleteGiftCardTransactions(where: [GiftCardTransactionWhereUniqueInput!]!): [GiftCardTransaction]
+  createClientMembership(data: ClientMembershipCreateInput!): ClientMembership
+  createClientMemberships(data: [ClientMembershipCreateInput!]!): [ClientMembership]
+  updateClientMembership(where: ClientMembershipWhereUniqueInput!, data: ClientMembershipUpdateInput!): ClientMembership
+  updateClientMemberships(data: [ClientMembershipUpdateArgs!]!): [ClientMembership]
+  deleteClientMembership(where: ClientMembershipWhereUniqueInput!): ClientMembership
+  deleteClientMemberships(where: [ClientMembershipWhereUniqueInput!]!): [ClientMembership]
+  createIntakeForm(data: IntakeFormCreateInput!): IntakeForm
+  createIntakeForms(data: [IntakeFormCreateInput!]!): [IntakeForm]
+  updateIntakeForm(where: IntakeFormWhereUniqueInput!, data: IntakeFormUpdateInput!): IntakeForm
+  updateIntakeForms(data: [IntakeFormUpdateArgs!]!): [IntakeForm]
+  deleteIntakeForm(where: IntakeFormWhereUniqueInput!): IntakeForm
+  deleteIntakeForms(where: [IntakeFormWhereUniqueInput!]!): [IntakeForm]
+  createServicePackage(data: ServicePackageCreateInput!): ServicePackage
+  createServicePackages(data: [ServicePackageCreateInput!]!): [ServicePackage]
+  updateServicePackage(where: ServicePackageWhereUniqueInput!, data: ServicePackageUpdateInput!): ServicePackage
+  updateServicePackages(data: [ServicePackageUpdateArgs!]!): [ServicePackage]
+  deleteServicePackage(where: ServicePackageWhereUniqueInput!): ServicePackage
+  deleteServicePackages(where: [ServicePackageWhereUniqueInput!]!): [ServicePackage]
+  createMembership(data: MembershipCreateInput!): Membership
+  createMemberships(data: [MembershipCreateInput!]!): [Membership]
+  updateMembership(where: MembershipWhereUniqueInput!, data: MembershipUpdateInput!): Membership
+  updateMemberships(data: [MembershipUpdateArgs!]!): [Membership]
+  deleteMembership(where: MembershipWhereUniqueInput!): Membership
+  deleteMemberships(where: [MembershipWhereUniqueInput!]!): [Membership]
+  createWaitlistEntry(data: WaitlistEntryCreateInput!): WaitlistEntry
+  createWaitlistEntries(data: [WaitlistEntryCreateInput!]!): [WaitlistEntry]
+  updateWaitlistEntry(where: WaitlistEntryWhereUniqueInput!, data: WaitlistEntryUpdateInput!): WaitlistEntry
+  updateWaitlistEntries(data: [WaitlistEntryUpdateArgs!]!): [WaitlistEntry]
+  deleteWaitlistEntry(where: WaitlistEntryWhereUniqueInput!): WaitlistEntry
+  deleteWaitlistEntries(where: [WaitlistEntryWhereUniqueInput!]!): [WaitlistEntry]
+  createWidgetConfiguration(data: WidgetConfigurationCreateInput!): WidgetConfiguration
+  createWidgetConfigurations(data: [WidgetConfigurationCreateInput!]!): [WidgetConfiguration]
+  updateWidgetConfiguration(where: WidgetConfigurationWhereUniqueInput!, data: WidgetConfigurationUpdateInput!): WidgetConfiguration
+  updateWidgetConfigurations(data: [WidgetConfigurationUpdateArgs!]!): [WidgetConfiguration]
+  deleteWidgetConfiguration(where: WidgetConfigurationWhereUniqueInput!): WidgetConfiguration
+  deleteWidgetConfigurations(where: [WidgetConfigurationWhereUniqueInput!]!): [WidgetConfiguration]
+  createFormSubmission(data: FormSubmissionCreateInput!): FormSubmission
+  createFormSubmissions(data: [FormSubmissionCreateInput!]!): [FormSubmission]
+  updateFormSubmission(where: FormSubmissionWhereUniqueInput!, data: FormSubmissionUpdateInput!): FormSubmission
+  updateFormSubmissions(data: [FormSubmissionUpdateArgs!]!): [FormSubmission]
+  deleteFormSubmission(where: FormSubmissionWhereUniqueInput!): FormSubmission
+  deleteFormSubmissions(where: [FormSubmissionWhereUniqueInput!]!): [FormSubmission]
+  createFormTemplate(data: FormTemplateCreateInput!): FormTemplate
+  createFormTemplates(data: [FormTemplateCreateInput!]!): [FormTemplate]
+  updateFormTemplate(where: FormTemplateWhereUniqueInput!, data: FormTemplateUpdateInput!): FormTemplate
+  updateFormTemplates(data: [FormTemplateUpdateArgs!]!): [FormTemplate]
+  deleteFormTemplate(where: FormTemplateWhereUniqueInput!): FormTemplate
+  deleteFormTemplates(where: [FormTemplateWhereUniqueInput!]!): [FormTemplate]
+  createLoyaltyProgram(data: LoyaltyProgramCreateInput!): LoyaltyProgram
+  createLoyaltyPrograms(data: [LoyaltyProgramCreateInput!]!): [LoyaltyProgram]
+  updateLoyaltyProgram(where: LoyaltyProgramWhereUniqueInput!, data: LoyaltyProgramUpdateInput!): LoyaltyProgram
+  updateLoyaltyPrograms(data: [LoyaltyProgramUpdateArgs!]!): [LoyaltyProgram]
+  deleteLoyaltyProgram(where: LoyaltyProgramWhereUniqueInput!): LoyaltyProgram
+  deleteLoyaltyPrograms(where: [LoyaltyProgramWhereUniqueInput!]!): [LoyaltyProgram]
+  createLocation(data: LocationCreateInput!): Location
+  createLocations(data: [LocationCreateInput!]!): [Location]
+  updateLocation(where: LocationWhereUniqueInput!, data: LocationUpdateInput!): Location
+  updateLocations(data: [LocationUpdateArgs!]!): [Location]
+  deleteLocation(where: LocationWhereUniqueInput!): Location
+  deleteLocations(where: [LocationWhereUniqueInput!]!): [Location]
+  createProduct(data: ProductCreateInput!): Product
+  createProducts(data: [ProductCreateInput!]!): [Product]
+  updateProduct(where: ProductWhereUniqueInput!, data: ProductUpdateInput!): Product
+  updateProducts(data: [ProductUpdateArgs!]!): [Product]
+  deleteProduct(where: ProductWhereUniqueInput!): Product
+  deleteProducts(where: [ProductWhereUniqueInput!]!): [Product]
+  createProductSale(data: ProductSaleCreateInput!): ProductSale
+  createProductSales(data: [ProductSaleCreateInput!]!): [ProductSale]
+  updateProductSale(where: ProductSaleWhereUniqueInput!, data: ProductSaleUpdateInput!): ProductSale
+  updateProductSales(data: [ProductSaleUpdateArgs!]!): [ProductSale]
+  deleteProductSale(where: ProductSaleWhereUniqueInput!): ProductSale
+  deleteProductSales(where: [ProductSaleWhereUniqueInput!]!): [ProductSale]
+  createCommission(data: CommissionCreateInput!): Commission
+  createCommissions(data: [CommissionCreateInput!]!): [Commission]
+  updateCommission(where: CommissionWhereUniqueInput!, data: CommissionUpdateInput!): Commission
+  updateCommissions(data: [CommissionUpdateArgs!]!): [Commission]
+  deleteCommission(where: CommissionWhereUniqueInput!): Commission
+  deleteCommissions(where: [CommissionWhereUniqueInput!]!): [Commission]
+  createReview(data: ReviewCreateInput!): Review
+  createReviews(data: [ReviewCreateInput!]!): [Review]
+  updateReview(where: ReviewWhereUniqueInput!, data: ReviewUpdateInput!): Review
+  updateReviews(data: [ReviewUpdateArgs!]!): [Review]
+  deleteReview(where: ReviewWhereUniqueInput!): Review
+  deleteReviews(where: [ReviewWhereUniqueInput!]!): [Review]
+  createSalonTransaction(data: SalonTransactionCreateInput!): SalonTransaction
+  createSalonTransactions(data: [SalonTransactionCreateInput!]!): [SalonTransaction]
+  updateSalonTransaction(where: SalonTransactionWhereUniqueInput!, data: SalonTransactionUpdateInput!): SalonTransaction
+  updateSalonTransactions(data: [SalonTransactionUpdateArgs!]!): [SalonTransaction]
+  deleteSalonTransaction(where: SalonTransactionWhereUniqueInput!): SalonTransaction
+  deleteSalonTransactions(where: [SalonTransactionWhereUniqueInput!]!): [SalonTransaction]
+  createSalonTransactionLineItem(data: SalonTransactionLineItemCreateInput!): SalonTransactionLineItem
+  createSalonTransactionLineItems(data: [SalonTransactionLineItemCreateInput!]!): [SalonTransactionLineItem]
+  updateSalonTransactionLineItem(where: SalonTransactionLineItemWhereUniqueInput!, data: SalonTransactionLineItemUpdateInput!): SalonTransactionLineItem
+  updateSalonTransactionLineItems(data: [SalonTransactionLineItemUpdateArgs!]!): [SalonTransactionLineItem]
+  deleteSalonTransactionLineItem(where: SalonTransactionLineItemWhereUniqueInput!): SalonTransactionLineItem
+  deleteSalonTransactionLineItems(where: [SalonTransactionLineItemWhereUniqueInput!]!): [SalonTransactionLineItem]
+  createClientPackage(data: ClientPackageCreateInput!): ClientPackage
+  createClientPackages(data: [ClientPackageCreateInput!]!): [ClientPackage]
+  updateClientPackage(where: ClientPackageWhereUniqueInput!, data: ClientPackageUpdateInput!): ClientPackage
+  updateClientPackages(data: [ClientPackageUpdateArgs!]!): [ClientPackage]
+  deleteClientPackage(where: ClientPackageWhereUniqueInput!): ClientPackage
+  deleteClientPackages(where: [ClientPackageWhereUniqueInput!]!): [ClientPackage]
+  createClientPackageUsage(data: ClientPackageUsageCreateInput!): ClientPackageUsage
+  createClientPackageUsages(data: [ClientPackageUsageCreateInput!]!): [ClientPackageUsage]
+  updateClientPackageUsage(where: ClientPackageUsageWhereUniqueInput!, data: ClientPackageUsageUpdateInput!): ClientPackageUsage
+  updateClientPackageUsages(data: [ClientPackageUsageUpdateArgs!]!): [ClientPackageUsage]
+  deleteClientPackageUsage(where: ClientPackageUsageWhereUniqueInput!): ClientPackageUsage
+  deleteClientPackageUsages(where: [ClientPackageUsageWhereUniqueInput!]!): [ClientPackageUsage]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
+  processPayment(appointmentId: ID!, paymentMethod: String!, tipAmount: Float, discountAmount: Float): ProcessPaymentResult
+  confirmPayment(paymentId: ID!, stripePaymentIntentId: String): ConfirmPaymentResult
+  refundPayment(paymentId: ID!, amount: Float, reason: String): RefundPaymentResult
+  distributeTip(paymentId: ID!): DistributeTipResult
+  purchaseGiftCard(amount: Float!, recipientEmail: String, recipientName: String, message: String, purchaserEmail: String!, purchaserName: String!): PurchaseGiftCardResult
+  confirmGiftCardPurchase(giftCardId: ID!, stripePaymentIntentId: String!): ConfirmGiftCardPurchaseResult
+}
+
+type ProcessPaymentResult {
+  success: Boolean!
+  paymentId: String
+  error: String
+  clientSecret: String
+}
+
+type ConfirmPaymentResult {
+  success: Boolean!
+  error: String
+}
+
+type RefundPaymentResult {
+  success: Boolean!
+  refundId: String
+  error: String
+}
+
+type DistributeTipResult {
+  success: Boolean!
+  error: String
+}
+
+type PurchaseGiftCardResult {
+  success: Boolean!
+  giftCardId: String
+  clientSecret: String
+  error: String
+}
+
+type ConfirmGiftCardPurchaseResult {
+  success: Boolean!
+  error: String
+  code: String
 }
 
 union UserAuthenticationWithPasswordResult = UserAuthenticationWithPasswordSuccess | UserAuthenticationWithPasswordFailure
@@ -605,12 +4090,114 @@ type Query {
   role(where: RoleWhereUniqueInput!): Role
   roles(where: RoleWhereInput! = {}, orderBy: [RoleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RoleWhereUniqueInput): [Role!]
   rolesCount(where: RoleWhereInput! = {}): Int
-  todo(where: TodoWhereUniqueInput!): Todo
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  todoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
+  salonImage(where: SalonImageWhereUniqueInput!): SalonImage
+  salonImages(where: SalonImageWhereInput! = {}, orderBy: [SalonImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SalonImageWhereUniqueInput): [SalonImage!]
+  salonImagesCount(where: SalonImageWhereInput! = {}): Int
+  serviceCategory(where: ServiceCategoryWhereUniqueInput!): ServiceCategory
+  serviceCategories(where: ServiceCategoryWhereInput! = {}, orderBy: [ServiceCategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceCategoryWhereUniqueInput): [ServiceCategory!]
+  serviceCategoriesCount(where: ServiceCategoryWhereInput! = {}): Int
+  service(where: ServiceWhereUniqueInput!): Service
+  services(where: ServiceWhereInput! = {}, orderBy: [ServiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceWhereUniqueInput): [Service!]
+  servicesCount(where: ServiceWhereInput! = {}): Int
+  serviceVariant(where: ServiceVariantWhereUniqueInput!): ServiceVariant
+  serviceVariants(where: ServiceVariantWhereInput! = {}, orderBy: [ServiceVariantOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServiceVariantWhereUniqueInput): [ServiceVariant!]
+  serviceVariantsCount(where: ServiceVariantWhereInput! = {}): Int
+  stylist(where: StylistWhereUniqueInput!): Stylist
+  stylists(where: StylistWhereInput! = {}, orderBy: [StylistOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StylistWhereUniqueInput): [Stylist!]
+  stylistsCount(where: StylistWhereInput! = {}): Int
+  client(where: ClientWhereUniqueInput!): Client
+  clients(where: ClientWhereInput! = {}, orderBy: [ClientOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientWhereUniqueInput): [Client!]
+  clientsCount(where: ClientWhereInput! = {}): Int
+  clientNote(where: ClientNoteWhereUniqueInput!): ClientNote
+  clientNotes(where: ClientNoteWhereInput! = {}, orderBy: [ClientNoteOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientNoteWhereUniqueInput): [ClientNote!]
+  clientNotesCount(where: ClientNoteWhereInput! = {}): Int
+  colorFormula(where: ColorFormulaWhereUniqueInput!): ColorFormula
+  colorFormulas(where: ColorFormulaWhereInput! = {}, orderBy: [ColorFormulaOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ColorFormulaWhereUniqueInput): [ColorFormula!]
+  colorFormulasCount(where: ColorFormulaWhereInput! = {}): Int
+  stylistSchedule(where: StylistScheduleWhereUniqueInput!): StylistSchedule
+  stylistSchedules(where: StylistScheduleWhereInput! = {}, orderBy: [StylistScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: StylistScheduleWhereUniqueInput): [StylistSchedule!]
+  stylistSchedulesCount(where: StylistScheduleWhereInput! = {}): Int
+  appointment(where: AppointmentWhereUniqueInput!): Appointment
+  appointments(where: AppointmentWhereInput! = {}, orderBy: [AppointmentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentWhereUniqueInput): [Appointment!]
+  appointmentsCount(where: AppointmentWhereInput! = {}): Int
+  appointmentLineItem(where: AppointmentLineItemWhereUniqueInput!): AppointmentLineItem
+  appointmentLineItems(where: AppointmentLineItemWhereInput! = {}, orderBy: [AppointmentLineItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentLineItemWhereUniqueInput): [AppointmentLineItem!]
+  appointmentLineItemsCount(where: AppointmentLineItemWhereInput! = {}): Int
+  payment(where: PaymentWhereUniqueInput!): Payment
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  clientPoints(where: ClientPointsWhereUniqueInput!): ClientPoints
+  clientPointsRecords(where: ClientPointsWhereInput! = {}, orderBy: [ClientPointsOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientPointsWhereUniqueInput): [ClientPoints!]
+  clientPointsRecordsCount(where: ClientPointsWhereInput! = {}): Int
+  referral(where: ReferralWhereUniqueInput!): Referral
+  referrals(where: ReferralWhereInput! = {}, orderBy: [ReferralOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReferralWhereUniqueInput): [Referral!]
+  referralsCount(where: ReferralWhereInput! = {}): Int
+  messageTemplate(where: MessageTemplateWhereUniqueInput!): MessageTemplate
+  messageTemplates(where: MessageTemplateWhereInput! = {}, orderBy: [MessageTemplateOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MessageTemplateWhereUniqueInput): [MessageTemplate!]
+  messageTemplatesCount(where: MessageTemplateWhereInput! = {}): Int
+  messageLog(where: MessageLogWhereUniqueInput!): MessageLog
+  messageLogs(where: MessageLogWhereInput! = {}, orderBy: [MessageLogOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MessageLogWhereUniqueInput): [MessageLog!]
+  messageLogsCount(where: MessageLogWhereInput! = {}): Int
+  giftCard(where: GiftCardWhereUniqueInput!): GiftCard
+  giftCards(where: GiftCardWhereInput! = {}, orderBy: [GiftCardOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardWhereUniqueInput): [GiftCard!]
+  giftCardsCount(where: GiftCardWhereInput! = {}): Int
+  giftCardTransaction(where: GiftCardTransactionWhereUniqueInput!): GiftCardTransaction
+  giftCardTransactions(where: GiftCardTransactionWhereInput! = {}, orderBy: [GiftCardTransactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: GiftCardTransactionWhereUniqueInput): [GiftCardTransaction!]
+  giftCardTransactionsCount(where: GiftCardTransactionWhereInput! = {}): Int
+  clientMembership(where: ClientMembershipWhereUniqueInput!): ClientMembership
+  clientMemberships(where: ClientMembershipWhereInput! = {}, orderBy: [ClientMembershipOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientMembershipWhereUniqueInput): [ClientMembership!]
+  clientMembershipsCount(where: ClientMembershipWhereInput! = {}): Int
+  intakeForm(where: IntakeFormWhereUniqueInput!): IntakeForm
+  intakeForms(where: IntakeFormWhereInput! = {}, orderBy: [IntakeFormOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: IntakeFormWhereUniqueInput): [IntakeForm!]
+  intakeFormsCount(where: IntakeFormWhereInput! = {}): Int
+  servicePackage(where: ServicePackageWhereUniqueInput!): ServicePackage
+  servicePackages(where: ServicePackageWhereInput! = {}, orderBy: [ServicePackageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ServicePackageWhereUniqueInput): [ServicePackage!]
+  servicePackagesCount(where: ServicePackageWhereInput! = {}): Int
+  membership(where: MembershipWhereUniqueInput!): Membership
+  memberships(where: MembershipWhereInput! = {}, orderBy: [MembershipOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MembershipWhereUniqueInput): [Membership!]
+  membershipsCount(where: MembershipWhereInput! = {}): Int
+  waitlistEntry(where: WaitlistEntryWhereUniqueInput!): WaitlistEntry
+  waitlistEntries(where: WaitlistEntryWhereInput! = {}, orderBy: [WaitlistEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WaitlistEntryWhereUniqueInput): [WaitlistEntry!]
+  waitlistEntriesCount(where: WaitlistEntryWhereInput! = {}): Int
+  widgetConfiguration(where: WidgetConfigurationWhereUniqueInput!): WidgetConfiguration
+  widgetConfigurations(where: WidgetConfigurationWhereInput! = {}, orderBy: [WidgetConfigurationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: WidgetConfigurationWhereUniqueInput): [WidgetConfiguration!]
+  widgetConfigurationsCount(where: WidgetConfigurationWhereInput! = {}): Int
+  formSubmission(where: FormSubmissionWhereUniqueInput!): FormSubmission
+  formSubmissions(where: FormSubmissionWhereInput! = {}, orderBy: [FormSubmissionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: FormSubmissionWhereUniqueInput): [FormSubmission!]
+  formSubmissionsCount(where: FormSubmissionWhereInput! = {}): Int
+  formTemplate(where: FormTemplateWhereUniqueInput!): FormTemplate
+  formTemplates(where: FormTemplateWhereInput! = {}, orderBy: [FormTemplateOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: FormTemplateWhereUniqueInput): [FormTemplate!]
+  formTemplatesCount(where: FormTemplateWhereInput! = {}): Int
+  loyaltyProgram(where: LoyaltyProgramWhereUniqueInput!): LoyaltyProgram
+  loyaltyPrograms(where: LoyaltyProgramWhereInput! = {}, orderBy: [LoyaltyProgramOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LoyaltyProgramWhereUniqueInput): [LoyaltyProgram!]
+  loyaltyProgramsCount(where: LoyaltyProgramWhereInput! = {}): Int
+  location(where: LocationWhereUniqueInput!): Location
+  locations(where: LocationWhereInput! = {}, orderBy: [LocationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LocationWhereUniqueInput): [Location!]
+  locationsCount(where: LocationWhereInput! = {}): Int
+  product(where: ProductWhereUniqueInput!): Product
+  products(where: ProductWhereInput! = {}, orderBy: [ProductOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProductWhereUniqueInput): [Product!]
+  productsCount(where: ProductWhereInput! = {}): Int
+  productSale(where: ProductSaleWhereUniqueInput!): ProductSale
+  productSales(where: ProductSaleWhereInput! = {}, orderBy: [ProductSaleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProductSaleWhereUniqueInput): [ProductSale!]
+  productSalesCount(where: ProductSaleWhereInput! = {}): Int
+  commission(where: CommissionWhereUniqueInput!): Commission
+  commissions(where: CommissionWhereInput! = {}, orderBy: [CommissionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionWhereUniqueInput): [Commission!]
+  commissionsCount(where: CommissionWhereInput! = {}): Int
+  review(where: ReviewWhereUniqueInput!): Review
+  reviews(where: ReviewWhereInput! = {}, orderBy: [ReviewOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReviewWhereUniqueInput): [Review!]
+  reviewsCount(where: ReviewWhereInput! = {}): Int
+  salonTransaction(where: SalonTransactionWhereUniqueInput!): SalonTransaction
+  salonTransactions(where: SalonTransactionWhereInput! = {}, orderBy: [SalonTransactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SalonTransactionWhereUniqueInput): [SalonTransaction!]
+  salonTransactionsCount(where: SalonTransactionWhereInput! = {}): Int
+  salonTransactionLineItem(where: SalonTransactionLineItemWhereUniqueInput!): SalonTransactionLineItem
+  salonTransactionLineItems(where: SalonTransactionLineItemWhereInput! = {}, orderBy: [SalonTransactionLineItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SalonTransactionLineItemWhereUniqueInput): [SalonTransactionLineItem!]
+  salonTransactionLineItemsCount(where: SalonTransactionLineItemWhereInput! = {}): Int
+  clientPackage(where: ClientPackageWhereUniqueInput!): ClientPackage
+  clientPackages(where: ClientPackageWhereInput! = {}, orderBy: [ClientPackageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientPackageWhereUniqueInput): [ClientPackage!]
+  clientPackagesCount(where: ClientPackageWhereInput! = {}): Int
+  clientPackageUsage(where: ClientPackageUsageWhereUniqueInput!): ClientPackageUsage
+  clientPackageUsages(where: ClientPackageUsageWhereInput! = {}, orderBy: [ClientPackageUsageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientPackageUsageWhereUniqueInput): [ClientPackageUsage!]
+  clientPackageUsagesCount(where: ClientPackageUsageWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

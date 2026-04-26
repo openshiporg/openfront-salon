@@ -14,13 +14,10 @@ export const VIEW_ORDER = [
   "relationship",
   "timestamp",
   "checkbox",
-  "document",
-  "select",
-  "integer",
-  "multiselect",
-  "float",
-  "decimal",
-  "bigInt",
+  "image",
   "json",
-  "image"
+  "integer",
+  "float",
+  "select",
+  "virtual"
 ];

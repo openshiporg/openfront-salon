@@ -1,0 +1,93 @@
+import { list } from "@keystone-6/core";
+import { allOperations } from "@keystone-6/core/access";
+import {
+  relationship,
+  float,
+  select,
+  timestamp,
+} from "@keystone-6/core/fields";
+
+import { isSignedIn } from "../access";
+
+export const Referral = list({
+  access: {
+    operation: {
+      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+    },
+  },
+  ui: {
+    listView: {
+      initialColumns: ["referrer", "referred", "rewardAmount", "rewardType", "status"],
+    },
+  },
+  fields: {
+    // The user who made the referral
+    referrer: relationship({
+      ref: "User",
+      ui: {
+        displayMode: "select",
+        description: "The client who made the referral",
+      },
+    }),
+
+    // The new user who was referred
+    referred: relationship({
+      ref: "User",
+      ui: {
+        displayMode: "select",
+        description: "The new client who was referred",
+      },
+    }),
+
+    // Reward details
+    rewardAmount: float({
+      defaultValue: 0,
+      validation: { isRequired: true },
+      ui: {
+        description: "Amount of reward (points or credit value)",
+      },
+    }),
+
+    rewardType: select({
+      type: "string",
+      options: [
+        { label: "Points", value: "points" },
+        { label: "Credit", value: "credit" },
+      ],
+      defaultValue: "points",
+      validation: { isRequired: true },
+      ui: {
+        description: "Type of reward given for the referral",
+      },
+    }),
+
+    // Referral status
+    status: select({
+      type: "string",
+      options: [
+        { label: "Pending", value: "pending" },
+        { label: "Completed", value: "completed" },
+        { label: "Expired", value: "expired" },
+      ],
+      defaultValue: "pending",
+      validation: { isRequired: true },
+      ui: {
+        description: "Current status of the referral",
+      },
+    }),
+
+    // Timestamps
+    createdAt: timestamp({
+      defaultValue: { kind: "now" },
+      ui: {
+        description: "When the referral was created",
+      },
+    }),
+
+    completedAt: timestamp({
+      ui: {
+        description: "When the referral was completed (referred client made first purchase)",
+      },
+    }),
+  },
+});
