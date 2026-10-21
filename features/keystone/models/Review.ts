@@ -6,17 +6,24 @@ import {
   integer,
   timestamp,
   checkbox,
+  virtual,
 } from "@keystone-6/core/fields";
+import { graphql } from "@keystone-6/core";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const Review = list({
   access: {
     operation: {
-      query: () => true, // Allow public review viewing
-      create: () => true, // Allow public review submission
-      update: isSignedIn,
-      delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageClients,
+      update: permissions.canManageClients,
+      delete: permissions.canManageClients,
+    },
+    filter: {
+      query: ({ session }) => (permissions.canManageClients({ session }) ? true : { isApproved: { equals: true } }),
     },
   },
   ui: {
@@ -54,14 +61,7 @@ export const Review = list({
     }),
 
     // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        description: "When the review was submitted",
-      },
-    }),
-
-    // Relationships
+// Relationships
     client: relationship({
       ref: "Client.reviews",
       ui: {
@@ -93,5 +93,34 @@ export const Review = list({
         description: "Associated appointment (optional)",
       },
     }),
+    // Public display names for approved reviews: first name plus last initial.
+    reviewerName: virtual({
+      field: graphql.field({
+        type: graphql.String,
+        async resolve(item: any, _args, context) {
+          if (!item.clientId) return null;
+          const client = await context.sudo().query.Client.findOne({ where: { id: item.clientId }, query: "user { name }" });
+          return publicName(client?.user?.name);
+        },
+      }),
+    }),
+    stylistName: virtual({
+      field: graphql.field({
+        type: graphql.String,
+        async resolve(item: any, _args, context) {
+          if (!item.stylistId) return null;
+          const stylist = await context.sudo().query.Stylist.findOne({ where: { id: item.stylistId }, query: "user { name }" });
+          return typeof stylist?.user?.name === "string" ? stylist.user.name.trim() || null : null;
+        },
+      }),
+    }),
+    ...trackingFields,
   },
 });
+
+function publicName(name: unknown): string | null {
+  if (typeof name !== "string" || !name.trim()) return null;
+  const [first, ...rest] = name.trim().split(/\s+/);
+  const last = rest.at(-1);
+  return last ? `${first} ${last[0].toUpperCase()}.` : first;
+}

@@ -2,4 +2,6 @@ import { HomePage, generateHomeMetadata as generateMetadata } from "@/features/s
 
 export { generateMetadata }
 
+export const dynamic = "force-dynamic"
+
 export default HomePage

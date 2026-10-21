@@ -1,20 +1,29 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   checkbox,
   json,
+  relationship,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const Location = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: ({ session }) => (permissions.canManageSalon({ session }) ? true : { isActive: { equals: true } }),
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("location", ["name", "city", "state", "timezone", "isActive"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "city", "state", "phone", "isActive"],
     },
@@ -95,5 +104,21 @@ export const Location = list({
         description: "Whether this location is currently active and accepting appointments",
       },
     }),
+
+    resources: relationship({
+      ref: "SalonResource.location",
+      many: true,
+      ui: {
+        displayMode: "count",
+        description: "Rooms, chairs, stations, and equipment at this location",
+      },
+    }),
+    stylists: relationship({ ref: "Stylist.locations", many: true }),
+    clients: relationship({ ref: "Client.homeLocation", many: true }),
+    appointments: relationship({ ref: "Appointment.location", many: true }),
+    schedules: relationship({ ref: "StylistSchedule.location", many: true }),
+    inventoryMovements: relationship({ ref: "InventoryMovement.location", many: true }),
+
+    ...trackingFields,
   },
 });

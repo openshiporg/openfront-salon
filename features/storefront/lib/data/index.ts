@@ -18,18 +18,12 @@ export type { Stylist } from "./stylists"
 
 // Stylist helpers (client-side utilities)
 export {
-  calculateYearsExperience,
   getTierDisplayName,
   getAvailableDays,
 } from "../utils/stylist-helpers"
 
 // Appointments
-export {
-  createAppointment,
-  getClientAppointments,
-  getStylistAppointmentsForDate,
-  cancelAppointment,
-} from "./appointments"
+export { createAppointment } from "./appointments"
 export type { Appointment, CreateAppointmentInput } from "./appointments"
 
 // Availability
@@ -39,9 +33,3 @@ export {
   isTimeSlotAvailable,
   getNextAvailableDate,
 } from "./availability"
-
-// Clients
-export {
-  createGuestClient,
-  getClientByEmail,
-} from "./clients"

@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import {
+  UNCONFIGURED_STOREFRONT_TITLE,
+  UNCONFIGURED_STOREFRONT_DESCRIPTION,
+} from "@/features/storefront/lib/data/brand-constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Next x Keystone Starter",
-  description: "Next, Keystone, and Tailwind Starter Template",
+  title: UNCONFIGURED_STOREFRONT_TITLE,
+  description: UNCONFIGURED_STOREFRONT_DESCRIPTION,
 };
 
 export default function RootLayout({
@@ -28,9 +32,9 @@ export default function RootLayout({
         <link href="/favicon.svg" rel="icon" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background font-sans`}
       >
-        {children}
+        <main>{children}</main>
       </body>
     </html>
   );

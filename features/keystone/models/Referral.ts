@@ -2,17 +2,25 @@ import { list } from "@keystone-6/core";
 import { allOperations } from "@keystone-6/core/access";
 import {
   relationship,
-  float,
+  integer,
   select,
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const Referral = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageClients,
+      update: permissions.canManageClients,
+      delete: permissions.canManageClients,
+    },
+    filter: {
+      query: rules.canReadReferrals,
     },
   },
   ui: {
@@ -23,7 +31,7 @@ export const Referral = list({
   fields: {
     // The user who made the referral
     referrer: relationship({
-      ref: "User",
+      ref: "User.referralsMade",
       ui: {
         displayMode: "select",
         description: "The client who made the referral",
@@ -32,7 +40,7 @@ export const Referral = list({
 
     // The new user who was referred
     referred: relationship({
-      ref: "User",
+      ref: "User.referralsReceived",
       ui: {
         displayMode: "select",
         description: "The new client who was referred",
@@ -40,7 +48,7 @@ export const Referral = list({
     }),
 
     // Reward details
-    rewardAmount: float({
+    rewardAmount: integer({
       defaultValue: 0,
       validation: { isRequired: true },
       ui: {
@@ -76,18 +84,11 @@ export const Referral = list({
       },
     }),
 
-    // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        description: "When the referral was created",
-      },
-    }),
-
     completedAt: timestamp({
       ui: {
         description: "When the referral was completed (referred client made first purchase)",
       },
     }),
+    ...trackingFields,
   },
 });

@@ -1,16 +1,19 @@
 import { list, graphql } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import { text, relationship, integer, checkbox, virtual } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { trackingFields } from "./trackingFields";
 
 export const ServiceCategory = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      // Category writes use the validated, auditable salon management workflow.
+      create: () => false,
+      update: () => false,
+      delete: () => false,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "sortOrder", "services"],
     },
@@ -83,5 +86,7 @@ export const ServiceCategory = list({
         inlineEdit: { fields: ["name", "basePrice", "baseDuration"] },
       },
     }),
+
+    ...trackingFields,
   },
 });

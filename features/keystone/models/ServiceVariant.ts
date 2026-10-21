@@ -6,7 +6,7 @@ import {
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -15,13 +15,15 @@ const formatCurrency = (amount: number): string => {
   }).format(amount / 100);
 };
 
+import { trackingFields } from "./trackingFields";
+
 export const ServiceVariant = list({
   access: {
     operation: {
       query: () => true,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
+      create: permissions.canManageCatalog,
+      update: permissions.canManageCatalog,
+      delete: permissions.canManageCatalog,
     },
   },
   ui: {
@@ -76,8 +78,9 @@ export const ServiceVariant = list({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const variantId = (item as { id: string }).id;
           const variant = await context.sudo().query.ServiceVariant.findOne({
-            where: { id: item.id },
+            where: { id: variantId },
             query: "price",
           });
 
@@ -86,5 +89,6 @@ export const ServiceVariant = list({
         },
       }),
     }),
+    ...trackingFields,
   },
 });

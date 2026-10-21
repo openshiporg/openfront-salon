@@ -80,7 +80,7 @@ export function OnboardingCards({
   steps: OnboardingStep[];
   onboardingStatus?: string;
   onDismiss: () => void;
-  onOpenDialog: () => void;
+  onOpenDialog?: () => void;
   userRole?: any;
 }) {
   const [dismissedSteps] = React.useState<string[]>([]);
@@ -100,7 +100,7 @@ export function OnboardingCards({
     return null;
   }
 
-  if (onboardingStatus === "completed") {
+  if (onboardingStatus === "completed" || onboardingStatus === "dismissed") {
     return null;
   }
 
@@ -128,7 +128,7 @@ function OnboardingCard({
   title: string;
   description: string;
   onDismiss?: () => void;
-  onOpenDialog: () => void;
+  onOpenDialog?: () => void;
 }) {
   const [isHovered, setIsHovered] = React.useState(false);
   const [isDismissed, setIsDismissed] = React.useState(false);
@@ -195,6 +195,7 @@ function OnboardingCard({
           variant="outline"
           size="icon"
           className="size-8"
+          // className="w-full h-9 hover:bg-accent hover:text-accent-foreground"
           onClick={onOpenDialog}
         >
           <Rocket className="size-3" />

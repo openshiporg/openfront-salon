@@ -1,254 +1,133 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { MapPin, Phone, Mail, Clock, Calendar, Instagram, Facebook, Twitter, Send } from "lucide-react"
+import { Clock, Mail, MapPin, Phone } from "lucide-react"
+import { PageIntro } from "../components/ui/PageIntro"
+import { getStorefrontBrand, storefrontTitle, type LocationHours } from "../lib/data/brand"
 
-export const generateContactMetadata: Metadata = {
-  title: "Contact Us - Openfront Salon",
-  description: "Get in touch with Openfront Salon. Visit us, call, or send us a message. We're here to help with all your beauty needs.",
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+function formatTime(value?: string | null): string | null {
+  if (!value) return null
+  const [hourValue, minuteValue] = value.split(":").map(Number)
+  if (!Number.isFinite(hourValue) || !Number.isFinite(minuteValue)) return value
+  const period = hourValue >= 12 ? "PM" : "AM"
+  const hour = hourValue % 12 || 12
+  return `${hour}:${String(minuteValue).padStart(2, "0")} ${period}`
 }
 
-const HOURS = [
-  { day: "Monday", hours: "9:00 AM - 8:00 PM" },
-  { day: "Tuesday", hours: "9:00 AM - 8:00 PM" },
-  { day: "Wednesday", hours: "9:00 AM - 8:00 PM" },
-  { day: "Thursday", hours: "9:00 AM - 9:00 PM" },
-  { day: "Friday", hours: "9:00 AM - 9:00 PM" },
-  { day: "Saturday", hours: "8:00 AM - 6:00 PM" },
-  { day: "Sunday", hours: "10:00 AM - 5:00 PM" },
-]
+function publishedHours(hours: LocationHours | null) {
+  if (!hours) return []
+  return DAYS.flatMap((day) => {
+    const value = hours[day]
+    if (!value) return []
+    const label = day.replace(/^./, (letter) => letter.toUpperCase())
+    if (value.closed) return [{ day: label, hours: "Closed" }]
+    const open = formatTime(value.open)
+    const close = formatTime(value.close)
+    return open && close ? [{ day: label, hours: `${open} – ${close}` }] : []
+  })
+}
 
-export function ContactPage() {
+export async function generateContactMetadata(): Promise<Metadata> {
+  const brand = await getStorefrontBrand()
+  return {
+    title: await storefrontTitle("Contact"),
+    description: brand.name ? `Published hours, location, and contact details for ${brand.name}.` : "Published salon hours, location, and contact details.",
+  }
+}
+
+export async function ContactPage() {
+  const brand = await getStorefrontBrand()
+  const hours = publishedHours(brand.hours)
+  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" })
+  const mapsHref = brand.addressLine
+    ? `https://maps.google.com/?q=${encodeURIComponent(brand.addressLine)}`
+    : null
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-4">Get in Touch</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We&apos;d love to hear from you. Visit us, call, or send us a message.
-            </p>
+    <div className="sf-page-pad">
+      <div className="sf-container">
+        <PageIntro
+          title="Visit & hours"
+          description={brand.configured ? undefined : "Visit details not published."}
+          size="large"
+        />
+
+        {!brand.configured ? (
+          <div role="status" className="border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-[var(--sf-space-md)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+            Contact details are coming soon.
           </div>
-
-          <div className="grid lg:grid-cols-2 gap-8 mb-12">
-            {/* Contact Information */}
-            <div className="space-y-6">
-              {/* Location */}
-              <div className="bg-card border rounded-lg shadow-lg p-6">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold mb-2">Location</h2>
-                    <p className="text-muted-foreground mb-4">
-                      123 Beauty Boulevard<br />
-                      Suite 100<br />
-                      New York, NY 10001
-                    </p>
-                    <a
-                      href="https://maps.google.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-                    >
-                      Get Directions
-                      <Send className="w-4 h-4" />
-                    </a>
+        ) : (
+          <div className="grid gap-[var(--sf-space-lg)] lg:grid-cols-[1fr_1fr]">
+            <div className="space-y-[var(--sf-space-md)]">
+              {brand.addressLine ? (
+                <div className="sf-card p-[var(--sf-space-md)]">
+                  <div className="flex gap-4">
+                    <MapPin className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+                    <div>
+                      <h2 className="sf-display text-[var(--sf-text-xl)] mb-2">Location</h2>
+                      {brand.locationName ? <p className="font-medium">{brand.locationName}</p> : null}
+                      <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] leading-relaxed">{brand.addressLine}</p>
+                      {mapsHref ? <a href={mapsHref} target="_blank" rel="noopener noreferrer" className="sf-link inline-block mt-3 text-[var(--sf-text-sm)]">Open in maps</a> : null}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
-              {/* Phone */}
-              <div className="bg-card border rounded-lg shadow-lg p-6">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold mb-2">Phone</h2>
-                    <a
-                      href="tel:+15551234567"
-                      className="text-lg text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      (555) 123-4567
-                    </a>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Call us to book or inquire about our services
-                    </p>
+              {brand.phone && brand.phoneHref ? (
+                <div className="sf-card p-[var(--sf-space-md)]">
+                  <div className="flex gap-4">
+                    <Phone className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+                    <div>
+                      <h2 className="sf-display text-[var(--sf-text-xl)] mb-2">Phone</h2>
+                      <a href={brand.phoneHref} className="sf-link text-[var(--sf-text-md)]">{brand.phone}</a>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
-              {/* Email */}
-              <div className="bg-card border rounded-lg shadow-lg p-6">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Mail className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold mb-2">Email</h2>
-                    <a
-                      href="mailto:hello@openfrontsalon.com"
-                      className="text-lg text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      hello@openfrontsalon.com
-                    </a>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Send us a message anytime
-                    </p>
+              {brand.email ? (
+                <div className="sf-card p-[var(--sf-space-md)]">
+                  <div className="flex gap-4">
+                    <Mail className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+                    <div>
+                      <h2 className="sf-display text-[var(--sf-text-xl)] mb-2">Email</h2>
+                      <a href={`mailto:${brand.email}`} className="sf-link text-[var(--sf-text-md)]">{brand.email}</a>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
-              {/* Social Media */}
-              <div className="bg-card border rounded-lg shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Follow Us</h2>
-                <div className="flex gap-4">
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                    aria-label="Instagram"
-                  >
-                    <Instagram className="w-6 h-6 text-primary" />
-                  </a>
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="w-6 h-6 text-primary" />
-                  </a>
-                  <a
-                    href="https://twitter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                    aria-label="Twitter"
-                  >
-                    <Twitter className="w-6 h-6 text-primary" />
-                  </a>
-                </div>
-              </div>
+              {!brand.addressLine && !brand.phone && !brand.email ? (
+                <p className="sf-card p-[var(--sf-space-md)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Contact details have not been published for this location.</p>
+              ) : null}
             </div>
 
-            {/* Hours of Operation */}
-            <div className="space-y-6">
-              <div className="bg-card border rounded-lg shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Hours of Operation</h2>
-                </div>
-                <div className="space-y-3">
-                  {HOURS.map((schedule) => {
-                    const isToday = new Date().toLocaleDateString("en-US", { weekday: "long" }) === schedule.day
+            <div className="sf-card p-[var(--sf-space-md)]">
+              <div className="flex items-center gap-3 mb-6">
+                <Clock className="h-5 w-5 text-[var(--sf-accent)]" />
+                <h2 className="sf-display text-[var(--sf-text-xl)]">Hours</h2>
+              </div>
+              {hours.length ? (
+                <ul className="divide-y divide-[var(--sf-rule)]">
+                  {hours.map((schedule) => {
+                    const isToday = schedule.day === todayName
                     return (
-                      <div
-                        key={schedule.day}
-                        className={`flex justify-between items-center py-3 px-4 rounded-lg ${
-                          isToday ? "bg-primary/10 border border-primary/20" : "bg-muted/30"
-                        }`}
-                      >
-                        <span className={`font-medium ${isToday ? "text-primary" : ""}`}>
-                          {schedule.day}
-                          {isToday && (
-                            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
-                              Today
-                            </span>
-                          )}
-                        </span>
-                        <span className={`text-muted-foreground ${isToday ? "text-foreground font-medium" : ""}`}>
-                          {schedule.hours}
-                        </span>
-                      </div>
+                      <li key={schedule.day} className={`flex justify-between gap-4 py-3 text-[var(--sf-text-sm)] ${isToday ? "text-[var(--sf-ink)] font-medium" : "text-[var(--sf-ink-2)]"}`}>
+                        <span>{schedule.day}{isToday ? <span className="ml-2 text-[var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</span>
+                        <span>{schedule.hours}</span>
+                      </li>
                     )
                   })}
-                </div>
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    <strong className="text-foreground">Note:</strong> Hours may vary on holidays. Please call ahead to confirm.
-                  </p>
-                </div>
-              </div>
-
-              {/* Quick Book CTA */}
-              <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-lg shadow-lg p-8">
-                <div className="text-center">
-                  <Calendar className="w-12 h-12 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">Ready to Book?</h3>
-                  <p className="text-primary-foreground/90 mb-6">
-                    Schedule your appointment online 24/7
-                  </p>
-                  <Link
-                    href="/book"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-background text-foreground px-8 py-3 font-medium hover:bg-background/90 transition-all shadow-lg"
-                  >
-                    <Calendar className="h-5 w-5" />
-                    Book Appointment
-                  </Link>
-                </div>
-              </div>
+                </ul>
+              ) : <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Hours have not been published.</p>}
             </div>
           </div>
+        )}
 
-          {/* Map Placeholder */}
-          <div className="bg-card border rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-muted/50 border-b p-4">
-              <h2 className="text-xl font-bold">Find Us</h2>
-            </div>
-            <div className="relative h-96 bg-muted/30 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">Map integration coming soon</p>
-                <a
-                  href="https://maps.google.com/?q=123+Beauty+Boulevard,Suite+100,New+York,NY+10001"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-                >
-                  Open in Google Maps
-                  <Send className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* FAQs or Additional Info */}
-          <div className="mt-12 bg-muted/30 border rounded-lg p-8">
-            <h2 className="text-2xl font-bold mb-6 text-center">Frequently Asked Questions</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">Do I need an appointment?</h3>
-                <p className="text-sm text-muted-foreground">
-                  While walk-ins are welcome, we highly recommend booking an appointment to ensure availability and minimize wait times.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">What is your cancellation policy?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Please notify us at least 24 hours in advance if you need to cancel or reschedule your appointment.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
-                <p className="text-sm text-muted-foreground">
-                  We accept cash, all major credit cards, and digital payment methods including Apple Pay and Google Pay.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Do you offer gift cards?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Yes! Gift cards are available for purchase online or in-salon. Visit our <Link href="/gift-cards" className="text-primary hover:underline">gift cards page</Link> to learn more.
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="mt-[var(--sf-space-xl)] border border-[var(--sf-rule)] p-[var(--sf-space-lg)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="sf-display text-[clamp(1.35rem,2.5vw,1.85rem)]">Appointments</p>
+          <Link href="/book" className="sf-btn sf-btn-primary shrink-0">Reserve a visit</Link>
         </div>
       </div>
     </div>

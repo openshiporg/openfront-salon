@@ -1,22 +1,30 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
-  float,
   integer,
   checkbox,
   relationship,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+
+import { trackingFields } from "./trackingFields";
 
 export const Product = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: ({ session }) => (permissions.canManageInventory({ session }) || permissions.canManageCatalog({ session }) ? true : { isActive: { equals: true } }),
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("product", ["name", "sku", "price", "cost", "quantity", "reorderPoint", "isActive"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "sku", "price", "quantity", "category", "isActive"],
     },
@@ -36,30 +44,35 @@ export const Product = list({
       },
     }),
 
-    price: float({
+    price: integer({
       validation: { isRequired: true },
       ui: {
         description: "Retail price",
       },
     }),
 
-    cost: float({
+    cost: integer({
+      access: { read: ({ session }) => permissions.canManageInventory({ session }) || permissions.canViewReports({ session }) },
       ui: {
         description: "Wholesale/cost price for profit tracking",
       },
     }),
 
     quantity: integer({
+      label: "Aggregate stock units across locations",
+      access: { read: ({ session }) => permissions.canManageInventory({ session }) || permissions.canManagePayments({ session }) },
       defaultValue: 0,
       ui: {
-        description: "Current stock quantity",
+        description: "Total stock units across all locations; not a location-specific sellable balance",
       },
     }),
 
     reorderPoint: integer({
+      label: "Aggregate reorder alert quantity",
+      access: { read: permissions.canManageInventory },
       defaultValue: 5,
       ui: {
-        description: "Minimum quantity before reorder alert",
+        description: "Threshold evaluated against aggregate stock across locations",
       },
     }),
 
@@ -92,5 +105,11 @@ export const Product = list({
         description: "Whether this product is available for sale",
       },
     }),
+    inventoryMovements: relationship({
+      ref: "InventoryMovement.product",
+      many: true,
+      access: { read: ({ session }) => permissions.canManageInventory({ session }) || permissions.canViewReports({ session }) },
+    }),
+    ...trackingFields,
   },
 });

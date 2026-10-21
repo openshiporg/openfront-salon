@@ -1,13 +1,16 @@
 import { Metadata } from "next"
 import Link from "next/link"
+import { Search } from "lucide-react"
 import { getServicesGroupedByCategory } from "../lib/data/services"
 import { ServiceCard } from "../components/ServiceCard"
-import { Search } from "lucide-react"
+import { PageIntro } from "../components/ui/PageIntro"
+import { storefrontTitle } from "../lib/data/brand"
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Services | Openfront Salon",
-    description: "Browse our complete menu of salon services including hair, nails, skincare, and massage. Expert treatments with professional results.",
+    title: await storefrontTitle("Services"),
+    description:
+      "Browse our services with duration and pricing.",
   }
 }
 
@@ -15,111 +18,81 @@ export async function ServicesPage() {
   const categories = await getServicesGroupedByCategory()
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 to-primary/5 py-16 border-b">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-5xl font-bold mb-4">Our Services</h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Browse our complete menu of professional salon services. Prices may vary based on hair length, texture, and stylist experience level.
-            </p>
-          </div>
-        </div>
-      </section>
+    <div className="sf-page-pad">
+      <div className="sf-container">
+        <PageIntro
+          title="The service menu"
+          size="large"
+        />
 
-      {/* Categories Navigation */}
-      {categories.length > 0 && (
-        <section className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b py-4">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {categories.map((category) => (
-                <a
-                  key={category.id}
-                  href={`#${category.id}`}
-                  className="px-4 py-2 rounded-full bg-muted hover:bg-primary hover:text-primary-foreground transition-all whitespace-nowrap text-sm font-medium"
-                >
-                  {category.name}
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Services by Category */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          {categories.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                <Search className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No Services Yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Services will be available soon. Check back later!
-              </p>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-all"
-              >
-                Back to Home
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-20">
-              {categories.map((category) => (
-                <div key={category.id} id={category.id}>
-                  {/* Category Header */}
-                  <div className="mb-8">
-                    <h2 className="text-4xl font-bold mb-2">{category.name}</h2>
-                    {category.description && (
-                      <p className="text-lg text-muted-foreground">
-                        {category.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Services Grid */}
-                  {category.services && category.services.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {category.services.map((service) => (
-                        <ServiceCard
-                          key={service.id}
-                          service={service}
-                          variant="compact"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border rounded-lg bg-muted/30">
-                      <p className="text-muted-foreground">
-                        No services in this category yet.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Book?</h2>
-          <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Choose a service and select your preferred time to get started
-          </p>
-          <Link
-            href="/book"
-            className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-8 py-3 text-lg font-medium hover:bg-primary/90 transition-all"
+        {categories.length > 0 ? (
+          <nav
+            className="mb-[var(--sf-space-lg)] flex gap-2 overflow-x-auto pb-2 -mx-1 px-1"
+            aria-label="Service categories"
           >
-            Book an Appointment
-          </Link>
-        </div>
-      </section>
+            {categories.map((category) => (
+              <a
+                key={category.id}
+                href={`#${category.id}`}
+                className="sf-btn sf-btn-secondary !min-h-[2.75rem] whitespace-nowrap shrink-0"
+              >
+                {category.name}
+              </a>
+            ))}
+          </nav>
+        ) : null}
+
+        {categories.length === 0 ? (
+          <div className="text-center py-[var(--sf-space-2xl)] border border-[var(--sf-rule)]">
+            <Search className="h-8 w-8 mx-auto mb-4 text-[var(--sf-ink-3)]" />
+            <h2 className="sf-display text-[var(--sf-text-2xl)] mb-2">No services listed yet</h2>
+            <p className="sf-lead mx-auto mb-6">Contact us to book.</p>
+            <Link href="/" className="sf-btn sf-btn-primary">
+              Back home
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-[var(--sf-space-2xl)]">
+            {categories.map((category) => (
+              <section key={category.id} id={category.id} className="scroll-mt-24">
+                <div className="flex flex-col gap-3 mb-[var(--sf-space-md)] pb-[var(--sf-space-sm)] border-b border-[var(--sf-rule)] lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <h2 className="sf-display text-[var(--sf-text-3xl)]">{category.name}</h2>
+                    <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] mt-1">
+                      {category.services?.length || 0}{" "}
+                      {(category.services?.length || 0) === 1 ? "service" : "services"}
+                    </p>
+                  </div>
+                  {category.description ? (
+                    <p className="sf-lead max-w-md">{category.description}</p>
+                  ) : null}
+                </div>
+
+                {category.services && category.services.length > 0 ? (
+                  <div className="grid gap-[var(--sf-space-md)] md:grid-cols-2">
+                    {category.services.map((service) => (
+                      <ServiceCard key={service.id} service={service} variant="compact" />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] py-8 text-center border border-dashed border-[var(--sf-rule)]">
+                    No services in this category yet.
+                  </p>
+                )}
+              </section>
+            ))}
+          </div>
+        )}
+
+        {categories.length > 0 ? (
+          <div className="mt-[var(--sf-space-2xl)] pt-[var(--sf-space-lg)] border-t border-[var(--sf-rule)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="sf-display text-[clamp(1.35rem,2.5vw,1.85rem)]">Appointments</p>
+            <Link href="/book" className="sf-btn sf-btn-primary shrink-0">
+              Reserve online
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

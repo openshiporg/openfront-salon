@@ -1,6 +1,6 @@
 "use server"
 
-import { getBaseUrl } from "../getBaseUrl"
+import { getGraphQLEndpoint } from "../getBaseUrl"
 
 export interface Review {
   id: string
@@ -8,6 +8,8 @@ export interface Review {
   comment: string | null
   createdAt: string
   isApproved: boolean
+  reviewerName?: string | null
+  stylistName?: string | null
   client?: {
     user?: {
       name: string
@@ -25,8 +27,6 @@ export interface Review {
   }
 }
 
-const GRAPHQL_ENDPOINT = `${getBaseUrl()}/api/graphql`
-
 export async function getApprovedReviews(limit?: number): Promise<Review[]> {
   const query = `
     query GetApprovedReviews($limit: Int) {
@@ -39,26 +39,18 @@ export async function getApprovedReviews(limit?: number): Promise<Review[]> {
         rating
         comment
         createdAt
-        client {
-          user {
-            name
-          }
-        }
+        reviewerName
         service {
           id
           name
         }
-        stylist {
-          user {
-            name
-          }
-        }
+        stylistName
       }
     }
   `
 
   try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
+    const response = await fetch(await getGraphQLEndpoint(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { limit } }),
@@ -93,22 +85,14 @@ export async function getReviewsForService(serviceId: string): Promise<Review[]>
         rating
         comment
         createdAt
-        client {
-          user {
-            name
-          }
-        }
-        stylist {
-          user {
-            name
-          }
-        }
+        reviewerName
+        stylistName
       }
     }
   `
 
   try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
+    const response = await fetch(await getGraphQLEndpoint(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { serviceId } }),
@@ -143,11 +127,7 @@ export async function getReviewsForStylist(stylistId: string): Promise<Review[]>
         rating
         comment
         createdAt
-        client {
-          user {
-            name
-          }
-        }
+        reviewerName
         service {
           id
           name
@@ -157,7 +137,7 @@ export async function getReviewsForStylist(stylistId: string): Promise<Review[]>
   `
 
   try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
+    const response = await fetch(await getGraphQLEndpoint(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { stylistId } }),
@@ -192,63 +172,4 @@ export async function getAverageRatingForStylist(stylistId: string): Promise<num
 
   const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
   return sum / reviews.length
-}
-
-export async function createReview(data: {
-  rating: number
-  comment?: string
-  clientId: string
-  serviceId?: string
-  stylistId?: string
-  appointmentId?: string
-}): Promise<{ id: string } | null> {
-  const mutation = `
-    mutation CreateReview($data: ReviewCreateInput!) {
-      createReview(data: $data) {
-        id
-      }
-    }
-  `
-
-  const reviewData: any = {
-    rating: data.rating,
-    comment: data.comment || "",
-    isApproved: false, // Requires manual approval
-    client: { connect: { id: data.clientId } },
-  }
-
-  if (data.serviceId) {
-    reviewData.service = { connect: { id: data.serviceId } }
-  }
-
-  if (data.stylistId) {
-    reviewData.stylist = { connect: { id: data.stylistId } }
-  }
-
-  if (data.appointmentId) {
-    reviewData.appointment = { connect: { id: data.appointmentId } }
-  }
-
-  try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: mutation,
-        variables: { data: reviewData }
-      }),
-    })
-
-    const { data: result, errors } = await response.json()
-
-    if (errors) {
-      console.error("GraphQL errors:", errors)
-      return null
-    }
-
-    return result?.createReview || null
-  } catch (error) {
-    console.error("Failed to create review:", error)
-    return null
-  }
 }

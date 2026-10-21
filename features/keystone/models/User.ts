@@ -1,21 +1,38 @@
 import { list } from '@keystone-6/core'
 import { allOperations, denyAll } from '@keystone-6/core/access'
-import { checkbox, password, relationship, text } from '@keystone-6/core/fields'
+import { checkbox, password, relationship, select, text } from '@keystone-6/core/fields'
 
 import { isSignedIn, permissions, rules } from '../access'
 import type { Session } from '../access'
 
+import { trackingFields } from "./trackingFields";
+import { workflowOwned } from "../privacy";
+
+// createAuth merges initFirstItem.itemData (the first admin's role) before list hooks run.
+const PUBLIC_USER_CREATE_FIELDS = new Set(['name', 'email', 'password', 'phone', 'role'])
+
 export const User = list({
   access: {
     operation: {
-      create: () => true,  // Allow public creation for init
+      create: () => true,
       query: isSignedIn,
       update: isSignedIn,
-      delete: permissions.canManagePeople,
+      delete: () => false,
     },
     filter: {
       query: rules.canReadPeople,
       update: rules.canUpdatePeople,
+    },
+  },
+  hooks: {
+    // Public sign-up (gated by PUBLIC_SIGNUPS_ALLOWED in the dashboard) may only set identity fields.
+    resolveInput: ({ operation, inputData, resolvedData, context }) => {
+      if (operation !== 'create' || permissions.canManagePeople({ session: context.session })) return resolvedData
+      const restricted: Record<string, unknown> = { ...resolvedData }
+      for (const key of Object.keys(inputData ?? {})) {
+        if (!PUBLIC_USER_CREATE_FIELDS.has(key)) delete restricted[key]
+      }
+      return restricted as typeof resolvedData
     },
   },
   ui: {
@@ -44,12 +61,12 @@ export const User = list({
       },
     }),
     email: text({
-      isFilterable: false,
-      isOrderable: false,
       isIndexed: 'unique',
       validation: {
         isRequired: true,
       },
+      // Clients cannot change their own email; people managers can correct it.
+      access: { update: permissions.canManagePeople },
     }),
     password: password({
       access: {
@@ -62,14 +79,51 @@ export const User = list({
     role: relationship({
       ref: 'Role.assignedTo',
       access: {
-        create: permissions.canManagePeople,
-        update: permissions.canManagePeople,
+        create: permissions.canManageRoles,
+        update: permissions.canManageRoles,
       },
       ui: {
         itemView: {
-          fieldMode: args => (permissions.canManagePeople(args) ? 'edit' : 'read'),
+          fieldMode: args => (permissions.canManageRoles(args) ? 'edit' : 'read'),
         },
       },
     }),
+    phone: text({
+      ui: {
+        description: 'Primary phone number for staff and clients',
+      },
+    }),
+    clientProfile: relationship({
+      ref: 'Client.user',
+      access: workflowOwned,
+      ui: {
+        itemView: { fieldMode: 'read' },
+        description: 'Salon client profile linked to this authenticated user',
+      },
+    }),
+    formSubmissions: relationship({ ref: 'FormSubmission.client', many: true, access: workflowOwned }),
+    consultationSubmissions: relationship({ ref: 'ConsultationSubmission.client', many: true, access: workflowOwned }),
+    clientPackages: relationship({ ref: 'ClientPackage.client', many: true, access: workflowOwned }),
+    clientMemberships: relationship({ ref: 'ClientMembership.client', many: true, access: workflowOwned }),
+    purchasedGiftCards: relationship({ ref: 'GiftCard.purchasedBy', many: true, access: workflowOwned }),
+    clientPointsRecords: relationship({ ref: 'ClientPoints.client', many: true, access: workflowOwned }),
+    referralsMade: relationship({ ref: 'Referral.referrer', many: true, access: workflowOwned }),
+    referralsReceived: relationship({ ref: 'Referral.referred', many: true, access: workflowOwned }),
+    messageLogs: relationship({ ref: 'MessageLog.recipient', many: true, access: workflowOwned }),
+    onboardingStatus: select({
+      access: { create: permissions.canManageOnboarding, update: permissions.canManageOnboarding },
+      type: 'string',
+      options: [
+        { label: 'Not Started', value: 'not_started' },
+        { label: 'In Progress', value: 'in_progress' },
+        { label: 'Completed', value: 'completed' },
+        { label: 'Dismissed', value: 'dismissed' },
+      ],
+      defaultValue: 'not_started',
+      ui: {
+        description: 'Salon onboarding progress for the dashboard seed flow',
+      },
+    }),
+    ...trackingFields,
   },
 });

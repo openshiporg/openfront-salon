@@ -8,7 +8,8 @@ import {
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -17,23 +18,29 @@ const formatCurrency = (amount: number): string => {
   }).format(amount / 100);
 };
 
+import { trackingFields } from "./trackingFields";
+
 export const ClientPackage = list({
   access: {
     operation: {
       query: () => true,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadClientPackages,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("client_package", ["status", "totalValue", "paidAmount", "usedValue", "expiresAt", "clientId", "packageId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "package", "status", "purchasedAt", "expiresAt"],
     },
   },
   fields: {
     client: relationship({
-      ref: "User",
+      ref: "User.clientPackages",
       ui: {
         displayMode: "select",
         description: "Client who purchased the package",
@@ -97,6 +104,8 @@ export const ClientPackage = list({
       },
     }),
 
+    adjustments: relationship({ ref: "ClientPackageAdjustment.clientPackage", many: true }),
+
     usageHistory: relationship({
       ref: "ClientPackageUsage.clientPackage",
       many: true,
@@ -116,8 +125,9 @@ export const ClientPackage = list({
       field: graphql.field({
         type: graphql.Int,
         async resolve(item, args, context) {
+          const clientPackageId = (item as { id: string }).id;
           const pkg = await context.sudo().query.ClientPackage.findOne({
-            where: { id: item.id },
+            where: { id: clientPackageId },
             query: "totalValue usedValue",
           });
 
@@ -131,8 +141,9 @@ export const ClientPackage = list({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const clientPackageId = (item as { id: string }).id;
           const pkg = await context.sudo().query.ClientPackage.findOne({
-            where: { id: item.id },
+            where: { id: clientPackageId },
             query: "totalValue usedValue",
           });
 
@@ -142,5 +153,6 @@ export const ClientPackage = list({
         },
       }),
     }),
+    ...trackingFields,
   },
 });

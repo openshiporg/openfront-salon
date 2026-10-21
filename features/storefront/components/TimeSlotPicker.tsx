@@ -1,18 +1,17 @@
 "use client"
 
 import { Calendar } from "@/components/ui/calendar"
-import { format, addDays, startOfDay, isBefore } from "date-fns"
+import { addDays, isBefore, startOfDay } from "date-fns"
 import { Clock } from "lucide-react"
-import { useState } from "react"
+import type { BookingSlot } from "../lib/data/availability"
 
 interface TimeSlotPickerProps {
   selectedDate: Date | undefined
   onDateSelect: (date: Date | undefined) => void
   selectedTime: string | null
-  onTimeSelect: (time: string) => void
-  availableSlots: string[]
+  onTimeSelect: (startTime: string) => void
+  availableSlots: BookingSlot[]
   loadingSlots?: boolean
-  minDate?: Date
 }
 
 export function TimeSlotPicker({
@@ -22,59 +21,55 @@ export function TimeSlotPicker({
   onTimeSelect,
   availableSlots,
   loadingSlots = false,
-  minDate = new Date()
 }: TimeSlotPickerProps) {
   const today = startOfDay(new Date())
-  const maxDate = addDays(today, 90) // 90 days in advance
+  const maxDate = addDays(today, 90)
 
-  const disabledDates = (date: Date) => {
-    return isBefore(date, today) || date > maxDate
-  }
+  const disabledDates = (date: Date) => isBefore(date, today) || date > maxDate
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
-      {/* Calendar */}
-      <div className="border rounded-lg p-6 bg-card">
-        <h3 className="font-semibold text-lg mb-4">Select a Date</h3>
+    <div className="grid gap-[var(--sf-space-md)] lg:grid-cols-2">
+      <div className="sf-card p-[var(--sf-space-md)]">
+        <h3 className="sf-display text-[var(--sf-text-lg)] mb-4">Select a date</h3>
         <Calendar
           mode="single"
           selected={selectedDate}
           onSelect={onDateSelect}
           disabled={disabledDates}
-          className="rounded-md"
+          className="rounded-none p-0"
         />
       </div>
 
-      {/* Time Slots */}
-      <div className="border rounded-lg p-6 bg-card">
-        <h3 className="font-semibold text-lg mb-4">Select a Time</h3>
+      <div className="sf-card p-[var(--sf-space-md)]">
+        <h3 className="sf-display text-[var(--sf-text-lg)] mb-4">Select a time</h3>
         {!selectedDate ? (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <p>Please select a date first</p>
+          <div className="flex items-center justify-center h-56 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+            Choose a date first
           </div>
         ) : loadingSlots ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="flex items-center justify-center h-56">
+            <div className="h-8 w-8 animate-spin border-b-2 border-[var(--sf-ink)]" />
           </div>
         ) : availableSlots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-            <Clock className="h-12 w-12 mb-3 text-muted-foreground/50" />
-            <p className="text-center">No available time slots for this date.</p>
-            <p className="text-sm text-center mt-1">Please select a different date.</p>
+          <div className="flex flex-col items-center justify-center h-56 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] text-center">
+            <Clock className="h-10 w-10 mb-3 opacity-40" />
+            <p>No open slots on this day.</p>
+            <p className="mt-1">Try another date.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
             {availableSlots.map((slot) => (
               <button
-                key={slot}
-                onClick={() => onTimeSelect(slot)}
-                className={`p-3 text-sm font-medium rounded-md border transition-all ${
-                  selectedTime === slot
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background hover:bg-muted border-border hover:border-primary/50"
+                key={slot.startTime}
+                type="button"
+                onClick={() => onTimeSelect(slot.startTime)}
+                className={`min-h-[2.75rem] px-2 text-[var(--sf-text-sm)] font-medium border transition-colors ${
+                  selectedTime === slot.startTime
+                    ? "border-[var(--sf-ink)] bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"
+                    : "border-[var(--sf-rule)] hover:border-[var(--sf-ink)]"
                 }`}
               >
-                {slot}
+                {slot.label}
               </button>
             ))}
           </div>

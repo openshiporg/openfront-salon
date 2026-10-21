@@ -1,9 +1,11 @@
-import { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Clock, DollarSign, AlertCircle, Calendar, User, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, AlertCircle } from "lucide-react"
 import { getServiceById } from "../lib/data/services"
 import { StylistCard } from "../components/StylistCard"
+import { getStorefrontImageSrc } from "../lib/images"
+import { getStorefrontBrand } from "../lib/data/brand"
+import { formatPrice } from "../lib/format-price"
 
 interface ServiceDetailPageProps {
   params: Promise<{ id: string }>
@@ -11,7 +13,7 @@ interface ServiceDetailPageProps {
 
 export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { id } = await params
-  const service = await getServiceById(id)
+  const [service, brand] = await Promise.all([getServiceById(id), getStorefrontBrand()])
 
   if (!service) {
     notFound()
@@ -21,117 +23,91 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const duration = service.baseDuration
   const hasPricingTiers = service.pricingTier && Object.keys(service.pricingTier).length > 0
   const hasSpecialists = service.specialists && service.specialists.length > 0
+  const imageSrc = getStorefrontImageSrc(service.image)
 
   return (
-    <div className="min-h-screen">
-      {/* Back Button */}
-      <div className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
+    <div>
+      <div className="border-b border-[var(--sf-rule)] sticky top-[4.25rem] z-10 bg-[color-mix(in_oklch,var(--sf-paper)_92%,transparent)] backdrop-blur-md">
+        <div className="sf-container py-3">
+          <Link href="/services" className="sf-link inline-flex items-center gap-2 text-[var(--sf-text-sm)]">
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Services</span>
+            Service menu
           </Link>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-3 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Service Image */}
-            {service.image?.image?.url && (
-              <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+      <div className="sf-container sf-page-pad">
+        <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.75fr)]">
+          <div className="min-w-0 space-y-[var(--sf-space-lg)]">
+            {imageSrc ? (
+              <div className="aspect-[16/10] overflow-hidden border border-[var(--sf-rule)]">
                 <img
-                  src={service.image.image.url}
-                  alt={service.image.altText || service.name}
-                  className="w-full h-full object-cover"
+                  src={imageSrc}
+                  alt={service.image?.altText || service.name}
+                  className="h-full w-full object-cover"
                 />
               </div>
-            )}
+            ) : null}
 
-            {/* Service Header */}
-            <div>
-              {service.category && (
-                <div className="text-sm font-medium text-primary mb-2">
-                  {service.category.name}
-                </div>
-              )}
-              <h1 className="text-5xl font-bold mb-4">{service.name}</h1>
-              <div className="flex items-center gap-6 text-lg">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{duration} minutes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-semibold text-2xl">${price}</span>
-                </div>
+            <header>
+              {service.category ? (
+                <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-2">{service.category.name}</p>
+              ) : null}
+              <h1 className="sf-display text-[var(--sf-text-display-s)] mb-4">{service.name}</h1>
+              <div className="flex flex-wrap gap-6 text-[var(--sf-text-sm)]">
+                <span className="inline-flex items-center gap-2 text-[var(--sf-ink-2)]">
+                  <Clock className="h-4 w-4" />
+                  {duration} minutes
+                </span>
+                <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
               </div>
-            </div>
+            </header>
 
-            {/* Description */}
-            {service.description && (
-              <div className="prose prose-lg max-w-none">
-                <h2 className="text-2xl font-semibold mb-4">About This Service</h2>
-                <p className="text-muted-foreground leading-relaxed">
+            {service.description ? (
+              <div>
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-3">About this service</h2>
+                <p className="text-[var(--sf-text-md)] text-[var(--sf-ink-2)] leading-relaxed max-w-prose">
                   {service.description}
                 </p>
               </div>
-            )}
+            ) : null}
 
-            {/* Pricing Tiers */}
-            {hasPricingTiers && (
+            {hasPricingTiers ? (
               <div>
-                <h2 className="text-2xl font-semibold mb-4">Pricing by Stylist Tier</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4">Pricing by tier</h2>
+                <ul className="divide-y divide-[var(--sf-rule)] border-y border-[var(--sf-rule)]">
                   {Object.entries(service.pricingTier!).map(([tier, tierPrice]) => (
-                    <div
-                      key={tier}
-                      className="p-4 border rounded-lg bg-card hover:border-primary/50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold capitalize">{tier} Stylist</div>
-                          <div className="text-sm text-muted-foreground">{duration} min</div>
-                        </div>
-                        <div className="text-2xl font-bold">${tierPrice as number}</div>
-                      </div>
-                    </div>
+                    <li key={tier} className="flex items-center justify-between py-3 text-[var(--sf-text-sm)]">
+                      <span className="capitalize text-[var(--sf-ink-2)]">{tier} artist</span>
+                      <span className="font-medium text-[var(--sf-ink)]">{formatPrice(tierPrice as number)}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
+                <p role="note" className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] leading-relaxed">
+                  Price shown is the starting price.
+                </p>
               </div>
-            )}
+            ) : null}
 
-            {/* Requirements */}
             {(service.requiresConsultation || service.requiresPatchTest) && (
-              <div className="p-6 border rounded-lg bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                      Important Requirements
-                    </h3>
-                    <ul className="space-y-1 text-sm text-amber-800 dark:text-amber-200">
-                      {service.requiresConsultation && (
-                        <li>• Complimentary consultation required before first appointment</li>
-                      )}
-                      {service.requiresPatchTest && (
-                        <li>• Patch test required 24-48 hours before service</li>
-                      )}
+              <div className="border border-[color-mix(in_oklch,var(--sf-accent)_35%,var(--sf-rule))] bg-[var(--sf-accent-soft)] p-[var(--sf-space-md)]">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+                  <div className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+                    <p className="font-medium text-[var(--sf-ink)] mb-2">Before you book</p>
+                    <ul className="space-y-1">
+                      {service.requiresConsultation ? <li>Consultation required before first visit</li> : null}
+                      {service.requiresPatchTest ? <li>Patch test 24–48 hours before service</li> : null}
                     </ul>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Specialists */}
-            {hasSpecialists && (
+            {hasSpecialists ? (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Our Specialists</h2>
-                <div className="grid sm:grid-cols-2 gap-6">
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4">Specialists for this service</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
                   {service.specialists.map((stylist) => (
                     <StylistCard
                       key={stylist.id}
@@ -142,64 +118,43 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* Sidebar - Booking Card */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 border rounded-lg p-6 bg-card shadow-lg">
-              <h3 className="text-2xl font-bold mb-6">Book This Service</h3>
-
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-muted-foreground">Duration</span>
-                  <span className="font-semibold">{duration} min</span>
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="sf-card p-[var(--sf-space-md)]">
+              <h2 className="sf-display text-[var(--sf-text-xl)] mb-6">Reserve</h2>
+              <dl className="space-y-3 text-[var(--sf-text-sm)] mb-6">
+                <div className="flex justify-between gap-4 border-b border-[var(--sf-rule)] pb-3">
+                  <dt className="text-[var(--sf-ink-3)]">Duration</dt>
+                  <dd className="font-medium">{duration} min</dd>
                 </div>
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-muted-foreground">Starting at</span>
-                  <span className="font-bold text-2xl">${price}</span>
+                <div className="flex justify-between gap-4 border-b border-[var(--sf-rule)] pb-3">
+                  <dt className="text-[var(--sf-ink-3)]">From</dt>
+                  <dd className="font-medium">{formatPrice(price)}</dd>
                 </div>
-                {hasSpecialists && (
-                  <div className="flex items-center justify-between py-3">
-                    <span className="text-muted-foreground">Specialists</span>
-                    <span className="font-semibold">{service.specialists.length}</span>
+                {hasSpecialists ? (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[var(--sf-ink-3)]">Specialists</dt>
+                    <dd className="font-medium">{service.specialists.length}</dd>
                   </div>
-                )}
-              </div>
+                ) : null}
+              </dl>
 
-              <Link
-                href={`/book?service=${service.id}`}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-4 text-lg font-medium hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
-              >
-                <Calendar className="h-5 w-5" />
-                Book Appointment
+              <Link href={`/book?service=${service.id}`} className="sf-btn sf-btn-primary w-full mb-3">
+                <Calendar className="h-4 w-4" />
+                Reserve this service
               </Link>
 
-              {hasSpecialists && (
-                <div className="mt-4">
-                  <Link
-                    href="/team"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-medium hover:bg-muted transition-all"
-                  >
-                    <User className="h-4 w-4" />
-                    View All Stylists
-                  </Link>
-                </div>
-              )}
+              {hasSpecialists ? (
+                <Link href="/team" className="sf-btn sf-btn-secondary w-full">
+                  View all artists
+                </Link>
+              ) : null}
 
-              <div className="mt-6 pt-6 border-t text-sm text-muted-foreground">
-                <p className="mb-2">
-                  <strong>Cancellation Policy:</strong> Cancel or reschedule up to 24 hours before your appointment.
-                </p>
-                <p>
-                  Need help? Contact us at{" "}
-                  <a href="tel:555-0123" className="text-primary hover:underline">
-                    (555) 012-3456
-                  </a>
-                </p>
-              </div>
+
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

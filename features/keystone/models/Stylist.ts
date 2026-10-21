@@ -1,5 +1,4 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
@@ -10,15 +9,21 @@ import {
   json,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const Stylist = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("stylist", ["role", "tier", "baseCommissionRate", "status", "isActive", "userId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["user", "tier", "commissionRate", "isActive"],
     },
@@ -73,6 +78,7 @@ export const Stylist = list({
 
     // Base commission rate (percentage as float)
     baseCommissionRate: float({
+      access: { read: ({ session }) => permissions.canManageCommissions({ session }) || permissions.canManagePayments({ session }) || permissions.canViewReports({ session }) },
       defaultValue: 0.5,
       validation: { min: 0, max: 1 },
       ui: {
@@ -82,6 +88,7 @@ export const Stylist = list({
 
     // Legacy field
     commissionRate: float({
+      access: { read: ({ session }) => permissions.canManageCommissions({ session }) || permissions.canManagePayments({ session }) || permissions.canViewReports({ session }) },
       defaultValue: 0.5,
       validation: { min: 0, max: 1 },
       ui: {
@@ -90,18 +97,21 @@ export const Stylist = list({
     }),
 
     certifications: json({
+      access: { read: permissions.canManagePeople },
       ui: {
         description: "Array of certifications: [{name, issuer, date, expiryDate}]",
       },
     }),
 
     hireDate: timestamp({
+      access: { read: permissions.canManagePeople },
       ui: {
         description: "Date staff member was hired",
       },
     }),
 
     employmentType: select({
+      access: { read: permissions.canManagePeople },
       type: "enum",
       options: [
         { label: "Full-time", value: "full_time" },
@@ -136,7 +146,7 @@ export const Stylist = list({
 
     photoUrl: text({
       ui: {
-        description: "URL to staff member photo",
+        description: "Legacy staff photo path; prefer the SalonImage imagePath relationship below",
       },
     }),
 
@@ -151,7 +161,9 @@ export const Stylist = list({
       ref: "SalonImage",
       ui: {
         displayMode: "cards",
-        cardFields: ["image", "altText"],
+        cardFields: ["image", "imagePath", "altText"],
+        inlineCreate: { fields: ["imagePath", "altText"] },
+        inlineEdit: { fields: ["imagePath", "altText"] },
       },
     }),
 
@@ -164,6 +176,12 @@ export const Stylist = list({
         cardFields: ["name", "basePrice"],
       },
     }),
+
+    locations: relationship({ ref: "Location.stylists", many: true }),
+
+    segmentQualifications: relationship({ ref: "ServiceSegment.qualifiedPractitioners", many: true }),
+    appointmentSegments: relationship({ ref: "AppointmentSegment.practitioner", many: true }),
+    gratuityEntries: relationship({ ref: "GratuityLedgerEntry.practitioner", many: true }),
 
     // Schedules for this stylist
     schedules: relationship({
@@ -218,5 +236,7 @@ export const Stylist = list({
         displayMode: "count",
       },
     }),
+
+    ...trackingFields,
   },
 });

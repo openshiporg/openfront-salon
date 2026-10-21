@@ -1,163 +1,220 @@
-# Next.js + KeystoneJS Starter
+![Openfront Salon](https://openship.org/og/openfront-salon.png)
 
-A modern full-stack application combining Next.js 15 with KeystoneJS 6, featuring admin dashboard implementation and sophisticated role-based permissions.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-salon&env=DATABASE_URL%2CSESSION_SECRET)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjunaid33%2Fnext-keystone-starter%2F&stores=[{"type"%3A"postgres"}])
+Openfront Salon is a self-hostable booking and salon-operations application. Clients can explore services and stylists, book appointments, and manage their visits. Salon teams use the dashboard for scheduling, client history, checkout, retail inventory, memberships, packages, and commissions.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/TK5wC1?referralCode=I_tWSs)
+## Demo
 
-## Architecture Overview
+![Interior image used by the Salon storefront](public/images/salon/interior.webp)
 
-This project features a **modern admin architecture** with:
+Explore the application locally using the setup instructions below.
 
-- **Backend**: KeystoneJS 6 providing GraphQL API, authentication, and database operations
-- **Frontend**: Custom Next.js admin dashboard with enhanced UI components
-- **Image Support**: S3-compatible image storage and management 
+| | |
+|---|---|
+| **Public application** | `/` on your development URL |
+| **Dashboard** | `/dashboard` on your development URL |
 
-## Tech Stack
+[Learn more →](https://openship.org/products/openfront-salon)
 
-### Frontend
-- **Next.js 15** with App Router
-- **React 19** with TypeScript
-- **Radix UI** primitives for accessible components
-- **Tailwind CSS 4** for styling
-- **Remix Icons** (@remixicon/react) for icons
-- **SWR** for client-side data fetching
-- **TipTap** for rich text editing
-- **React Hook Form** for form management
-- **Zod** for schema validation
+[Documentation →](https://docs.openship.org/docs/openfront/salon/)
 
-### Backend
-- **KeystoneJS 6** for GraphQL API and admin interface
-- **Prisma ORM** for database operations
-- **GraphQL Yoga** for GraphQL server
-- **PostgreSQL** database
-- **S3-compatible storage** for image management
+## The Openfront Ecosystem
 
-### Key Features
-- **Role-based access control** with granular permissions
-- **Dynamic field controllers** with conditional behavior
-- **Rich text editing** with document fields
-- **Relationship management** with inline editing capabilities
-- **Image upload and management** with S3 storage
-- **Inline create/edit components** for seamless UX
-- **Advanced filtering system** for all field types
-- **Responsive design** with mobile support
+Openfront is part of an ecosystem of open-source commerce tools:
+
+- **[Openfront E-commerce](https://github.com/openshiporg/openfront)**: Headless e-commerce for retail.
+- **[Openfront Restaurant](https://github.com/openshiporg/openfront-restaurant)**: Restaurant ordering, point of sale, and kitchen operations.
+- **[Openship](https://github.com/openshiporg/openship)**: Order routing for multi-channel fulfillment.
+- **Openfront Salon**: (This repository) a self-hostable booking and salon-operations application.
+
+## Core Features
+
+### Admin Dashboard
+Manage commissions, clients, appointments, catalog, resources, store settings, schedules, checkout, engagement, integrations, inventory, benefits through dedicated dashboard workspaces and permission-controlled data screens.
+
+### Storefront
+Clients can browse `/services` and `/stylists`, book at `/book`, and view appointments and accounts. Gift-card, gallery, team, and review pages round out the public site.
+
+### Appointments & Scheduling
+Coordinate stylist schedules, resources, appointment segments, deposits, and waitlists. Appointment transitions and schedule revisions are handled by dedicated workflow commands.
+
+### Checkout & Client Retention
+Complete appointment checkout, record retail sales, redeem packages, and manage memberships, points, referrals, and gift cards. Reversal, gratuity, and commission records preserve financial history.
+
+### Client Care
+Maintain client notes, color formulas, and consultation submissions. Consultation review uses a separate care-record permission rather than assuming every salon manager can read it.
+
+## Architecture
+
+### Technology Stack
+- **Frontend**: Next.js 16 with App Router and React 19.
+- **Backend**: KeystoneJS 6 with a GraphQL API.
+- **Database**: PostgreSQL with Prisma ORM.
+- **Styling**: Tailwind CSS 4 and shared shadcn/ui components.
+- **Authentication**: Password-based user accounts and session-based access with role capabilities.
+
+### Application Structure
+```text
+openfront-salon/
+├── app/                    # Public pages, dashboard routes, and HTTP endpoints
+├── features/
+│   ├── keystone/           # Backend models, access rules, and GraphQL workflows
+│   ├── platform/           # Operator workspaces and onboarding
+│   ├── storefront/         # Public application components and screens
+│   └── dashboard/          # Authentication and shared dashboard shell
+└── components/             # Shared UI components
+```
+
+### Data Models
+The [model registry](features/keystone/models/index.ts) and [Prisma schema](schema.prisma) cover:
+
+- Services, variants, stylists, schedules, resources, and appointment segments.
+- Clients, notes, color formulas, consultation templates, submissions, and reviews.
+- Appointment lines, deposits, payment sessions, checkout transactions, and reversals.
+- Products, inventory movements, packages, memberships, loyalty, gift cards, and commissions.
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- PostgreSQL database
+- Node.js 22, compatible with the [package requirements](package.json) and Next.js 16.
+- A PostgreSQL database you can migrate.
+- npm.
 
 ### Setup
 
 1. **Clone and install dependencies:**
    ```bash
-   git clone https://github.com/junaid33/next-keystone-starter
-   cd next-keystone-starter
+   git clone https://github.com/openshiporg/openfront-salon.git
+   cd openfront-salon
    npm install
    ```
 
 2. **Configure environment variables:**
    ```bash
-   cp env.example .env
+   cp .env.example .env
    ```
-   
-   Update `.env` with your database configuration:
+
+   Review the [example configuration](.env.example) and replace its placeholders. Keep only the local settings you need; do not copy production-mode or infrastructure examples unchanged.
+
    ```env
-   DATABASE_URL=postgresql://username:password@localhost:5432/database_name
-   SESSION_SECRET=your-super-secret-session-key-change-this-in-production
+   DATABASE_URL=postgresql://user:password@host/database
+   SESSION_SECRET=replace-with-a-new-private-random-secret
    ```
+
+   Generate the session secret with `openssl rand -hex 32`; use the generated value, not the placeholder. Never commit `.env`.
+
+   Review [runtime configuration](features/keystone/index.ts) for additional application settings before building or deploying. Configure enabled integrations separately; the two values above are not a complete production configuration.
 
 3. **Start development server:**
    ```bash
    npm run dev
    ```
 
-   This will:
-   - Build KeystoneJS schema
-   - Run database migrations
-   - Start Next.js development server with Turbopack
+   The development script prepares the backend schema, applies checked-in migrations, and starts Next.js.
 
 4. **Access the application:**
-   - Frontend: [http://localhost:3000](http://localhost:3000)
-   - Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
-   - GraphQL API: [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql)
+   Open the URL `npm run dev` prints, then use these paths:
+
+   - **Public application**: `/`
+   - **Admin dashboard**: `/dashboard`
+   - **GraphQL API**: `/api/graphql`
+
+5. **Create your first admin user:**
+   Visit `/dashboard/init` on an empty database to create the initial administrator, then sign in to the dashboard.
+
+6. **Run application onboarding:**
+   Use dashboard onboarding to configure the salon, services, stylists, schedules, resources, and storefront settings. Review payment-provider settings separately.
 
 ## Development Commands
 
-- `npm run dev` - Build Keystone + migrate + start Next.js dev server
-- `npm run build` - Build Keystone + migrate + build Next.js for production
-- `npm run migrate:gen` - Generate and apply new database migrations
-- `npm run migrate` - Deploy existing migrations to database
-- `npm run lint` - Run ESLint
+- `npm run dev` - Prepare the backend schema, apply migrations, and start Next.js development.
+- `npm run build` - Build the backend and Next.js for production; does not apply migrations.
+- `npm start` - Start the production Next.js server.
+- `npm run migrate:gen` - Prepare the schema and generate/apply development migrations.
+- `npm run migrate` - Apply checked-in Prisma migrations.
+- `npm run lint` - Run the repository's ESLint script.
 
-## API Endpoints
+Use a disposable development database for migration generation. Review the script before running it against any existing data.
 
-### GraphQL API
-- **Endpoint**: `/api/graphql`
-- **Features**: Full CRUD operations, relationships, authentication
-- **Playground**: Available in development mode
+### Payment Integration
+Manual and Stripe adapters are registered in [the payment loader](features/integrations/payment/index.ts). Configure provider records before taking payments; manual records do not represent a processor capture.
 
-## Data Models
+## Documentation
 
-### Core Models
-- **User** - Authentication and user management
-- **Role** - Role-based access control
-- **Todo** - Example content model with relationships
-- **TodoImage** - Image management for Todo items with S3 storage
+See the [Openfront Salon documentation](https://docs.openship.org/docs/openfront/salon/) for the application guide. The [backend models](features/keystone/models), [registered business workflows](features/keystone/mutations/index.ts), [access rules](features/keystone/access.ts), and [application routes](app) document the implementation in this repository.
 
-### Permission System
-Sophisticated role-based permissions including:
-- `canAccessDashboard`, `canManagePeople`, `canManageRoles`
-- `canCreateTodos`, `canManageAllTodos`
-- `canSeeOtherPeople`, `canEditOtherPeople`
+## Security & Permissions
 
-## Project Structure
+### Role-Based Access Control
+- `canAccessDashboard` - Access dashboard.
+- `canManageAppointments` - Manage appointments.
+- `canManageCatalog` - Manage catalog.
+- `canManageClients` - Manage clients.
+- `canManageCareRecords` - Manage care records.
+- `canManagePayments` - Manage payments.
+- `canIssueRefunds` - Issue refunds.
 
-```
-├── app/                    # Next.js App Router
-│   ├── api/
-│   │   └── graphql.ts     # GraphQL API endpoint
-│   └── dashboard/         # Admin dashboard pages
-├── features/
-│   ├── keystone/          # Backend configuration
-│   │   ├── models/        # Keystone list definitions
-│   │   ├── access.ts      # Permission logic
-│   │   └── mutations/     # Custom GraphQL mutations
-│   └── dashboard/         # Admin interface implementation
-│       ├── actions/       # Server actions
-│       ├── components/    # Reusable UI components
-│       ├── screens/       # Page-level components
-│       └── views/         # Field type implementations
-├── keystone.ts            # KeystoneJS configuration
-└── schema.prisma          # Database schema
-```
+### Security Features
+- Session-based authentication for signed-in users.
+- Backend list access and workflow authorization, rather than dashboard visibility alone.
+- Client and appointment read rules distinguish staff capabilities from records owned by the signed-in client. Care-record access and onboarding require explicit permissions.
 
-## Development Notes
+Review the [access implementation](features/keystone/access.ts) and individual workflow checks before extending permissions.
 
-- **GraphQL endpoint** available at `/api/graphql`
-- **Field implementations** follow KeystoneJS controller patterns
-- **Permission checks** are integrated throughout the UI layer
-- **Server actions** used for data mutations in dashboard components
-- **Inline editing** components provide seamless UX for relationship management
-- **Image uploads** configured for S3-compatible storage
-- **Advanced filtering** supports all field types including documents, JSON, and images
+## Platform Components
+
+### Admin Platform (`/dashboard`)
+- **Commissions**: `/dashboard/platform/commissions`.
+- **Clients**: `/dashboard/platform/clients`.
+- **Appointments**: `/dashboard/platform/appointments`.
+- **Catalog**: `/dashboard/platform/catalog`.
+- **Resources**: `/dashboard/platform/resources`.
+- **Store Settings**: `/dashboard/platform/store-settings`.
+- **Schedules**: `/dashboard/platform/schedules`.
+- **Checkout**: `/dashboard/platform/checkout`.
+- **Engagement**: `/dashboard/platform/engagement`.
+- **Integrations**: `/dashboard/platform/integrations`.
+- **Inventory**: `/dashboard/platform/inventory`.
+- **Benefits**: `/dashboard/platform/benefits`.
+
+### Storefront Experience
+Clients can browse `/services` and `/stylists`, book at `/book`, and view appointments and accounts. Gift-card, gallery, team, and review pages round out the public site.
+
+Coordinate stylist schedules, resources, appointment segments, deposits, and waitlists. Appointment transitions and schedule revisions are handled by dedicated workflow commands.
 
 ## Deployment
 
-The application can be deployed to any platform supporting Node.js and PostgreSQL:
+### Production Deployment
+The Vercel button imports this application's own repository. Provision PostgreSQL and configure the application's complete runtime requirements, storage, mail, and enabled providers before building. Importing the source does not configure these services.
 
-1. Set up PostgreSQL database
-2. Configure environment variables
-3. Run `npm run build`
-4. Run `npm start`
+Build the application and apply checked-in migrations as a release step before starting the server. Back up existing data before migration.
+
+```bash
+npm run build
+npm run migrate
+npm start
+```
+
+The included [Railway configuration](railway.toml) defines this app's build and startup lifecycle. Provision services and secrets separately.
+
+### Scaling Considerations
+Keep the shared PostgreSQL database, session secrets, and configured object storage consistent across application processes. Review background delivery and integration requirements before choosing a serverless runtime; a source import does not supply persistent workers.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+Use the development commands above when preparing changes. Keep model changes and their migrations together, and describe workflow and permission changes in pull requests.
+
+## License
+
+No top-level license file or package license declaration is included in this repository.
+
+## Support
+
+- **Documentation**: [Openfront Salon guide](https://docs.openship.org/docs/openfront/salon/).
+- **Issues**: [Report bugs and feature requests](https://github.com/openshiporg/openfront-salon/issues).
+- **Product**: [Learn more about Openfront Salon](https://openship.org/products/openfront-salon).
+
+---
+
+Built with [Next.js](https://nextjs.org) and [KeystoneJS](https://keystonejs.com).

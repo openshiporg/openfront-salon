@@ -13,59 +13,37 @@ interface BookingStepIndicatorProps {
 
 export function BookingStepIndicator({ currentStep, steps }: BookingStepIndicatorProps) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between">
-        {steps.map((step, idx) => {
-          const isCompleted = currentStep > step.number
-          const isCurrent = currentStep === step.number
-          const isUpcoming = currentStep < step.number
+    <ol className="mb-[var(--sf-space-lg)] flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {steps.map((step) => {
+        const isCompleted = currentStep > step.number
+        const isCurrent = currentStep === step.number
 
-          return (
-            <div key={step.number} className="flex items-center flex-1">
-              <div className="flex flex-col items-center">
-                {/* Step Circle */}
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                    isCompleted
-                      ? "bg-primary text-primary-foreground"
-                      : isCurrent
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    <span>{step.number}</span>
-                  )}
-                </div>
-                {/* Step Label */}
-                <div className="mt-2 text-center">
-                  <div
-                    className={`text-sm font-medium ${
-                      isCurrent ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {step.title}
-                  </div>
-                  <div className="text-xs text-muted-foreground hidden sm:block">
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-              {/* Connector Line */}
-              {idx < steps.length - 1 && (
-                <div
-                  className={`h-0.5 flex-1 mx-2 transition-all ${
-                    currentStep > step.number ? "bg-primary" : "bg-muted"
-                  }`}
-                  style={{ marginTop: "-40px" }}
-                />
-              )}
+        return (
+          <li
+            key={step.number}
+            className={`flex items-start gap-3 min-w-0 flex-1 ${
+              isCurrent ? "text-[var(--sf-ink)]" : "text-[var(--sf-ink-3)]"
+            }`}
+          >
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center text-[var(--sf-text-xs)] font-medium border ${
+                isCompleted
+                  ? "border-[var(--sf-ink)] bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"
+                  : isCurrent
+                  ? "border-[var(--sf-accent)] text-[var(--sf-accent)]"
+                  : "border-[var(--sf-rule)]"
+              }`}
+              aria-current={isCurrent ? "step" : undefined}
+            >
+              {isCompleted ? <Check className="h-4 w-4" /> : step.number}
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-[var(--sf-text-sm)] font-medium">{step.title}</p>
+              <p className="text-[var(--sf-text-xs)] hidden sm:block">{step.description}</p>
             </div>
-          )
-        })}
-      </div>
-    </div>
+          </li>
+        )
+      })}
+    </ol>
   )
 }

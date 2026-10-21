@@ -10,8 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# testing and local release evidence (may contain sessions/credentials)
 /coverage
+/.runtime/
 
 # next.js
 /.next/

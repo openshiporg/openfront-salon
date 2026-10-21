@@ -3,20 +3,28 @@ import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
-  float,
+  integer,
   timestamp,
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const GiftCard = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadGiftCards,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["code", "initialValue", "currentBalance", "recipientName", "isActive", "expiresAt"],
     },
@@ -32,14 +40,14 @@ export const GiftCard = list({
     }),
 
     // Value fields
-    initialValue: float({
+    initialValue: integer({
       validation: { isRequired: true },
       ui: {
         description: "Original value of the gift card when purchased",
       },
     }),
 
-    currentBalance: float({
+    currentBalance: integer({
       validation: { isRequired: true },
       ui: {
         description: "Current remaining balance on the gift card",
@@ -82,16 +90,9 @@ export const GiftCard = list({
     }),
 
     // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        description: "When the gift card was created",
-      },
-    }),
-
-    // Relationships
+// Relationships
     purchasedBy: relationship({
-      ref: "User",
+      ref: "User.purchasedGiftCards",
       ui: {
         displayMode: "select",
         description: "User who purchased this gift card",
@@ -108,5 +109,6 @@ export const GiftCard = list({
         description: "Transaction history for this gift card",
       },
     }),
+    ...trackingFields,
   },
 });

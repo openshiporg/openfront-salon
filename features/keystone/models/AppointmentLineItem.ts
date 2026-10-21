@@ -8,7 +8,8 @@ import {
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+import { trackingFields } from "./trackingFields";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -20,12 +21,18 @@ const formatCurrency = (amount: number): string => {
 export const AppointmentLineItem = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadAppointmentLineItems,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
-      initialColumns: ["service", "staff", "duration", "price", "appointment"],
+      initialColumns: ["serviceTitle", "staff", "duration", "price", "appointment"],
     },
   },
   fields: {
@@ -45,15 +52,29 @@ export const AppointmentLineItem = list({
       },
     }),
 
+    serviceTitle: text({
+      validation: { isRequired: true, length: { max: 300 } },
+      ui: {
+        description: "Immutable service title captured when the appointment was booked",
+      },
+    }),
+
+    serviceImagePath: text({
+      ui: {
+        description: "Immutable canonical relative service media path captured at booking",
+      },
+    }),
+
     duration: integer({
       defaultValue: 60,
+      validation: { isRequired: true, min: 1 },
       ui: {
-        description: "Duration of this service in minutes",
+        description: "Immutable service duration captured at booking",
       },
     }),
 
     price: integer({
-      validation: { isRequired: true },
+      validation: { isRequired: true, min: 0 },
       ui: {
         description: "Price in cents",
       },
@@ -61,7 +82,7 @@ export const AppointmentLineItem = list({
 
     quantity: integer({
       defaultValue: 1,
-      validation: { isRequired: true },
+      validation: { isRequired: true, min: 1 },
       ui: {
         description: "Quantity of this service (usually 1)",
       },
@@ -73,6 +94,8 @@ export const AppointmentLineItem = list({
         description: "Special requests or notes for this service",
       },
     }),
+
+    segments: relationship({ ref: "AppointmentSegment.lineItem", many: true }),
 
     appointment: relationship({
       ref: "Appointment.lineItems",
@@ -92,8 +115,9 @@ export const AppointmentLineItem = list({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const lineItemId = (item as { id: string }).id;
           const lineItem = await context.sudo().query.AppointmentLineItem.findOne({
-            where: { id: item.id },
+            where: { id: lineItemId },
             query: "price",
           });
 
@@ -107,8 +131,9 @@ export const AppointmentLineItem = list({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const lineItemId = (item as { id: string }).id;
           const lineItem = await context.sudo().query.AppointmentLineItem.findOne({
-            where: { id: item.id },
+            where: { id: lineItemId },
             query: "price quantity",
           });
 
@@ -118,5 +143,7 @@ export const AppointmentLineItem = list({
         },
       }),
     }),
+
+    ...trackingFields,
   },
 });

@@ -3,11 +3,22 @@
 import { gql } from "graphql-request"
 import { salonClient } from "../config"
 import { cache } from "react"
+import { getStylistsForService } from "./stylists"
+import { isBookableServiceSelection, resolveBookingSelectionRead, type BookingSelectionRead } from "./bookingSelectionRead"
+
+export interface StorefrontImage {
+  image: {
+    url: string
+  } | null
+  imagePath: string | null
+  altText: string | null
+}
 
 export interface Service {
   id: string
   name: string
   description: string | null
+  status: string
   baseDuration: number
   basePrice: number
   pricingTier: Record<string, number> | null
@@ -17,12 +28,7 @@ export interface Service {
     id: string
     name: string
   } | null
-  image: {
-    image: {
-      url: string
-    } | null
-    altText: string | null
-  } | null
+  image: StorefrontImage | null
   specialists: {
     id: string
     tier: string | null
@@ -30,12 +36,7 @@ export interface Service {
     user: {
       name: string
     } | null
-    photo: {
-      image: {
-        url: string
-      } | null
-      altText: string | null
-    } | null
+    photo: StorefrontImage | null
   }[]
 }
 
@@ -46,192 +47,161 @@ export interface ServiceCategory {
   services: Service[]
 }
 
+function toStorefrontService(service: Service): Service {
+  return { ...service, basePrice: service.basePrice / 100 }
+}
+
+const SERVICE_FIELDS = gql`
+  fragment StorefrontServiceFields on Service {
+    id
+    name
+    description
+    status
+    baseDuration
+    basePrice: price
+    pricingTier
+    requiresConsultation
+    requiresPatchTest
+    category {
+      id
+      name
+    }
+    image {
+      image {
+        url
+      }
+      imagePath
+      altText
+    }
+    specialists(take: 10) {
+      id
+      tier
+      bio
+      user {
+        name
+      }
+      photo {
+        image {
+          url
+        }
+        imagePath
+        altText
+      }
+    }
+  }
+`
+
 /**
- * Get all services grouped by category
+ * Get all services grouped by category.
+ * Uncategorized live services are kept visible until onboarding creates real
+ * category rows for them.
  */
 export const getServicesGroupedByCategory = cache(async function (): Promise<ServiceCategory[]> {
   const GET_SERVICES_BY_CATEGORY = gql`
+    ${SERVICE_FIELDS}
     query GetServicesByCategory {
-      serviceCategories(orderBy: { name: asc }) {
+      serviceCategories(take: 20, orderBy: { name: asc }) {
         id
         name
         description
-        services(orderBy: { name: asc }) {
-          id
-          name
-          description
-          baseDuration
-          basePrice
-          pricingTier
-          requiresConsultation
-          requiresPatchTest
-          image {
-            image {
-              url
-            }
-            altText
-          }
-          specialists {
-            id
-            tier
-            bio
-            user {
-              name
-            }
-            photo {
-              image {
-                url
-              }
-              altText
-            }
-          }
+        services(where: { status: { equals: active }, requiresConsultation: { equals: false }, requiresPatchTest: { equals: false } }, take: 100, orderBy: { name: asc }) {
+          ...StorefrontServiceFields
         }
+      }
+      uncategorizedServices: services(where: { category: null, status: { equals: active }, requiresConsultation: { equals: false }, requiresPatchTest: { equals: false } }, take: 100, orderBy: { name: asc }) {
+        ...StorefrontServiceFields
       }
     }
   `
 
   try {
-    const data = await salonClient.request<{ serviceCategories: ServiceCategory[] }>(GET_SERVICES_BY_CATEGORY)
-    return data.serviceCategories
+    const data = await salonClient.request<{
+      serviceCategories: ServiceCategory[]
+      uncategorizedServices: Service[]
+    }>(GET_SERVICES_BY_CATEGORY)
+    const categories = data.serviceCategories
+      .filter((category) => category.services.length > 0)
+      .map((category) => ({ ...category, services: category.services.map(toStorefrontService) }))
+
+    if (data.uncategorizedServices.length > 0) {
+      categories.push({
+        id: "signature-services",
+        name: "Signature services",
+        description: "Appointment-ready services from the live salon catalog.",
+        services: data.uncategorizedServices.map(toStorefrontService),
+      })
+    }
+
+    return categories
   } catch (error) {
     console.error("Error fetching services by category:", error)
     return []
   }
 })
 
-/**
- * Get all services
- */
-export const getAllServices = cache(async function (): Promise<Service[]> {
+/** Get all services. */
+export const getAllServices = cache(async function (): Promise<BookingSelectionRead<Service>> {
   const GET_ALL_SERVICES = gql`
+    ${SERVICE_FIELDS}
     query GetAllServices {
-      services(orderBy: { name: asc }) {
-        id
-        name
-        description
-        baseDuration
-        basePrice
-        pricingTier
-        requiresConsultation
-        requiresPatchTest
-        category {
-          id
-          name
-        }
-        image {
-          image {
-            url
-          }
-          altText
-        }
-        specialists {
-          id
-          tier
-          bio
-          user {
-            name
-          }
-          photo {
-            image {
-              url
-            }
-            altText
-          }
-        }
+      services(where: { status: { equals: active }, requiresConsultation: { equals: false }, requiresPatchTest: { equals: false } }, take: 100, orderBy: { name: asc }) {
+        ...StorefrontServiceFields
       }
     }
   `
 
   try {
-    const data = await salonClient.request<{ services: Service[] }>(GET_ALL_SERVICES)
-    return data.services
+    const data = await salonClient.request<{ services?: unknown }>(GET_ALL_SERVICES)
+    const result = resolveBookingSelectionRead<Service>(true, data?.services, (item): item is Service => isBookableServiceSelection(item))
+    return result.status === "available"
+      ? { status: "available", items: result.items.map(toStorefrontService) }
+      : result
   } catch (error) {
     console.error("Error fetching all services:", error)
-    return []
+    return { status: "unavailable" }
   }
 })
 
-/**
- * Get a single service by ID
- */
+/** Get a single service by ID. */
 export const getServiceById = cache(async function (id: string): Promise<Service | null> {
   const GET_SERVICE_BY_ID = gql`
+    ${SERVICE_FIELDS}
     query GetServiceById($id: ID!) {
       service(where: { id: $id }) {
-        id
-        name
-        description
-        baseDuration
-        basePrice
-        pricingTier
-        requiresConsultation
-        requiresPatchTest
-        category {
-          id
-          name
-        }
-        image {
-          image {
-            url
-          }
-          altText
-        }
-        specialists {
-          id
-          tier
-          bio
-          user {
-            name
-          }
-          photo {
-            image {
-              url
-            }
-            altText
-          }
-        }
+        ...StorefrontServiceFields
       }
     }
   `
 
   try {
-    const data = await salonClient.request<{ service: Service | null }>(GET_SERVICE_BY_ID, { id })
-    return data.service
+    const [data, qualified] = await Promise.all([
+      salonClient.request<{ service: Service | null }>(GET_SERVICE_BY_ID, { id }),
+      getStylistsForService(id),
+    ]);
+    const service = data.service;
+    // Public display-only staff projection; never broaden User list access for names.
+    return service && service.status === "active" && !service.requiresConsultation && !service.requiresPatchTest
+      ? toStorefrontService({ ...service, specialists: qualified.status === "available" ? qualified.items : [] }) : null
   } catch (error) {
     console.error("Error fetching service by id:", error)
     return null
   }
 })
 
-/**
- * Get featured services (limited number for homepage)
- */
+/** Get featured services for the homepage. */
 export const getFeaturedServices = cache(async function (limit: number = 4): Promise<Service[]> {
   const GET_FEATURED_SERVICES = gql`
+    ${SERVICE_FIELDS}
     query GetFeaturedServices($limit: Int!) {
-      services(take: $limit, orderBy: { basePrice: desc }) {
-        id
-        name
-        description
-        baseDuration
-        basePrice
-        category {
-          id
-          name
-        }
-        image {
-          image {
-            url
-          }
-          altText
-        }
+      services(where: { status: { equals: active }, requiresConsultation: { equals: false }, requiresPatchTest: { equals: false } }, take: $limit, orderBy: { price: desc }) {
+        ...StorefrontServiceFields
       }
     }
   `
 
   try {
     const data = await salonClient.request<{ services: Service[] }>(GET_FEATURED_SERVICES, { limit })
-    return data.services
+    return data.services.map(toStorefrontService)
   } catch (error) {
     console.error("Error fetching featured services:", error)
     return []

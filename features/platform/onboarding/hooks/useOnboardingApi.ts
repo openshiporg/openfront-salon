@@ -1,6 +1,6 @@
 import { GraphQLClient, gql } from 'graphql-request';
-import { startOnboarding, completeOnboarding } from '../actions/onboarding';
 import { SECTION_DEFINITIONS } from '../config/templates';
+import { getItemsFromJsonData } from '../utils/dataUtils';
 import { TemplateType, OnboardingStep } from './useOnboardingState';
 
 const GRAPHQL_ENDPOINT = '/api/graphql';
@@ -19,583 +19,81 @@ interface OnboardingApiProps {
   resetOnboardingState: () => void;
 }
 
+type RunSalonOnboardingResult = {
+  success: boolean;
+  completed: boolean;
+  created: number;
+  reused: number;
+  locationId: string | null;
+  error: string | null;
+};
+
+const RUN_SALON_ONBOARDING = gql`
+  mutation RunSalonOnboarding($seed: JSON) {
+    runSalonOnboarding(seed: $seed) {
+      success
+      completed
+      created
+      reused
+      locationId
+      error
+    }
+  }
+`;
+
+function errorMessage(error: any) {
+  if (error?.response?.errors?.length) {
+    return error.response.errors.map((item: any) => item.message || JSON.stringify(item)).join('\n');
+  }
+  return error?.message || 'Salon setup failed';
+}
+
 export function useOnboardingApi({
-  selectedTemplate,
   currentJsonData,
-  completedItems,
   setProgress,
   setItemLoading,
   setItemCompleted,
-  setItemError,
   setStep,
   setError,
   setIsLoading,
   resetOnboardingState,
 }: OnboardingApiProps) {
-
   const runOnboarding = async () => {
     setIsLoading(true);
     setError(null);
     resetOnboardingState();
     setStep('progress');
-    setProgress('Starting onboarding...');
-
-    // Mark onboarding as started
-    try {
-      await startOnboarding();
-    } catch (error) {
-      console.error('Error marking onboarding as started:', error);
-    }
+    setProgress('Applying salon setup in one secure transaction...');
 
     try {
+      for (const section of SECTION_DEFINITIONS) {
+        for (const item of getItemsFromJsonData(currentJsonData, section.type)) {
+          setItemLoading(section.type, item);
+        }
+      }
+
       const client = new GraphQLClient(GRAPHQL_ENDPOINT, {
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
+      const response = await client.request<{ runSalonOnboarding: RunSalonOnboardingResult }>(
+        RUN_SALON_ONBOARDING,
+        { seed: currentJsonData },
+      );
+      const result = response.runSalonOnboarding;
+      if (!result.success || !result.completed) throw new Error(result.error || 'Salon setup did not complete');
 
-      await createStore(client, currentJsonData);
-      const createdCurrencies = await createCurrencies(client, currentJsonData);
-      const createdCountries = await createCountries(client, currentJsonData);
-      const createdPaymentProviders = await createPaymentProviders(client, currentJsonData);
-      const createdFulfillmentProviders = await createFulfillmentProvider(client);
-      const createdRegions = await createRegions(client, currentJsonData, createdCurrencies, createdPaymentProviders, createdFulfillmentProviders, createdCountries);
-      await createShippingOptions(client, currentJsonData, createdFulfillmentProviders, createdRegions);
-      const createdCategories = await createCategories(client, currentJsonData);
-      const createdCollections = await createCollections(client, currentJsonData);
-      await createProducts(client, currentJsonData, createdCategories, createdCollections, createdCurrencies, createdRegions);
-
-      setProgress('Onboarding complete!');
-
-      // Mark onboarding as completed
-      try {
-        await completeOnboarding();
-      } catch (error) {
-        console.error('Error marking onboarding as completed:', error);
+      for (const section of SECTION_DEFINITIONS) {
+        for (const item of getItemsFromJsonData(currentJsonData, section.type)) {
+          setItemCompleted(section.type, item);
+        }
       }
-
+      setProgress(`Salon setup complete · ${result.created} created, ${result.reused} reused.`);
       setStep('done');
-    } catch (e: any) {
-      handleOnboardingError(e);
+    } catch (error) {
+      setError(errorMessage(error));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const createStore = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating salon...');
-
-    // Use store data from JSON if available, fallback to defaults
-    const storeData = data.store || {
-      name: 'Glam & Glow Salon',
-      defaultCurrencyCode: 'usd',
-      homepageTitle: 'Modern Salon Services',
-      homepageDescription: 'Professional beauty and wellness services.',
-      logoIcon: '<svg fill="none" height="100%" viewBox="0 0 44 48" width="100%" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="m17.6264 6.5h14.8017l11.4661 18.6661-15.7786 15.9489-22.68835-4.0459-5.157719-19.2098zm.5273 4.9692-6.816 15.105 6.4504 5.3411 8.8246-3.7975zm12.3276 15.3 9.2139-2.7073-7.1983-11.7184zm-.6163-17.2692h-9.3468l7.3309 14.4284zm6.9795 18.5263-6.779 1.9919-.5448 5.4109zm-10.5005 9.008.5824-5.7856-6.0573 2.6067zm-6.8394-.5022-10.91261-1.9459 1.64741-5.0264 6.438 5.3308zm-11.69782-9.1824-2.7037-3.0571 1.66868 6.215zm-3.53432-8.5248 4.81433 5.4437 5.50351-12.1963z" fill="#155eef" fill-rule="evenodd"/></svg>',
-      logoColor: '0',
-    };
-
-    // Set the store as loading
-    setItemLoading('store', storeData.name);
-
-    let createdStoreId = '';
-    try {
-      const storeMutation = gql`
-        mutation CreateStore($data: StoreCreateInput!) {
-          createStore(data: $data) {
-            id
-            name
-          }
-        }
-      `;
-
-      const storeResult = (await client.request(storeMutation, {
-        data: storeData,
-      })) as { createStore: { id: string } };
-      createdStoreId = storeResult.createStore.id;
-
-      // Mark store as completed
-      setItemCompleted('store', storeData.name);
-      return createdStoreId;
-    } catch (error: any) {
-      console.error('Error creating store:', error);
-      // Continue with onboarding even if store creation fails
-      return '';
-    }
-  };
-
-  const createCurrencies = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating currencies...');
-    const createdCurrencies: Record<string, string> = {};
-
-    for (const region of data.regions) {
-      // Set the specific region as loading
-      const regionName = `${region.name || 'Unknown'} (${(region.currencyCode || 'USD').toUpperCase()})`;
-      setItemLoading('regions', regionName);
-
-      try {
-        const mutation = gql`
-          mutation CreateCurrency($data: CurrencyCreateInput!) {
-            createCurrency(data: $data) {
-              id
-              code
-            }
-          }
-        `;
-        const result = (await client.request(mutation, {
-          data: {
-            code: region.currencyCode,
-            symbol: region.currencySymbol,
-            symbolNative: region.currencySymbol,
-            name: region.currencyName,
-          },
-        })) as { createCurrency: { id: string } };
-        createdCurrencies[region.currencyCode] = result.createCurrency.id;
-
-        // Mark the region as completed after its currency is created
-        setItemCompleted('regions', regionName);
-      } catch (itemError: any) {
-        // Format the error message
-        let itemErrorMessage = itemError.message || 'Unknown error';
-        if (itemError.response?.errors) {
-          itemErrorMessage = itemError.response.errors
-            .map((err: any) => err.message || JSON.stringify(err))
-            .join('\n');
-        }
-
-        // Set specific error for this item
-        setItemError('regions', regionName, itemErrorMessage);
-
-        // Continue with other items
-        console.error(`Error creating currency for ${region.name}:`, itemError);
-      }
-    }
-
-    return createdCurrencies;
-  };
-
-  const createCountries = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating countries...');
-    const createdCountries: Record<string, string> = {};
-
-    for (const region of data.regions) {
-      for (const country of region.countries) {
-        const mutation = gql`
-          mutation CreateCountry($data: CountryCreateInput!) {
-            createCountry(data: $data) {
-              id
-              iso2
-            }
-          }
-        `;
-        const result = (await client.request(mutation, {
-          data: country,
-        })) as { createCountry: { id: string } };
-        createdCountries[country.iso2] = result.createCountry.id;
-      }
-    }
-
-    return createdCountries;
-  };
-
-  const createPaymentProviders = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating payment providers...');
-    const createdPaymentProviders: Record<string, string> = {};
-
-    for (const provider of data.paymentProviders) {
-      // Set the specific payment provider as loading
-      const providerName = provider.name || 'Unknown Provider';
-      setItemLoading('paymentProviders', providerName);
-
-      const mutation = gql`
-        mutation CreatePaymentProvider($data: PaymentProviderCreateInput!) {
-          createPaymentProvider(data: $data) {
-            id
-            code
-          }
-        }
-      `;
-      const result = (await client.request(mutation, { data: provider })) as {
-        createPaymentProvider: { id: string };
-      };
-      createdPaymentProviders[provider.code] = result.createPaymentProvider.id;
-
-      // Mark the payment provider as completed
-      setItemCompleted('paymentProviders', providerName);
-    }
-
-    return createdPaymentProviders;
-  };
-
-  const createFulfillmentProvider = async (client: GraphQLClient) => {
-    setProgress('Creating fulfillment provider...');
-    const createdFulfillmentProviders: Record<string, string> = {};
-
-    const fulfillmentMutation = gql`
-      mutation CreateFulfillmentProvider($data: FulfillmentProviderCreateInput!) {
-        createFulfillmentProvider(data: $data) {
-          id
-          code
-        }
-      }
-    `;
-    const fulfillmentResult = (await client.request(fulfillmentMutation, {
-      data: {
-        code: 'fp_manual',
-        name: 'Manual Fulfillment',
-        isInstalled: true,
-      },
-    })) as { createFulfillmentProvider: { id: string } };
-    createdFulfillmentProviders['fp_manual'] = fulfillmentResult.createFulfillmentProvider.id;
-
-    return createdFulfillmentProviders;
-  };
-
-  const createRegions = async (
-    client: GraphQLClient,
-    data: any,
-    createdCurrencies: Record<string, string>,
-    createdPaymentProviders: Record<string, string>,
-    createdFulfillmentProviders: Record<string, string>,
-    createdCountries: Record<string, string>
-  ) => {
-    setProgress('Creating regions...');
-    const createdRegions: Record<string, string> = {};
-
-    for (const region of data.regions) {
-      const filteredPaymentProviders = (region.paymentProviders?.connect || [])
-        .map((p: any) => createdPaymentProviders[p.code])
-        .filter(Boolean)
-        .map((id: string) => ({ id }));
-      const filteredFulfillmentProviders = region.fulfillmentProviders?.connect || []
-        ? region.fulfillmentProviders.connect
-            .map((p: any) => createdFulfillmentProviders[p.code])
-            .filter(Boolean)
-            .map((id: string) => ({ id }))
-        : [];
-
-      const mutation = gql`
-        mutation CreateRegion($data: RegionCreateInput!) {
-          createRegion(data: $data) {
-            id
-            code
-          }
-        }
-      `;
-      const result = (await client.request(mutation, {
-        data: {
-          code: region.code,
-          name: region.name,
-          currency: {
-            connect: { id: createdCurrencies[region.currencyCode] },
-          },
-          taxRate: region.taxRate,
-          paymentProviders: filteredPaymentProviders.length > 0
-            ? { connect: filteredPaymentProviders }
-            : undefined,
-          fulfillmentProviders: filteredFulfillmentProviders.length > 0
-            ? { connect: filteredFulfillmentProviders }
-            : undefined,
-          countries: {
-            connect: region.countries.map((c: { iso2: string }) => ({
-              id: createdCountries[c.iso2],
-            })),
-          },
-        },
-      })) as { createRegion: { id: string } };
-      createdRegions[region.code] = result.createRegion.id;
-    }
-
-    return createdRegions;
-  };
-
-  const createShippingOptions = async (
-    client: GraphQLClient,
-    data: any,
-    createdFulfillmentProviders: Record<string, string>,
-    createdRegions: Record<string, string>
-  ) => {
-    setProgress('Creating booking options...');
-
-    for (const option of data.shipping_options) {
-      // Set the specific booking option as loading
-      const bookingName = option.name || 'Unknown Booking';
-      setItemLoading('shipping', bookingName);
-
-      for (const region of data.regions) {
-        const mutation = gql`
-          mutation CreateShippingOption($data: ShippingOptionCreateInput!) {
-            createShippingOption(data: $data) {
-              id
-            }
-          }
-        `;
-        await client.request(mutation, {
-          data: {
-            name: option.name,
-            priceType: option.priceType,
-            amount: option.amount,
-            isReturn: option.isReturn || false,
-            uniqueKey: `${option.name}-${region.code}`,
-            fulfillmentProvider: {
-              connect: { id: createdFulfillmentProviders['fp_manual'] },
-            },
-            region: { connect: { id: createdRegions[region.code] } },
-          },
-        });
-      }
-
-      // Mark the booking option as completed
-      setItemCompleted('shipping', bookingName);
-    }
-  };
-
-  const createCategories = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating categories...');
-    const createdCategories: Record<string, string> = {};
-
-    for (const category of data.categories) {
-      // Set the specific category as loading
-      const categoryName = category.title || category.name || 'Unknown Category';
-      setItemLoading('categories', categoryName);
-
-      const mutation = gql`
-        mutation CreateProductCategory($data: ProductCategoryCreateInput!) {
-          createProductCategory(data: $data) {
-            id
-            handle
-          }
-        }
-      `;
-      const result = (await client.request(mutation, {
-        data: {
-          title: category.name, // map to title
-          handle: category.handle,
-          isActive: category.isActive,
-        },
-      })) as { createProductCategory: { id: string } };
-      createdCategories[category.handle] = result.createProductCategory.id;
-
-      // Mark the category as completed
-      setItemCompleted('categories', categoryName);
-    }
-
-    return createdCategories;
-  };
-
-  const createCollections = async (client: GraphQLClient, data: any) => {
-    setProgress('Creating collections...');
-    const createdCollections: Record<string, string> = {};
-
-    for (const collection of data.collections) {
-      // Set the specific collection as loading
-      const collectionName = collection.title || 'Unknown Collection';
-      setItemLoading('collections', collectionName);
-
-      const mutation = gql`
-        mutation CreateProductCollection($data: ProductCollectionCreateInput!) {
-          createProductCollection(data: $data) {
-            id
-            handle
-          }
-        }
-      `;
-      const result = (await client.request(mutation, {
-        data: collection,
-      })) as { createProductCollection: { id: string } };
-      createdCollections[collection.handle] = result.createProductCollection.id;
-
-      // Mark the collection as completed
-      setItemCompleted('collections', collectionName);
-    }
-
-    return createdCollections;
-  };
-
-  const createProducts = async (
-    client: GraphQLClient,
-    data: any,
-    createdCategories: Record<string, string>,
-    createdCollections: Record<string, string>,
-    createdCurrencies: Record<string, string>,
-    createdRegions: Record<string, string>
-  ) => {
-    setProgress('Creating services...');
-
-    for (const product of data.products) {
-      // Set the specific service as loading
-      const serviceName = product.title || 'Unknown Service';
-      setItemLoading('products', serviceName);
-
-      const { variants, productCollections, productCategories, subtitle, ...productInput } = product;
-
-      // Only connect the collections that exist for this product, by id
-      let collectionsToConnect: any[] = [];
-      if (productCollections && productCollections.connect) {
-        collectionsToConnect = productCollections.connect
-          .map((c: { handle: string }) => createdCollections[c.handle])
-          .filter(Boolean)
-          .map((id: string) => ({ id }));
-      }
-
-      // Only connect the categories that exist for this product, by id
-      let categoriesToConnect: any[] = [];
-      if (productCategories && productCategories.connect) {
-        categoriesToConnect = productCategories.connect
-          .map((c: { handle: string }) => createdCategories[c.handle])
-          .filter(Boolean)
-          .map((id: string) => ({ id }));
-      }
-
-      // Remove variants and connect collections/categories by id, omit subtitle if null/empty
-      const productData = {
-        ...productInput,
-        ...(typeof subtitle === 'string' && subtitle.trim() !== '' ? { subtitle } : {}),
-        productCollections: collectionsToConnect.length > 0 ? { connect: collectionsToConnect } : undefined,
-        productCategories: categoriesToConnect.length > 0 ? { connect: categoriesToConnect } : undefined,
-        productImages: {
-          create: [
-            {
-              imagePath: `/images/${productInput.handle}.jpeg`,
-              altText: productInput.title,
-            },
-          ],
-        },
-      };
-
-      // Create product/service
-      const productMutation = gql`
-        mutation CreateProduct($data: ProductCreateInput!) {
-          createProduct(data: $data) {
-            id
-            productOptions {
-              id
-              title
-              productOptionValues {
-                id
-                value
-              }
-            }
-          }
-        }
-      `;
-      const productResult = await client.request(productMutation, { data: productData });
-
-      // Create variants for this service
-      for (const variant of variants) {
-        const variantMutation = gql`
-          mutation CreateProductVariant($data: ProductVariantCreateInput!) {
-            createProductVariant(data: $data) {
-              id
-              title
-            }
-          }
-        `;
-        const allOptionValues = (productResult as any).createProduct.productOptions.flatMap(
-          (opt: any) => opt.productOptionValues
-        );
-        const matchingIds = variant.options
-          .map((opt: any) =>
-            allOptionValues.find((v: any) => v.value === opt.value)?.id
-          )
-          .filter(Boolean)
-          .map((id: string) => ({ id }));
-
-        // Only create prices where both currency and region exist
-        const validPrices = variant.prices.filter(
-          (price: { currencyCode: string; regionCode: string }) =>
-            createdCurrencies[price.currencyCode] && createdRegions[price.regionCode]
-        );
-        const prices = {
-          create: validPrices.map((price: { currencyCode: string; regionCode: string; amount: number }) => ({
-            amount: price.amount,
-            currency: { connect: { id: createdCurrencies[price.currencyCode] } },
-            region: { connect: { id: createdRegions[price.regionCode] } },
-          })),
-        };
-
-        await client.request(variantMutation, {
-          data: {
-            title: variant.title,
-            inventoryQuantity: variant.inventoryQuantity,
-            manageInventory: variant.manageInventory,
-            product: { connect: { id: (productResult as any).createProduct.id } },
-            productOptionValues: { connect: matchingIds },
-            prices,
-          },
-        });
-      }
-
-      // Mark the service as completed
-      setItemCompleted('products', serviceName);
-    }
-  };
-
-  const handleOnboardingError = (e: any) => {
-    // Format the error message for better readability
-    let errorMessage = e.message || 'Unknown error';
-
-    // Check if it's a GraphQL error with response data
-    if (e.response?.errors) {
-      // Format GraphQL errors in a more readable way
-      errorMessage = e.response.errors
-        .map((err: any) => {
-          // Check for Prisma errors which have a specific structure
-          if (err.message && err.message.includes('Prisma error')) {
-            try {
-              // For Prisma errors, simplify the message to just show the constraint failure
-              if (err.message.includes('Unique constraint failed')) {
-                return 'Unique constraint failed - this item already exists.';
-              }
-
-              // Try to extract and format the Prisma error details
-              const match = err.message.match(/\{[\s\S]*\}/);
-              if (match) {
-                const errorObj = JSON.parse(match[0]);
-                // Return a simplified error message
-                return `Prisma error: ${errorObj.message || 'Unknown Prisma error'}`;
-              }
-            } catch (parseError) {
-              // If parsing fails, just return the original message
-            }
-          }
-
-          // Extract the most useful parts of the error
-          if (err.message) {
-            // Clean up the message by removing JSON-like structures
-            return err.message.replace(/\{[\s\S]*\}/g, '[Error details omitted]');
-          }
-
-          // Last resort - stringify but limit length
-          const stringified = JSON.stringify(err, null, 2);
-          return stringified.length > 500
-            ? stringified.substring(0, 500) + '...'
-            : stringified;
-        })
-        .join('\n\n');
-    }
-
-    setError(errorMessage);
-    console.error('Error during onboarding:', e);
-
-    // For demonstration purposes, let's mark only the first non-completed item as failed
-    const newItemErrors: Record<string, Record<string, string>> = {};
-
-    // Find the first section with non-completed items
-    for (const section of SECTION_DEFINITIONS) {
-      const sectionType = section.type;
-      const sectionItems = section.getItemsFn(selectedTemplate);
-      const completedSectionItems = completedItems[sectionType] || [];
-
-      // Find the first non-completed item
-      const failedItem = sectionItems.find(
-        (item) => !completedSectionItems.includes(item)
-      );
-
-      if (failedItem) {
-        // Mark only this item as failed
-        setItemError(sectionType, failedItem, errorMessage);
-        // Only mark one item as failed for demonstration
-        break;
-      }
     }
   };
 

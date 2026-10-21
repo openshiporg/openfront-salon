@@ -1,5 +1,5 @@
-import { AppointmentsPage, generateAppointmentsMetadata as generateMetadata } from "@/features/storefront/screens"
+import { redirect } from "next/navigation";
 
-export { generateMetadata }
-
-export default AppointmentsPage
+export default function Page() {
+  redirect("/account");
+}

@@ -1,196 +1,220 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { Calendar, Clock, Star, Award, ArrowRight, Sparkles } from "lucide-react"
+import { ArrowUpRight, Clock3 } from "lucide-react"
 import { getServicesGroupedByCategory, getFeaturedServices } from "../lib/data/services"
 import { getAllStylists } from "../lib/data/stylists"
 import { ServiceCard } from "../components/ServiceCard"
 import { StylistCard } from "../components/StylistCard"
-import { CategoryCard } from "../components/CategoryCard"
+import { getStorefrontBrand, storefrontDescription, storefrontTitle } from "../lib/data/brand"
+import { formatPrice } from "../lib/format-price"
+
+const EDITORIAL_PHOTOS = {
+  interior: "/images/salon/interior.webp",
+  treatment: "/images/salon/facial-treatment.webp",
+  color: "/images/salon/color-service.webp",
+  cut: "/images/salon/haircut-detail.webp",
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "Openfront Salon | Premium Hair, Beauty & Wellness Services",
-    description: "Book appointments for hair styling, nail care, skincare, and massage services at our full-service salon. Expert stylists, modern techniques, and a relaxing atmosphere.",
+    title: await storefrontTitle(),
+    description: await storefrontDescription(),
   }
 }
 
 export async function HomePage() {
-  const [categories, featuredServices, stylists] = await Promise.all([
+  const [categories, featuredServices, stylists, brand] = await Promise.all([
     getServicesGroupedByCategory(),
     getFeaturedServices(4),
-    getAllStylists()
+    getAllStylists(),
+    getStorefrontBrand(),
   ])
 
-  const topStylists = stylists.filter(s => s.isActive).slice(0, 4)
+  const activeStylists = stylists.filter((stylist) => stylist.isActive)
+  const primaryService = featuredServices[0]
+  const treatmentService = featuredServices.find((service) =>
+    service.category?.name.toLowerCase().includes("skin")
+  )
+  const colorService = featuredServices.find((service) =>
+    service.name.toLowerCase().includes("color")
+  )
+  const cutService = featuredServices.find((service) =>
+    service.name.toLowerCase().includes("cut")
+  )
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/90 to-primary text-primary-foreground py-24 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/salon-pattern.svg')] opacity-10"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-sm mb-6">
-              <Sparkles className="h-4 w-4" />
-              <span className="text-sm font-medium">Premium Salon Experience</span>
-            </div>
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Your Beauty,
-              <br />
-              <span className="text-primary-foreground/90">Our Passion</span>
-            </h1>
-            <p className="text-xl lg:text-2xl mb-8 text-primary-foreground/90">
-              Expert hair styling, nail care, skincare, and wellness services
-              in a modern, relaxing environment
+      <section className="sf-home-hero">
+        <div className="sf-container sf-home-hero-grid">
+          <div className="sf-home-hero-copy">
+            <p className="sf-eyebrow">
+              {brand.configured
+                ? [brand.name, brand.city].filter(Boolean).join(" · ")
+                : "Storefront setup required"}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/book"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-background text-foreground px-8 py-4 text-lg font-medium hover:bg-background/90 transition-all shadow-lg hover:shadow-xl"
-              >
-                <Calendar className="h-5 w-5" />
-                Book Appointment
+            <h1 className="sf-display sf-home-title">Hair, color &amp; skin.</h1>
+            <div className="sf-home-actions">
+              <Link href="/book" className="sf-btn sf-btn-primary">
+                Reserve a visit
               </Link>
-              <Link
-                href="/services"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-primary-foreground/20 backdrop-blur-sm bg-primary-foreground/10 px-8 py-4 text-lg font-medium hover:bg-primary-foreground/20 transition-all"
-              >
-                View Services
-                <ArrowRight className="h-5 w-5" />
+              <Link href="/services" className="sf-btn sf-btn-secondary">
+                Explore the menu
               </Link>
             </div>
+
+          </div>
+
+          <div className="sf-home-hero-media">
+            <figure className="sf-home-photo sf-home-photo-main">
+              <img
+                src={EDITORIAL_PHOTOS.interior}
+                alt="Warm modern salon interior with mirrors and styling chairs"
+                fetchPriority="high"
+              />
+              <figcaption>The studio</figcaption>
+            </figure>
+            <figure className="sf-home-photo sf-home-photo-inset">
+              <img
+                src={EDITORIAL_PHOTOS.color}
+                alt="Hair colorist working with a client in the salon"
+              />
+              <figcaption>Color, considered</figcaption>
+            </figure>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <Award className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Expert Stylists</h3>
-              <p className="text-muted-foreground">
-                Our talented team brings years of experience and ongoing training
-              </p>
+      {categories.length > 0 ? (
+        <section className="sf-home-index">
+          <div className="sf-container sf-home-index-grid">
+            <div>
+              <h2 className="sf-display sf-home-section-title">Service categories</h2>
             </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <Clock className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Easy Booking</h3>
-              <p className="text-muted-foreground">
-                Book online 24/7 and get instant confirmation for your appointment
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <Star className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Premium Products</h3>
-              <p className="text-muted-foreground">
-                We use only the finest professional-grade products and techniques
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Service Categories */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Our Services</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Discover our full range of professional beauty and wellness services
-            </p>
-          </div>
-          {categories.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {categories.map((category) => (
-                <CategoryCard key={category.id} category={category} />
+            <div className="sf-home-category-list">
+              {categories.map((category, index) => (
+                <Link
+                  key={category.id}
+                  href={`/services#${category.id}`}
+                  className="sf-home-category-row"
+                >
+                  <span className="sf-home-category-number">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="sf-home-category-name">
+                    {category.name}
+                    {category.description ? <small>{category.description}</small> : null}
+                  </span>
+                  <span className="sf-home-category-count">
+                    {category.services?.length || 0} services
+                    <ArrowUpRight aria-hidden="true" />
+                  </span>
+                </Link>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Service categories coming soon</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Services */}
-      {featuredServices.length > 0 && (
-        <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4">Popular Services</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Our most-booked treatments
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredServices.map((service) => (
-                <ServiceCard key={service.id} service={service} showCategory />
-              ))}
-            </div>
-            <div className="text-center mt-8">
-              <Link
-                href="/services"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-all"
-              >
-                View All Services
-                <ArrowRight className="h-5 w-5" />
-              </Link>
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* Meet Our Team */}
-      {topStylists.length > 0 && (
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold mb-4">Meet Our Team</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Talented professionals dedicated to making you look and feel your best
-              </p>
+      <section className="sf-home-story">
+        <div className="sf-container">
+          <div className="sf-home-story-heading">
+            <div>
+              <h2 className="sf-display sf-home-section-title">Treatments</h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {topStylists.map((stylist) => (
+
+          </div>
+
+          <div className="sf-home-story-grid">
+            <Link href={colorService ? `/services/${colorService.id}` : "/services"} className="sf-home-story-card sf-home-story-card-wide">
+              <img src={EDITORIAL_PHOTOS.color} alt="Stylist applying dimensional color to a salon client" />
+              <span className="sf-home-story-overlay">
+                <small>Color studio</small>
+                <strong>{colorService?.name || "Dimensional color"}</strong>
+                {colorService ? (
+                  <em>
+                    <Clock3 aria-hidden="true" /> {colorService.baseDuration} min · {formatPrice(colorService.basePrice)}
+                  </em>
+                ) : null}
+              </span>
+            </Link>
+
+            <Link href={treatmentService ? `/services/${treatmentService.id}` : "/services"} className="sf-home-story-card sf-home-story-card-tall">
+              <img src={EDITORIAL_PHOTOS.treatment} alt="Client receiving a professional facial treatment" />
+              <span className="sf-home-story-overlay">
+                <small>Treatment room</small>
+                <strong>{treatmentService?.name || "Skin rituals"}</strong>
+                {treatmentService ? (
+                  <em>
+                    <Clock3 aria-hidden="true" /> {treatmentService.baseDuration} min · {formatPrice(treatmentService.basePrice)}
+                  </em>
+                ) : null}
+              </span>
+            </Link>
+
+            <Link href={cutService ? `/services/${cutService.id}` : "/services"} className="sf-home-story-card sf-home-story-card-cut">
+              <img src={EDITORIAL_PHOTOS.cut} alt="Precision haircut detail with scissors and comb" />
+              <span className="sf-home-story-overlay">
+                <small>At the chair</small>
+                <strong>{cutService?.name || "Precision cutting"}</strong>
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {featuredServices.length > 0 ? (
+        <section className="sf-home-services">
+          <div className="sf-container">
+            <div className="sf-home-section-heading">
+              <div>
+                <h2 className="sf-display sf-home-section-title">Services</h2>
+              </div>
+              <Link href="/services" className="sf-link">
+                View full service menu
+              </Link>
+            </div>
+            <div className="sf-home-service-grid">
+              {featuredServices.map((service, index) => (
+                <div key={service.id} className={index === 0 ? "sf-home-service-feature" : undefined}>
+                  <ServiceCard service={service} showCategory />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeStylists.length > 0 ? (
+        <section className="sf-home-artists">
+          <div className="sf-container sf-home-artists-grid">
+            <div className="sf-home-artists-copy">
+              <h2 className="sf-display sf-home-section-title">Artists</h2>
+              <Link href="/team" className="sf-btn sf-btn-secondary">
+                Meet every artist
+              </Link>
+            </div>
+            <div className="sf-home-artist-grid">
+              {activeStylists.slice(0, 3).map((stylist) => (
                 <StylistCard key={stylist.id} stylist={stylist} />
               ))}
             </div>
-            <div className="text-center mt-8">
-              <Link
-                href="/team"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-all"
-              >
-                View Full Team
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </div>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-primary/90 to-primary text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Ready to Transform Your Look?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto text-primary-foreground/90">
-            Book your appointment today and experience the difference of professional salon services
-          </p>
-          <Link
-            href="/book"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-background text-foreground px-8 py-4 text-lg font-medium hover:bg-background/90 transition-all shadow-lg hover:shadow-xl"
-          >
-            <Calendar className="h-5 w-5" />
-            Book Now
-          </Link>
+      <section className="sf-home-reserve">
+        <div className="sf-container sf-home-reserve-grid">
+          <div>
+            <h2 className="sf-display sf-home-reserve-title">Appointments</h2>
+          </div>
+          <div className="sf-home-reserve-action">
+            {primaryService ? (
+              <p>
+                Services from {formatPrice(Math.min(...categories.flatMap((category) => category.services.map((service) => service.basePrice))))}.
+              </p>
+            ) : null}
+            <Link href="/book" className="sf-btn sf-btn-primary">
+              Reserve online
+            </Link>
+          </div>
         </div>
       </section>
     </div>

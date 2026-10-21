@@ -1,58 +1,66 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
   select,
-  float,
+  integer,
   timestamp,
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const Payment = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadPayments,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("payment", ["subtotal", "tax", "tip", "discount", "totalAmount", "refundedAmount", "paymentMethod", "status", "processedAt", "refundedAt", "appointmentId", "sessionId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["appointment", "totalAmount", "paymentMethod", "status", "processedAt"],
     },
   },
   fields: {
     // Core amount fields
-    subtotal: float({
+    subtotal: integer({
       validation: { isRequired: true },
       ui: {
         description: "Service charges before tax and tip",
       },
     }),
 
-    tax: float({
+    tax: integer({
       defaultValue: 0,
       ui: {
         description: "Tax amount",
       },
     }),
 
-    tip: float({
+    tip: integer({
       defaultValue: 0,
       ui: {
         description: "Tip amount",
       },
     }),
 
-    discount: float({
+    discount: integer({
       defaultValue: 0,
       ui: {
         description: "Any discount applied",
       },
     }),
 
-    totalAmount: float({
+    totalAmount: integer({
       validation: { isRequired: true },
       ui: {
         description: "Total amount charged (subtotal + tax + tip - discount)",
@@ -121,7 +129,7 @@ export const Payment = list({
     }),
 
     // Refund tracking
-    refundedAmount: float({
+    refundedAmount: integer({
       defaultValue: 0,
       ui: {
         description: "Amount refunded",
@@ -144,13 +152,6 @@ export const Payment = list({
     }),
 
     // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        description: "When the payment record was created",
-      },
-    }),
-
     processedAt: timestamp({
       ui: {
         description: "When the payment was successfully processed",
@@ -179,6 +180,17 @@ export const Payment = list({
       },
     }),
 
+    session: relationship({
+      ref: "PaymentSession.payment",
+      ui: {
+        displayMode: "select",
+        description: "Provider session that created this payment",
+      },
+    }),
+
+    reversals: relationship({ ref: "TransactionReversal.payment", many: true }),
+    gratuityEntries: relationship({ ref: "GratuityLedgerEntry.payment", many: true }),
+
     // Processed by (staff member who processed the payment)
     processedBy: relationship({
       ref: "User",
@@ -201,5 +213,7 @@ export const Payment = list({
         description: "Email address receipt was sent to",
       },
     }),
+
+    ...trackingFields,
   },
 });

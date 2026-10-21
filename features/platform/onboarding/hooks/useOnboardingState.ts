@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { STORE_TEMPLATES } from '../config/templates';
-import { getSeedForTemplate, getItemsFromJsonData } from '../utils/dataUtils';
+import { useEffect, useState } from 'react';
+import { SALON_TEMPLATES } from '../config/templates';
+import { getItemsFromJsonData, getSeedForTemplate } from '../utils/dataUtils';
 import seedData from '../lib/seed.json';
 
 export type OnboardingStep = 'template' | 'progress' | 'done';
@@ -15,24 +15,26 @@ export interface OnboardingState {
   loadingItems: Record<string, string[]>;
   completedItems: Record<string, string[]>;
   error: string | null;
-  itemErrors: Record<string, Record<string, string>>;
+  itemErrors: Record<string, Record<string, string | undefined>>;
   isLoading: boolean;
 }
 
-const initialItemsState = {
-  store: [],
-  regions: [],
-  paymentProviders: [],
-  shipping: [],
+const initialItemsState: Record<string, string[]> = {
+  salonInfo: [],
   categories: [],
-  collections: [],
-  products: [],
+  services: [],
+  staff: [],
+  clients: [],
+  intakeForms: [],
+  memberships: [],
+  retail: [],
+  appointments: [],
 };
 
 export function useOnboardingState() {
   const [state, setState] = useState<OnboardingState>({
     step: 'template',
-    selectedTemplate: 'minimal',
+    selectedTemplate: 'full',
     currentJsonData: null,
     customJsonApplied: false,
     progressMessage: '',
@@ -43,250 +45,160 @@ export function useOnboardingState() {
     isLoading: false,
   });
 
-  // Load JSON data when template changes
   useEffect(() => {
     if (state.selectedTemplate !== 'custom') {
       const templateData = getSeedForTemplate(state.selectedTemplate, seedData);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         currentJsonData: templateData,
         customJsonApplied: false,
       }));
     } else {
-      // For custom, start with basic template
-      const basicData = getSeedForTemplate('minimal', seedData);
-      setState(prev => ({
+      const minimalData = getSeedForTemplate('minimal', seedData);
+      setState((prev) => ({
         ...prev,
-        currentJsonData: basicData,
+        currentJsonData: minimalData,
         customJsonApplied: false,
       }));
     }
   }, [state.selectedTemplate]);
 
-  const setStep = (step: OnboardingStep) => {
-    setState(prev => ({ ...prev, step }));
-  };
+  const getDisplayNamesFromData = (data: any) => ({
+    salonInfo: getItemsFromJsonData(data, 'salonInfo'),
+    categories: getItemsFromJsonData(data, 'categories'),
+    services: getItemsFromJsonData(data, 'services'),
+    staff: getItemsFromJsonData(data, 'staff'),
+    clients: getItemsFromJsonData(data, 'clients'),
+    intakeForms: getItemsFromJsonData(data, 'intakeForms'),
+    memberships: getItemsFromJsonData(data, 'memberships'),
+    retail: getItemsFromJsonData(data, 'retail'),
+    appointments: getItemsFromJsonData(data, 'appointments'),
+  });
 
-  const setSelectedTemplate = (template: TemplateType) => {
-    setState(prev => ({ ...prev, selectedTemplate: template }));
-  };
+  const setStep = (step: OnboardingStep) => setState((prev) => ({ ...prev, step }));
+  const setSelectedTemplate = (template: TemplateType) => setState((prev) => ({ ...prev, selectedTemplate: template }));
+  const setCurrentJsonData = (data: any) => setState((prev) => ({ ...prev, currentJsonData: data }));
+  const setCustomJsonApplied = (applied: boolean) => setState((prev) => ({ ...prev, customJsonApplied: applied }));
+  const setIsLoading = (loading: boolean) => setState((prev) => ({ ...prev, isLoading: loading }));
+  const setError = (error: string | null) => setState((prev) => ({ ...prev, error }));
 
-  const setCurrentJsonData = (data: any) => {
-    setState(prev => ({ ...prev, currentJsonData: data }));
-  };
+  const markSectionsCompletedBefore = (currentSection: string) => {
+    const order = ['salonInfo', 'categories', 'services', 'staff', 'clients', 'intakeForms', 'memberships', 'retail', 'appointments'];
+    const currentIndex = order.indexOf(currentSection);
+    if (currentIndex <= 0) return;
 
-  const setCustomJsonApplied = (applied: boolean) => {
-    setState(prev => ({ ...prev, customJsonApplied: applied }));
-  };
-
-  const setIsLoading = (loading: boolean) => {
-    setState(prev => ({ ...prev, isLoading: loading }));
-  };
-
-  const setError = (error: string | null) => {
-    setState(prev => ({ ...prev, error }));
-  };
-
-  const setProgressMessage = (message: string) => {
-    setState(prev => ({ ...prev, progressMessage: message }));
-  };
-
-  const setLoadingItems = (items: Record<string, string[]>) => {
-    setState(prev => ({ ...prev, loadingItems: items }));
-  };
-
-  const setCompletedItems = (items: Record<string, string[]>) => {
-    setState(prev => ({ ...prev, completedItems: items }));
-  };
-
-  const setItemErrors = (errors: Record<string, Record<string, string>>) => {
-    setState(prev => ({ ...prev, itemErrors: errors }));
-  };
-
-  // Helper function to get display names from current data
-  const getDisplayNamesFromData = (data: any) => {
-    return {
-      store: getItemsFromJsonData(data, 'store'),
-      regions: getItemsFromJsonData(data, 'regions'),
-      paymentProviders: getItemsFromJsonData(data, 'paymentProviders'),
-      shipping: getItemsFromJsonData(data, 'shipping'),
-      categories: getItemsFromJsonData(data, 'categories'),
-      products: getItemsFromJsonData(data, 'products'),
-      collections: getItemsFromJsonData(data, 'collections'),
-    };
-  };
-
-  // Helper function to update UI based on progress
-  const setProgress = (message: string) => {
-    setProgressMessage(message);
-
-    // Get the current display names (either from template or from actual data)
     const displayNames = state.currentJsonData
       ? getDisplayNamesFromData(state.currentJsonData)
-      : STORE_TEMPLATES[state.selectedTemplate].displayNames;
+      : SALON_TEMPLATES[state.selectedTemplate].displayNames;
 
-    // Process based on current step
-    if (
-      message.includes('currencies') ||
-      message.includes('countries') ||
-      message.includes('regions')
-    ) {
-      // Mark previous steps as completed
-      // No previous steps for regions
-    } else if (message.includes('payment provider')) {
-      // When working on payment providers, regions are completed
-      setState(prev => ({
+    setState((prev) => {
+      const completedItems = { ...prev.completedItems };
+      const loadingItems = { ...prev.loadingItems };
+
+      order.slice(0, currentIndex).forEach((section) => {
+        completedItems[section] = [...(displayNames as any)[section]];
+        loadingItems[section] = [];
+      });
+
+      return { ...prev, completedItems, loadingItems };
+    });
+  };
+
+  const setProgress = (message: string) => {
+    setState((prev) => ({ ...prev, progressMessage: message }));
+
+    if (message.includes('service categories')) markSectionsCompletedBefore('categories');
+    else if (message.includes('services and variants')) markSectionsCompletedBefore('services');
+    else if (message.includes('staff and schedules')) markSectionsCompletedBefore('staff');
+    else if (message.includes('clients and CRM')) markSectionsCompletedBefore('clients');
+    else if (message.includes('intake and consent')) markSectionsCompletedBefore('intakeForms');
+    else if (message.includes('memberships and packages')) markSectionsCompletedBefore('memberships');
+    else if (message.includes('retail products')) markSectionsCompletedBefore('retail');
+    else if (message.includes('sample appointments')) markSectionsCompletedBefore('appointments');
+    else if (message.includes('complete')) {
+      const displayNames = state.currentJsonData
+        ? getDisplayNamesFromData(state.currentJsonData)
+        : SALON_TEMPLATES[state.selectedTemplate].displayNames;
+
+      setState((prev) => ({
         ...prev,
+        loadingItems: { ...initialItemsState },
         completedItems: {
-          ...prev.completedItems,
-          regions: [...displayNames.regions],
-        },
-        loadingItems: {
-          ...prev.loadingItems,
-          regions: [],
-        }
-      }));
-    } else if (message.includes('shipping') || message.includes('booking')) {
-      // When working on shipping/booking, regions and payment providers are completed
-      setState(prev => ({
-        ...prev,
-        completedItems: {
-          ...prev.completedItems,
-          regions: [...displayNames.regions],
-          paymentProviders: [...displayNames.paymentProviders],
-        },
-        loadingItems: {
-          ...prev.loadingItems,
-          paymentProviders: [],
-        }
-      }));
-    } else if (message.includes('categories')) {
-      // When working on categories, all previous steps are completed
-      setState(prev => ({
-        ...prev,
-        completedItems: {
-          ...prev.completedItems,
-          regions: [...displayNames.regions],
-          paymentProviders: [...displayNames.paymentProviders],
-          shipping: [...displayNames.shipping],
-        },
-        loadingItems: {
-          ...prev.loadingItems,
-          shipping: [],
-        }
-      }));
-    } else if (message.includes('collections')) {
-      // When working on collections, all previous steps are completed
-      setState(prev => ({
-        ...prev,
-        completedItems: {
-          ...prev.completedItems,
-          regions: [...displayNames.regions],
-          paymentProviders: [...displayNames.paymentProviders],
-          shipping: [...displayNames.shipping],
+          salonInfo: [...displayNames.salonInfo],
           categories: [...displayNames.categories],
+          services: [...displayNames.services],
+          staff: [...displayNames.staff],
+          clients: [...displayNames.clients],
+          intakeForms: [...displayNames.intakeForms],
+          memberships: [...displayNames.memberships],
+          retail: [...displayNames.retail],
+          appointments: [...displayNames.appointments],
         },
-        loadingItems: {
-          ...prev.loadingItems,
-          categories: [],
-        }
-      }));
-    } else if (message.includes('products') || message.includes('services')) {
-      // When working on products/services, all previous steps are completed
-      setState(prev => ({
-        ...prev,
-        completedItems: {
-          ...prev.completedItems,
-          regions: [...displayNames.regions],
-          paymentProviders: [...displayNames.paymentProviders],
-          shipping: [...displayNames.shipping],
-          categories: [...displayNames.categories],
-          collections: [...displayNames.collections || []],
-        },
-        loadingItems: {
-          ...prev.loadingItems,
-          collections: [],
-        }
-      }));
-    } else if (message.includes('complete')) {
-      // On completion, no loading items and all items are completed
-      setState(prev => ({
-        ...prev,
-        loadingItems: {
-          ...prev.loadingItems,
-          products: [], // Clear loading state for products
-        },
-        completedItems: {
-          store: [...displayNames.store],
-          regions: [...displayNames.regions],
-          paymentProviders: [...displayNames.paymentProviders],
-          shipping: [...displayNames.shipping],
-          categories: [...displayNames.categories],
-          collections: [...displayNames.collections || []],
-          products: [...displayNames.products],
-        }
       }));
     }
   };
 
-  // Helper functions to update individual item states
+  const setLoadingItems = (items: Record<string, string[]>) => setState((prev) => ({ ...prev, loadingItems: items }));
+  const setCompletedItems = (items: Record<string, string[]>) => setState((prev) => ({ ...prev, completedItems: items }));
+  const setItemErrors = (errors: Record<string, Record<string, string | undefined>>) => setState((prev) => ({ ...prev, itemErrors: errors }));
+
   const setItemLoading = (type: string, item: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       loadingItems: {
         ...prev.loadingItems,
-        [type]: [...prev.loadingItems[type], item],
-      },
-      itemErrors: {
-        ...prev.itemErrors,
-        [type]: prev.itemErrors[type] ? {
-          ...prev.itemErrors[type],
-          [item]: undefined
-        } : {}
-      }
-    }));
-  };
-
-  const setItemCompleted = (type: string, item: string) => {
-    setState(prev => ({
-      ...prev,
-      loadingItems: {
-        ...prev.loadingItems,
-        [type]: prev.loadingItems[type].filter((i) => i !== item),
-      },
-      completedItems: {
-        ...prev.completedItems,
-        [type]: [...prev.completedItems[type], item],
-      },
-      itemErrors: {
-        ...prev.itemErrors,
-        [type]: prev.itemErrors[type] ? {
-          ...prev.itemErrors[type],
-          [item]: undefined
-        } : {}
-      }
-    }));
-  };
-
-  const setItemError = (type: string, item: string, errorMessage: string) => {
-    setState(prev => ({
-      ...prev,
-      loadingItems: {
-        ...prev.loadingItems,
-        [type]: prev.loadingItems[type].filter((i) => i !== item),
+        [type]: [...(prev.loadingItems[type] || []), item],
       },
       itemErrors: {
         ...prev.itemErrors,
         [type]: {
-          ...prev.itemErrors[type],
+          ...(prev.itemErrors[type] || {}),
+          [item]: undefined,
+        },
+      },
+    }));
+  };
+
+  const setItemCompleted = (type: string, item: string) => {
+    setState((prev) => ({
+      ...prev,
+      loadingItems: {
+        ...prev.loadingItems,
+        [type]: (prev.loadingItems[type] || []).filter((existing) => existing !== item),
+      },
+      completedItems: {
+        ...prev.completedItems,
+        [type]: Array.from(new Set([...(prev.completedItems[type] || []), item])),
+      },
+      itemErrors: {
+        ...prev.itemErrors,
+        [type]: {
+          ...(prev.itemErrors[type] || {}),
+          [item]: undefined,
+        },
+      },
+    }));
+  };
+
+  const setItemError = (type: string, item: string, errorMessage: string) => {
+    setState((prev) => ({
+      ...prev,
+      loadingItems: {
+        ...prev.loadingItems,
+        [type]: (prev.loadingItems[type] || []).filter((existing) => existing !== item),
+      },
+      itemErrors: {
+        ...prev.itemErrors,
+        [type]: {
+          ...(prev.itemErrors[type] || {}),
           [item]: errorMessage,
-        }
-      }
+        },
+      },
     }));
   };
 
   const resetOnboardingState = () => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       error: null,
       itemErrors: {},

@@ -5,12 +5,17 @@ import {
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const WidgetConfiguration = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: permissions.canManageIntegrations,
+      create: permissions.canManageIntegrations,
+      update: permissions.canManageIntegrations,
+      delete: permissions.canManageIntegrations,
     },
   },
   ui: {
@@ -110,5 +115,6 @@ export const WidgetConfiguration = list({
         description: "Widget height (e.g., 600px, auto)",
       },
     }),
+    ...trackingFields,
   },
 });

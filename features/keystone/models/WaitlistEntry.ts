@@ -5,18 +5,24 @@ import {
   relationship,
   json,
   checkbox,
+  select,
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const WaitlistEntry = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: ({ session }) => permissions.canManageAppointments({ session }) || permissions.canManageClients({ session }),
+      create: () => false,
+      update: () => false,
+      delete: () => false,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "service", "isActive", "dateRangeStart", "dateRangeEnd"],
     },
@@ -29,6 +35,14 @@ export const WaitlistEntry = list({
         displayMode: "select",
         description: "Client waiting for an appointment",
       },
+    }),
+
+    guestName: text({
+      ui: { description: "Walk-in name when no client account is connected" },
+    }),
+
+    guestPhone: text({
+      ui: { description: "Walk-in contact number when no client account is connected" },
     }),
 
     // Service they want to book
@@ -78,11 +92,31 @@ export const WaitlistEntry = list({
       },
     }),
 
-    // Status
+    // Workflow state
+    status: select({
+      type: "string",
+      defaultValue: "active",
+      validation: { isRequired: true },
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Notified", value: "notified" },
+        { label: "Converted", value: "converted" },
+        { label: "Removed", value: "removed" },
+      ],
+    }),
+
     isActive: checkbox({
       defaultValue: true,
       ui: {
-        description: "Whether this waitlist entry is still active",
+        description: "Compatibility flag maintained by the waitlist workflow",
+      },
+    }),
+
+    requestKey: text({
+      validation: { isRequired: true },
+      isIndexed: "unique",
+      ui: {
+        description: "Idempotency key used to join the waitlist",
       },
     }),
 
@@ -90,6 +124,27 @@ export const WaitlistEntry = list({
     notifiedAt: timestamp({
       ui: {
         description: "When the client was notified that a slot became available",
+      },
+    }),
+
+    transitionedAt: timestamp({
+      ui: {
+        description: "When the latest controlled transition occurred",
+      },
+    }),
+
+    transitionReason: text({
+      ui: {
+        displayMode: "textarea",
+        description: "Reason recorded by the latest controlled transition",
+      },
+    }),
+
+    convertedAppointment: relationship({
+      ref: "Appointment",
+      ui: {
+        displayMode: "select",
+        description: "Appointment created from this waitlist entry",
       },
     }),
 
@@ -101,13 +156,6 @@ export const WaitlistEntry = list({
       },
     }),
 
-    // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        createView: { fieldMode: "hidden" },
-        itemView: { fieldMode: "read" },
-      },
-    }),
+    ...trackingFields,
   },
 });

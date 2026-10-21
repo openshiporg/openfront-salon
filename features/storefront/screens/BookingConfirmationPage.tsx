@@ -1,8 +1,9 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Check, Calendar, User, Clock, Mail, Phone, MapPin, ArrowRight } from "lucide-react"
+import { Calendar, Check, Clock, Mail, MapPin, Phone, User } from "lucide-react"
 import { getAppointmentById } from "../lib/data/appointments"
+import { formatPrice } from "../lib/format-price"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -20,8 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Booking Confirmation - ${appointment.service?.name || 'Appointment'}`,
-    description: `Your appointment for ${appointment.service?.name} has been confirmed.`,
+    title: `Booking — ${appointment.service?.name || "Appointment"}`,
+    description: `Appointment details for ${appointment.service?.name || "your visit"}.`,
   }
 }
 
@@ -33,212 +34,135 @@ export async function BookingConfirmationPage({ params }: Props) {
     notFound()
   }
 
-  const appointmentDate = new Date(appointment.appointmentDate)
-  const service = appointment.service
+  const appointmentDate = new Date(appointment.startTime)
   const stylist = appointment.stylist
   const client = appointment.client
+  const appointmentLocation = appointment.location
+  const appointmentAddress = appointmentLocation
+    ? [appointmentLocation.address, [appointmentLocation.city, appointmentLocation.state].filter(Boolean).join(", "), appointmentLocation.zipCode].filter(Boolean).join(" ")
+    : null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto">
-          {/* Success Header */}
-          <div className="bg-card border rounded-lg shadow-xl p-8 md:p-12 text-center mb-8">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h1 className="text-4xl font-bold mb-4">Booking Confirmed!</h1>
-            <p className="text-xl text-muted-foreground mb-2">
-              Your appointment has been successfully scheduled.
+    <div className="sf-page-pad">
+      <div className="sf-container-narrow">
+        <div className="sf-card p-8 md:p-10 text-center mb-[var(--sf-space-md)]">
+          <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center border border-[var(--sf-rule)] bg-[var(--sf-paper-2)]">
+            <Check className="h-7 w-7 text-[var(--sf-accent)]" />
+          </div>
+          <h1 className="sf-display text-[var(--sf-text-display-s)] mb-3">Booking received</h1>
+          <p className="text-[var(--sf-text-md)] text-[var(--sf-ink-2)]">
+            Your appointment request has been received.
+          </p>
+          {client?.email ? (
+            <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+              Account email: <span className="text-[var(--sf-ink)]">{client.email}</span>
             </p>
-            {client?.email && (
-              <p className="text-sm text-muted-foreground">
-                A confirmation email has been sent to <span className="font-semibold text-foreground">{client.email}</span>
-              </p>
-            )}
-          </div>
+          ) : null}
+        </div>
 
-          {/* Appointment Details */}
-          <div className="bg-card border rounded-lg shadow-lg p-8 mb-8">
-            <h2 className="text-2xl font-bold mb-6">Appointment Details</h2>
-
-            <div className="space-y-6">
-              {/* Service */}
-              <div className="flex items-start gap-4 pb-6 border-b">
-                <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-lg mb-1">{service?.name}</div>
-                  <div className="text-muted-foreground">
-                    {service?.baseDuration} minutes
-                  </div>
-                  <div className="text-lg font-bold text-primary mt-2">
-                    ${service?.basePrice}
-                  </div>
-                </div>
-              </div>
-
-              {/* Stylist */}
-              <div className="flex items-start gap-4 pb-6 border-b">
-                <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-lg mb-1">{stylist?.user?.name}</div>
-                  <div className="text-muted-foreground capitalize">
-                    {stylist?.tier} Stylist
-                  </div>
-                  {stylist?.specialties && stylist.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {stylist.specialties.slice(0, 3).map((specialty: string) => (
-                        <span
-                          key={specialty}
-                          className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Date & Time */}
-              <div className="flex items-start gap-4 pb-6 border-b">
-                <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-lg mb-1">
-                    {appointmentDate.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric"
-                    })}
-                  </div>
-                  <div className="text-muted-foreground">
-                    {appointmentDate.toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      hour12: true
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Client Information */}
-              <div className="flex items-start gap-4">
-                <div className="shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-lg mb-2">Contact Information</div>
-                  <div className="space-y-1 text-muted-foreground">
-                    {client?.name && (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        <span>{client.name}</span>
-                      </div>
-                    )}
-                    {client?.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <span>{client.email}</span>
-                      </div>
-                    )}
-                    {client?.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{client.phone}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {appointment.clientNotes && (
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="font-semibold mb-2">Your Notes</div>
-                  <p className="text-muted-foreground">{appointment.clientNotes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Location Info */}
-          <div className="bg-card border rounded-lg shadow-lg p-8 mb-8">
-            <h2 className="text-xl font-bold mb-4">Location</h2>
-            <div className="flex items-start gap-4">
-              <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <MapPin className="w-5 h-5 text-primary" />
-              </div>
+        <div className="sf-card p-[var(--sf-space-md)] mb-[var(--sf-space-md)]">
+          <h2 className="sf-display text-[var(--sf-text-xl)] mb-6">Appointment details</h2>
+          <dl className="space-y-5 text-[var(--sf-text-sm)]">
+            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
+              <Clock className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
               <div>
-                <div className="font-semibold mb-1">Openfront Salon</div>
-                <div className="text-muted-foreground text-sm">
-                  123 Beauty Boulevard<br />
-                  Suite 100<br />
-                  New York, NY 10001
-                </div>
-                <a
-                  href="https://maps.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline text-sm mt-2"
-                >
-                  Get Directions
-                  <ArrowRight className="w-4 h-4" />
-                </a>
+                <dt className="sr-only">Service</dt>
+                <dd className="font-medium text-[var(--sf-text-md)]">{appointment.services.map(item => item.name).join(", ") || "Service snapshot unavailable"}</dd>
+                <p className="text-[var(--sf-ink-3)] mt-1">
+                  {appointment.services.length ? `${appointment.duration} min · ${formatPrice(appointment.services.reduce((sum, item) => sum + item.basePrice, 0))}` : "Price unavailable"}
+                </p>
+
               </div>
             </div>
-          </div>
 
-          {/* Important Information */}
-          <div className="bg-muted/50 border rounded-lg p-6 mb-8">
-            <h3 className="font-semibold mb-3">Important Information</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span>Please arrive 10 minutes early for your appointment</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span>If you need to cancel or reschedule, please contact us at least 24 hours in advance</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span>Bring any hair or product inspiration photos you&apos;d like to share</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span>Payment is accepted via cash, credit card, or digital payment</span>
-              </li>
-            </ul>
-          </div>
+            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
+              <User className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+              <div>
+                <dt className="sr-only">Artist</dt>
+                <dd className="font-medium">{stylist?.user?.name || "To be assigned"}</dd>
+                <p className="text-[var(--sf-ink-3)] capitalize mt-1">{stylist?.tier} artist</p>
+              </div>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-8 py-3 font-medium hover:bg-primary/90 transition-all shadow-md"
-            >
-              Back to Home
-            </Link>
-            <Link
-              href="/account"
-              className="inline-flex items-center justify-center rounded-lg border-2 border-border px-8 py-3 font-medium hover:bg-muted transition-all"
-            >
-              View My Appointments
-            </Link>
-            <Link
-              href="/book"
-              className="inline-flex items-center justify-center rounded-lg border-2 border-border px-8 py-3 font-medium hover:bg-muted transition-all"
-            >
-              Book Another
-            </Link>
+            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
+              <Calendar className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+              <div>
+                <dt className="sr-only">Date and time</dt>
+                <dd className="font-medium">
+                  {appointmentDate.toLocaleDateString("en-US", {
+                    timeZone: appointmentLocation?.timezone || "UTC",
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </dd>
+                <p className="text-[var(--sf-ink-3)] mt-1">
+                  {appointmentDate.toLocaleTimeString("en-US", {
+                    timeZone: appointmentLocation?.timezone || "UTC",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Mail className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+              <div>
+                <dt className="font-medium mb-2">Contact</dt>
+                <dd className="space-y-1 text-[var(--sf-ink-2)]">
+                  {client?.name ? <p>{client.name}</p> : null}
+                  {client?.email ? <p>{client.email}</p> : null}
+                  {client?.phone ? (
+                    <p className="inline-flex items-center gap-1">
+                      <Phone className="h-3.5 w-3.5" />
+                      {client.phone}
+                    </p>
+                  ) : null}
+                </dd>
+              </div>
+            </div>
+          </dl>
+
+          {appointment.clientNotes ? (
+            <div className="mt-6 pt-5 border-t border-[var(--sf-rule)]">
+              <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">Your notes</p>
+              <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">{appointment.clientNotes}</p>
+            </div>
+          ) : null}
+        </div>
+
+        {appointmentLocation ? (
+          <div className="sf-card p-[var(--sf-space-md)] mb-[var(--sf-space-md)]">
+            <h2 className="sf-display text-[var(--sf-text-lg)] mb-3">Appointment location</h2>
+            <div className="flex gap-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+              <MapPin className="h-4 w-4 shrink-0 text-[var(--sf-accent)] mt-0.5" />
+              <p>
+                <span className="font-medium text-[var(--sf-ink)]">{appointmentLocation.name}</span>
+                {appointmentAddress ? <><br />{appointmentAddress}</> : null}
+              </p>
+            </div>
           </div>
+        ) : (
+          <p role="status" className="mb-[var(--sf-space-md)] border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-[var(--sf-space-md)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+            The appointment record does not currently include a published location. Contact the salon before traveling.
+          </p>
+        )}
+
+
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/" className="sf-btn sf-btn-primary">
+            Home
+          </Link>
+          <Link href="/account" className="sf-btn sf-btn-secondary">
+            My appointments
+          </Link>
+          <Link href="/book" className="sf-btn sf-btn-secondary">
+            Book another
+          </Link>
         </div>
       </div>
     </div>

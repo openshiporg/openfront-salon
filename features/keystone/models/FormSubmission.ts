@@ -7,12 +7,22 @@ import {
   json,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const FormSubmission = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageCareRecords,
+      // Submitted consultation evidence is append-only. Corrections create a
+      // new submission rather than rewriting or deleting what was signed.
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadFormSubmissions,
     },
   },
   ui: {
@@ -46,7 +56,7 @@ export const FormSubmission = list({
 
     // Relationships
     client: relationship({
-      ref: "User",
+      ref: "User.formSubmissions",
       ui: {
         displayMode: "select",
         description: "Client who submitted the form",
@@ -77,5 +87,6 @@ export const FormSubmission = list({
         description: "Associated appointment (if applicable)",
       },
     }),
+    ...trackingFields,
   },
 });

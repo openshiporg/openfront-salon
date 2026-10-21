@@ -3,17 +3,21 @@ import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
-  float,
   integer,
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const ServicePackage = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: ({ session }) => permissions.canManageCatalog({ session }) || permissions.canManageClients({ session }),
+      create: permissions.canManageCatalog,
+      update: permissions.canManageCatalog,
+      delete: permissions.canManageCatalog,
     },
   },
   ui: {
@@ -36,14 +40,14 @@ export const ServicePackage = list({
       },
     }),
 
-    totalPrice: float({
+    totalPrice: integer({
       validation: { isRequired: true },
       ui: {
         description: "Total package price",
       },
     }),
 
-    savingsAmount: float({
+    savingsAmount: integer({
       defaultValue: 0,
       ui: {
         description: "Amount saved compared to booking services individually",
@@ -75,5 +79,6 @@ export const ServicePackage = list({
         description: "Services included in this package",
       },
     }),
+    ...trackingFields,
   },
 });

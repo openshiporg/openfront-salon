@@ -1,29 +1,39 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   relationship,
   float,
+  integer,
   timestamp,
   checkbox,
   text,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+
+import { trackingFields } from "./trackingFields";
 
 export const Commission = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadCommissions,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("commission", ["saleAmount", "commissionRate", "commissionAmount", "isPaid", "paidAt", "stylistId", "serviceId", "paymentId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["stylist", "payment", "saleAmount", "commissionRate", "commissionAmount", "isPaid"],
     },
   },
   fields: {
     // Commission calculation fields
-    saleAmount: float({
+    saleAmount: integer({
       validation: { isRequired: true },
       ui: {
         description: "Total sale amount for this service",
@@ -37,7 +47,7 @@ export const Commission = list({
       },
     }),
 
-    commissionAmount: float({
+    commissionAmount: integer({
       validation: { isRequired: true },
       ui: {
         description: "Calculated commission amount (saleAmount * commissionRate)",
@@ -55,14 +65,6 @@ export const Commission = list({
     paidAt: timestamp({
       ui: {
         description: "When the commission was paid to the stylist",
-      },
-    }),
-
-    // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        description: "When the commission was recorded",
       },
     }),
 
@@ -91,6 +93,8 @@ export const Commission = list({
       },
     }),
 
+    adjustments: relationship({ ref: "CommissionAdjustment.commission", many: true }),
+
     payment: relationship({
       ref: "Payment",
       ui: {
@@ -98,5 +102,6 @@ export const Commission = list({
         description: "Payment associated with this commission",
       },
     }),
+    ...trackingFields,
   },
 });

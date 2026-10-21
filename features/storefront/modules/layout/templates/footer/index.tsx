@@ -1,160 +1,108 @@
 import Link from "next/link"
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, Sparkles } from "lucide-react"
+import { StoreBrand } from "@/features/storefront/components/StoreBrand"
+import type { StorefrontBrand } from "@/features/storefront/lib/data/brand"
 
-export default function Footer() {
+const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+function formatTime(value?: string | null): string | null {
+  if (!value) return null
+  const [hours, minutes] = value.split(":").map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value
+  const period = hours >= 12 ? "pm" : "am"
+  const hour = hours % 12 || 12
+  return minutes ? `${hour}:${String(minutes).padStart(2, "0")}${period}` : `${hour}${period}`
+}
+
+function formatHours(hours: StorefrontBrand["hours"]): string[] {
+  if (!hours) return []
+
+  return DAY_ORDER.flatMap((day) => {
+    const schedule = hours[day]
+    if (!schedule) return []
+    const label = day.slice(0, 3).replace(/^./, (letter) => letter.toUpperCase())
+    if (schedule.closed) return [`${label} closed`]
+    const open = formatTime(schedule.open)
+    const close = formatTime(schedule.close)
+    return open && close ? [`${label} ${open}–${close}`] : []
+  })
+}
+
+export default function Footer({ brand }: { brand: StorefrontBrand }) {
   const currentYear = new Date().getFullYear()
+  const hours = formatHours(brand.hours)
+  const hasPublishedContact = Boolean(brand.addressLine || brand.phone || brand.email)
 
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="container px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {/* Brand */}
+    <footer className="border-t border-[var(--sf-rule)] bg-[var(--sf-paper-2)]">
+      <div className="sf-container py-[var(--sf-space-xl)]">
+        <div className="grid gap-[var(--sf-space-lg)] lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
           <div>
-            <Link href="/" className="flex items-center space-x-2 mb-4 group">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
-              <span className="font-bold text-lg">Openfront Salon</span>
-            </Link>
-            <p className="text-sm text-muted-foreground mb-4">
-              Your beauty, our passion. Professional salon services with modern techniques and a relaxing atmosphere.
+            <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
+            <p className="sf-lead max-w-[42ch]">
+              {brand.description || (brand.configured
+                ? "Services, real artist schedules, and direct online booking."
+                : "Online booking opens soon.")}
             </p>
-            <div className="flex items-center space-x-3">
-              <a
-                href="#"
-                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-4 w-4" />
-              </a>
-            </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/services" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Our Services
-                </Link>
-              </li>
-              <li>
-                <Link href="/team" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Meet the Team
-                </Link>
-              </li>
-              <li>
-                <Link href="/book" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Book Appointment
-                </Link>
-              </li>
-              <li>
-                <Link href="/reviews" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Client Reviews
-                </Link>
-              </li>
-              <li>
-                <Link href="/gift-cards" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Gift Cards
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Customer Care */}
-          <div>
-            <h3 className="font-semibold mb-4">Customer Care</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/appointments" className="text-muted-foreground hover:text-foreground transition-colors">
-                  My Appointments
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Cancellation Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  FAQs
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h3 className="font-semibold mb-4">Contact Us</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                <span className="text-muted-foreground">
-                  123 Beauty Street<br />
-                  San Francisco, CA 94102
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href="tel:555-012-3456" className="text-muted-foreground hover:text-foreground transition-colors">
-                  (555) 012-3456
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <a href="mailto:hello@openfrontsalon.com" className="text-muted-foreground hover:text-foreground transition-colors">
-                  hello@openfrontsalon.com
-                </a>
-              </li>
-            </ul>
-            <div className="mt-4">
-              <p className="text-xs text-muted-foreground">
-                <strong>Hours:</strong><br />
-                Mon-Fri: 9am - 8pm<br />
-                Sat-Sun: 10am - 6pm
+          <div className="space-y-[var(--sf-space-sm)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+            {brand.addressLine ? (
+              <p>
+                <span className="text-[var(--sf-ink)] font-medium">Visit</span>
+                <br />
+                {brand.addressLine}
               </p>
-            </div>
+            ) : null}
+
+            {hours.length > 0 ? (
+              <div>
+                <p className="text-[var(--sf-ink)] font-medium">Hours</p>
+                <p className="mt-1 max-w-[34ch] leading-relaxed">{hours.join(" · ")}</p>
+              </div>
+            ) : null}
+
+            {brand.phone || brand.email ? (
+              <p className="flex flex-wrap gap-x-3 gap-y-1">
+                {brand.phone && brand.phoneHref ? (
+                  <a href={brand.phoneHref} className="sf-link">
+                    {brand.phone}
+                  </a>
+                ) : null}
+                {brand.email ? (
+                  <a href={`mailto:${brand.email}`} className="sf-link">
+                    {brand.email}
+                  </a>
+                ) : null}
+              </p>
+            ) : null}
+
+            {!hasPublishedContact && hours.length === 0 ? (
+              <p>Book online for current availability.</p>
+            ) : null}
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>
-            &copy; {currentYear} Openfront Salon. All rights reserved. Built with{" "}
-            <a
-              href="https://github.com/openfront-ecommerce"
-              className="text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Openfront
-            </a>
-          </p>
+        <hr className="sf-rule my-[var(--sf-space-lg)]" />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
+          <p>{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link href="/services" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
+              Services
+            </Link>
+            <Link href="/team" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
+              Artists
+            </Link>
+            <Link href="/gallery" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
+              Gallery
+            </Link>
+            <Link href="/book" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
+              Reserve
+            </Link>
+            <Link href="/contact" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
+              Contact
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

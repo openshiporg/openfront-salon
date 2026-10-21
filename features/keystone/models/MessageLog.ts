@@ -7,12 +7,20 @@ import {
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const MessageLog = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageClients,
+      update: permissions.canManageClients,
+      delete: permissions.canManageClients,
+    },
+    filter: {
+      query: rules.canReadMessageLogs,
     },
   },
   ui: {
@@ -23,7 +31,7 @@ export const MessageLog = list({
   fields: {
     // Recipient of the message
     recipient: relationship({
-      ref: "User",
+      ref: "User.messageLogs",
       ui: {
         displayMode: "select",
         description: "User who received this message",
@@ -78,5 +86,6 @@ export const MessageLog = list({
         description: "Error details if the message failed to deliver",
       },
     }),
+    ...trackingFields,
   },
 });

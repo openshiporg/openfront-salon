@@ -1,107 +1,139 @@
 import Link from "next/link"
-import { Clock, DollarSign } from "lucide-react"
+import { Clock, ArrowUpRight } from "lucide-react"
 import { Service } from "../lib/data/services"
+import { getStorefrontImageSrc } from "../lib/images"
+import { formatPrice } from "../lib/format-price"
 
 interface ServiceCardProps {
   service: Service
   showCategory?: boolean
-  variant?: "default" | "compact"
+  variant?: "default" | "compact" | "list"
+  linked?: boolean
 }
 
-export function ServiceCard({ service, showCategory = false, variant = "default" }: ServiceCardProps) {
+export function ServiceCard({
+  service,
+  showCategory = false,
+  variant = "default",
+  linked = true,
+}: ServiceCardProps) {
   const price = service.basePrice
   const duration = service.baseDuration
+  const imageSrc = getStorefrontImageSrc(service.image)
 
-  if (variant === "compact") {
-    return (
-      <Link
-        href={`/services/${service.id}`}
-        className="group block p-4 border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg group-hover:text-primary transition-colors truncate">
-              {service.name}
-            </h3>
-            {service.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {service.description}
-              </p>
-            )}
-            <div className="flex items-center gap-4 mt-3 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>{duration} min</span>
-              </div>
-              <div className="flex items-center gap-1.5 font-semibold">
-                <DollarSign className="h-4 w-4" />
-                <span>${price}</span>
-              </div>
-            </div>
-          </div>
-          <div className="shrink-0">
-            <div className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-              Book
-            </div>
-          </div>
+  if (variant === "list") {
+    const content = (
+      <div className="flex items-start justify-between gap-4 py-[var(--sf-space-sm)]">
+        <div className="min-w-0 flex-1">
+          {showCategory && service.category ? (
+            <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{service.category.name}</p>
+          ) : null}
+          <h3 className="sf-display text-[var(--sf-text-lg)] text-[var(--sf-ink)]">{service.name}</h3>
+          {service.description ? (
+            <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
+              {service.description}
+            </p>
+          ) : null}
         </div>
+        <div className="shrink-0 text-right text-[var(--sf-text-sm)]">
+          <p className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</p>
+          <p className="text-[var(--sf-ink-3)]">{duration} min</p>
+        </div>
+      </div>
+    )
+
+    return linked ? (
+      <Link href={`/services/${service.id}`} className="block group border-b border-[var(--sf-rule)] last:border-0 hover:bg-[var(--sf-paper-2)] -mx-2 px-2 transition-colors">
+        {content}
       </Link>
+    ) : (
+      <div className="border-b border-[var(--sf-rule)] last:border-0">{content}</div>
     )
   }
 
-  return (
-    <Link
-      href={`/services/${service.id}`}
-      className="group block overflow-hidden rounded-lg border bg-card hover:shadow-xl transition-all hover:border-primary/50"
-    >
-      {service.image?.image?.url && (
-        <div className="relative aspect-video overflow-hidden bg-muted">
+  if (variant === "compact") {
+    const content = (
+      <div className="flex items-start justify-between gap-4 p-[var(--sf-space-md)]">
+        <div className="min-w-0 flex-1">
+          {showCategory && service.category ? (
+            <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{service.category.name}</p>
+          ) : null}
+          <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{service.name}</h3>
+          {service.description ? (
+            <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
+              {service.description}
+            </p>
+          ) : null}
+          <div className="mt-4 flex items-center gap-4 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {duration} min
+            </span>
+            <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
+          </div>
+        </div>
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--sf-accent)] mt-1 opacity-60 group-hover:opacity-100 transition-opacity" />
+      </div>
+    )
+
+    return linked ? (
+      <Link href={`/services/${service.id}`} className="sf-card group block">
+        {content}
+      </Link>
+    ) : (
+      <div className="sf-card group block w-full text-left">{content}</div>
+    )
+  }
+
+  const content = (
+    <>
+      {imageSrc ? (
+        <div className="aspect-[4/3] overflow-hidden bg-[var(--sf-paper-3)]">
           <img
-            src={service.image.image.url}
-            alt={service.image.altText || service.name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+            src={imageSrc}
+            alt={service.image?.altText || service.name}
+            className="h-full w-full object-cover transition-transform duration-[var(--sf-dur-medium)] group-hover:scale-[1.02]"
           />
         </div>
+      ) : (
+        <div
+          className="aspect-[4/3]"
+          style={{
+            background:
+              "linear-gradient(160deg, var(--sf-paper-3), color-mix(in oklch, var(--sf-accent-soft) 60%, var(--sf-paper)))",
+          }}
+        />
       )}
-      <div className="p-6">
-        {showCategory && service.category && (
-          <div className="text-xs font-medium text-primary mb-2">
-            {service.category.name}
-          </div>
-        )}
-        <h3 className="font-semibold text-xl mb-2 group-hover:text-primary transition-colors">
-          {service.name}
-        </h3>
-        {service.description && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+      <div className="p-[var(--sf-space-md)]">
+        {showCategory && service.category ? (
+          <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-2">{service.category.name}</p>
+        ) : null}
+        <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{service.name}</h3>
+        {service.description ? (
+          <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
             {service.description}
           </p>
-        )}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{duration} min</span>
-            </div>
-            <div className="flex items-center gap-1.5 font-semibold text-lg">
-              <DollarSign className="h-5 w-5" />
-              <span>${price}</span>
-            </div>
-          </div>
-          <div className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
-            Book Now
-          </div>
+        ) : null}
+        <div className="mt-4 pt-4 border-t border-[var(--sf-rule)] flex items-center justify-between text-[var(--sf-text-sm)]">
+          <span className="text-[var(--sf-ink-2)]">{duration} min</span>
+          <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
         </div>
         {(service.requiresConsultation || service.requiresPatchTest) && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-xs text-muted-foreground">
-              {service.requiresConsultation && "Consultation required"}
-              {service.requiresConsultation && service.requiresPatchTest && " • "}
-              {service.requiresPatchTest && "Patch test required"}
-            </p>
-          </div>
+          <p className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
+            {service.requiresConsultation ? "Consultation required" : null}
+            {service.requiresConsultation && service.requiresPatchTest ? " · " : null}
+            {service.requiresPatchTest ? "Patch test required" : null}
+          </p>
         )}
       </div>
+    </>
+  )
+
+  return linked ? (
+    <Link href={`/services/${service.id}`} className="sf-card group block overflow-hidden">
+      {content}
     </Link>
+  ) : (
+    <div className="sf-card group block overflow-hidden">{content}</div>
   )
 }

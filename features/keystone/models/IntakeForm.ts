@@ -7,12 +7,18 @@ import {
   json,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
+import { workflowOwned } from "../privacy";
 
 export const IntakeForm = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: permissions.canManageCareRecords,
+      create: permissions.canManageCareRecords,
+      update: permissions.canManageCareRecords,
+      delete: () => false,
     },
   },
   ui: {
@@ -57,9 +63,11 @@ export const IntakeForm = list({
     submissions: relationship({
       ref: "FormSubmission.form",
       many: true,
+      access: workflowOwned,
       ui: {
         displayMode: "count",
       },
     }),
+    ...trackingFields,
   },
 });

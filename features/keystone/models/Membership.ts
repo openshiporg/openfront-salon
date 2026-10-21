@@ -3,17 +3,23 @@ import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
-  float,
   integer,
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { trackingFields } from "./trackingFields";
 
 export const Membership = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageCatalog,
+      update: permissions.canManageCatalog,
+      delete: permissions.canManageCatalog,
+    },
+    filter: {
+      query: ({ session }) => (permissions.canManageCatalog({ session }) ? true : { isActive: { equals: true } }),
     },
   },
   ui: {
@@ -36,7 +42,7 @@ export const Membership = list({
       },
     }),
 
-    monthlyPrice: float({
+    monthlyPrice: integer({
       validation: { isRequired: true },
       ui: {
         description: "Monthly membership fee",
@@ -69,5 +75,7 @@ export const Membership = list({
         description: "Services included for free or at a discount with this membership",
       },
     }),
+
+    ...trackingFields,
   },
 });

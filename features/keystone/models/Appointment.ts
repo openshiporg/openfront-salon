@@ -1,5 +1,4 @@
 import { list, graphql, group } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
@@ -11,15 +10,25 @@ import {
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+import { operationalRead } from "../privacy";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const Appointment = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadAppointments,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("appointment", ["startTime", "endTime", "duration", "status", "depositAmount", "depositPaid", "locationId", "clientId", "stylistId", "resourceId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "stylist", "startTime", "status", "duration"],
     },
@@ -74,7 +83,12 @@ export const Appointment = list({
       },
     }),
 
+    clientPolicy: virtual({ field: graphql.field({ type: graphql.JSON, resolve(item: any) {
+      const policy = item.metadata?.clientPolicySnapshot;
+      return policy ? Object.fromEntries(["version", "acceptedAt", "effectiveFrom", "effectiveUntil", "revokedAt", "cancellationNoticeMinutes", "rescheduleNoticeMinutes", "cancellationDeadline", "rescheduleDeadline"].map(key => [key, policy[key] ?? null])) : null;
+    } }) }),
     metadata: json({
+      access: { read: operationalRead },
       ui: {
         description: "Additional metadata for the appointment",
       },
@@ -109,6 +123,7 @@ export const Appointment = list({
 
     // Notes
     notes: text({
+      access: { read: permissions.canManageCareRecords },
       ui: {
         displayMode: "textarea",
         description: "Notes and special requests",
@@ -123,6 +138,7 @@ export const Appointment = list({
     }),
 
     internalNotes: text({
+      access: { read: permissions.canManageCareRecords },
       ui: {
         displayMode: "textarea",
         description: "Internal notes for stylists",
@@ -130,6 +146,8 @@ export const Appointment = list({
     }),
 
     // Relationships
+    location: relationship({ ref: "Location.appointments" }),
+
     client: relationship({
       ref: "Client.appointments",
       ui: {
@@ -144,6 +162,14 @@ export const Appointment = list({
       },
     }),
 
+    resource: relationship({
+      ref: "SalonResource.appointments",
+      ui: {
+        displayMode: "select",
+        description: "Room, chair, station, or equipment reserved for this appointment",
+      },
+    }),
+
     // Services booked for this appointment (can book multiple)
     services: relationship({
       ref: "Service",
@@ -153,6 +179,10 @@ export const Appointment = list({
         cardFields: ["name", "basePrice", "baseDuration"],
       },
     }),
+
+    segments: relationship({ ref: "AppointmentSegment.appointment", many: true }),
+    scheduleRevisions: relationship({ ref: "AppointmentScheduleRevision.appointment", many: true }),
+    consultationSubmissions: relationship({ ref: "ConsultationSubmission.appointment", many: true }),
 
     // Line items for detailed service tracking
     lineItems: relationship({
@@ -181,7 +211,26 @@ export const Appointment = list({
       },
     }),
 
+    paymentSessions: relationship({
+      ref: "PaymentSession.appointment",
+      many: true,
+      ui: {
+        displayMode: "count",
+      },
+    }),
+
+    transaction: relationship({
+      ref: "SalonTransaction.appointment",
+      ui: {
+        displayMode: "cards",
+        cardFields: ["paymentStatus", "status", "paymentMethod"],
+        description: "Checkout transaction for this appointment",
+      },
+    }),
+
     // Review for this appointment
+    inventoryMovements: relationship({ ref: "InventoryMovement.appointment", many: true }),
+
     review: relationship({
       ref: "Review.appointment",
       ui: {
@@ -198,8 +247,9 @@ export const Appointment = list({
           field: graphql.field({
             type: graphql.String,
             async resolve(item, args, context) {
+              const appointmentId = (item as { id: string }).id;
               const appointment = await context.sudo().query.Appointment.findOne({
-                where: { id: item.id },
+                where: { id: appointmentId },
                 query: "duration",
               });
 
@@ -219,8 +269,9 @@ export const Appointment = list({
           field: graphql.field({
             type: graphql.Boolean,
             async resolve(item, args, context) {
+              const appointmentId = (item as { id: string }).id;
               const appointment = await context.sudo().query.Appointment.findOne({
-                where: { id: item.id },
+                where: { id: appointmentId },
                 query: "startTime status",
               });
 
@@ -238,8 +289,9 @@ export const Appointment = list({
           field: graphql.field({
             type: graphql.Boolean,
             async resolve(item, args, context) {
+              const appointmentId = (item as { id: string }).id;
               const appointment = await context.sudo().query.Appointment.findOne({
-                where: { id: item.id },
+                where: { id: appointmentId },
                 query: "startTime",
               });
 
@@ -250,5 +302,7 @@ export const Appointment = list({
         }),
       },
     }),
+
+    ...trackingFields,
   },
 });

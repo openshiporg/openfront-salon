@@ -1,68 +1,93 @@
-import { STORE_TEMPLATES } from '../config/templates';
+import { SALON_TEMPLATES } from '../config/templates';
 
-// Helper function to extract display items from JSON data
 export function getItemsFromJsonData(jsonData: any, sectionType: string): string[] {
   if (!jsonData) return [];
 
   switch (sectionType) {
-    case 'store':
-      return jsonData.store ? [jsonData.store.name || 'Unknown Salon'] : ['Glam & Glow Salon'];
-    case 'regions':
-      return (jsonData.regions || []).map((r: any) =>
-        `${r.name || 'Unknown'} (${(r.currencyCode || 'USD').toUpperCase()})`
-      );
-    case 'paymentProviders':
-      return (jsonData.paymentProviders || []).map((p: any) => p.name || 'Unknown Provider');
-    case 'shipping':
-      return (jsonData.shipping_options || []).map((s: any) => s.name || 'Unknown Booking');
+    case 'salonInfo':
+      return jsonData.salonInfo ? [jsonData.salonInfo.name || 'Salon Location'] : ['Salon Location'];
     case 'categories':
-      return (jsonData.categories || []).map((c: any) => c.title || c.name || 'Unknown Category');
-    case 'collections':
-      return (jsonData.collections || []).map((c: any) => c.title || c.name || 'Unknown Collection');
-    case 'products':
-      return (jsonData.products || []).map((p: any) => p.title || 'Unknown Service');
+      return (jsonData.categories || []).map((category: any) => category.name || 'Unknown Category');
+    case 'services':
+      return (jsonData.services || []).map((service: any) => service.name || 'Unknown Service');
+    case 'staff':
+      return (jsonData.staff || jsonData.stylists || []).map((staff: any) => staff.name || 'Unknown Staff');
+    case 'clients':
+      return (jsonData.clients || []).map((client: any) => client.name || 'Unknown Client');
+    case 'intakeForms':
+      return [
+        ...(jsonData.intakeForms || []).map((form: any) => form.name || 'Unknown Intake Form'),
+        ...(jsonData.formTemplates || []).map((form: any) => form.name || 'Unknown Form Template'),
+      ];
+    case 'memberships':
+      return [
+        ...(jsonData.memberships || []).map((membership: any) => membership.name || 'Unknown Membership'),
+        ...(jsonData.packages || []).map((pkg: any) => pkg.name || 'Unknown Package'),
+      ];
+    case 'retail':
+      return [
+        ...(jsonData.products || []).map((product: any) => product.name || 'Unknown Product'),
+        ...(jsonData.messageTemplates || []).map((template: any) => template.name || 'Unknown Message Template'),
+      ];
+    case 'appointments':
+      return (jsonData.appointments || []).map(
+        (appointment: any) => appointment.displayName || appointment.key || 'Unknown Appointment'
+      );
     default:
       return [];
   }
 }
 
-// Helper to get the right slice of seed data for a template
-export function getSeedForTemplate(template: 'full' | 'minimal' | 'custom', seedData: any, customData?: Record<string, string[]>) {
+export function getSeedForTemplate(template: 'full' | 'minimal' | 'custom', seedData: any) {
   const templateToUse = template === 'custom' ? 'minimal' : template;
-  const tpl = STORE_TEMPLATES[templateToUse];
+  const displayNames = SALON_TEMPLATES[templateToUse].displayNames;
 
-  // Get the region codes for this template
-  const templateRegionCodes = tpl.regions;
+  const selectedCategories = new Set(displayNames.categories);
+  const selectedServices = new Set(displayNames.services);
+  const selectedStaff = new Set(displayNames.staff);
+  const selectedClients = new Set(displayNames.clients);
+  const selectedIntake = new Set(displayNames.intakeForms);
+  const selectedMemberships = new Set(displayNames.memberships);
+  const selectedRetail = new Set(displayNames.retail);
+  const selectedAppointments = new Set(displayNames.appointments);
 
-  // Filter products and clean up variant prices to only include relevant regions
-  const filteredProducts = (seedData.products as any[])
-    .filter((p: any) => tpl.products.includes(p.handle))
-    .map((product: any) => ({
-      ...product,
-      variants: product.variants.map((variant: any) => ({
-        ...variant,
-        prices: variant.prices.filter((price: any) =>
-          templateRegionCodes.includes(price.regionCode)
-        )
-      }))
-    }));
+  const selectedServiceKeys = new Set(
+    (seedData.services || [])
+      .filter((service: any) => selectedServices.has(service.name))
+      .map((service: any) => service.key)
+  );
 
   return {
-    regions: (seedData.regions as any[]).filter((r: any) =>
-      tpl.regions.includes(r.code)
+    salonInfo: seedData.salonInfo,
+    categories: (seedData.categories || []).filter((category: any) => selectedCategories.has(category.name)),
+    services: (seedData.services || []).filter((service: any) => selectedServices.has(service.name)),
+    resources: seedData.resources || [],
+    stylists: (seedData.stylists || seedData.staff || [])
+      .filter((staff: any) => selectedStaff.has(staff.name))
+      .map((staff: any) => ({
+        ...staff,
+        specializations: (staff.specializations || []).filter(
+          (serviceRef: string) => selectedServices.has(serviceRef) || selectedServiceKeys.has(serviceRef)
+        ),
+      })),
+    scheduleBlocks: (seedData.scheduleBlocks || []).filter((block: any) =>
+      (seedData.stylists || seedData.staff || [])
+        .filter((staff: any) => selectedStaff.has(staff.name))
+        .some((staff: any) => staff.key === block.stylist)
     ),
-    paymentProviders: (seedData.paymentProviders as any[]).filter((p: any) =>
-      tpl.paymentProviders.includes(p.code)
+    clients: (seedData.clients || []).filter((client: any) => selectedClients.has(client.name)),
+    intakeForms: (seedData.intakeForms || []).filter((form: any) => selectedIntake.has(form.name)),
+    formTemplates: (seedData.formTemplates || []).filter((form: any) => selectedIntake.has(form.name)),
+    memberships: (seedData.memberships || []).filter((membership: any) => selectedMemberships.has(membership.name)),
+    packages: (seedData.packages || []).filter((pkg: any) => selectedMemberships.has(pkg.name)),
+    products: (seedData.products || []).filter((product: any) => selectedRetail.has(product.name)),
+    messageTemplates: (seedData.messageTemplates || []).filter((template: any) => selectedRetail.has(template.name)),
+    appointments: (seedData.appointments || []).filter((appointment: any) =>
+      selectedAppointments.has(appointment.displayName || appointment.key)
     ),
-    shipping_options: (seedData.shipping_options as any[]).filter((s: any) =>
-      tpl.shipping.includes(s.name)
+    gallery: (seedData.gallery || []).filter(
+      (image: any) => !image.service || selectedServiceKeys.has(image.service)
     ),
-    categories: (seedData.categories as any[]).filter((c: any) =>
-      tpl.categories.includes(c.handle)
-    ),
-    collections: (seedData.collections as any[]).filter((c: any) =>
-      tpl.collections.includes(c.handle)
-    ),
-    products: filteredProducts,
+    paymentProviders: seedData.paymentProviders || [],
   };
 }

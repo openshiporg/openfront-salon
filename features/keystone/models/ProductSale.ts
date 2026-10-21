@@ -1,21 +1,30 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
-  float,
+  integer,
   timestamp,
   relationship,
   json,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+
+import { trackingFields } from "./trackingFields";
 
 export const ProductSale = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadProductSales,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("product_sale", ["total", "soldAt", "appointmentId", "soldById"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["soldAt", "total", "soldBy", "appointment"],
     },
@@ -38,7 +47,7 @@ export const ProductSale = list({
       },
     }),
 
-    total: float({
+    total: integer({
       validation: { isRequired: true },
       ui: {
         description: "Total sale amount",
@@ -60,5 +69,6 @@ export const ProductSale = list({
         description: "When the sale occurred",
       },
     }),
+    ...trackingFields,
   },
 });

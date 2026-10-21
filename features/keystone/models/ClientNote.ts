@@ -7,14 +7,23 @@ import {
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { validateCarePhotos } from "../privacy";
+
+import { trackingFields } from "./trackingFields";
 
 export const ClientNote = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: permissions.canManageCareRecords,
+      create: permissions.canManageCareRecords,
+      // Client-care notes are historical evidence; append corrections instead
+      // of erasing or silently rewriting prior observations.
+      update: () => false,
+      delete: () => false,
     },
   },
+  hooks: { validateInput: validateCarePhotos },
   ui: {
     listView: {
       initialColumns: ["client", "author", "isPrivate", "createdAt"],
@@ -31,6 +40,12 @@ export const ClientNote = list({
 
     author: relationship({
       ref: "User",
+      access: { create: permissions.canManageCareRecords, update: () => false },
+      hooks: { resolveInput: ({ operation, context }) => {
+        if (operation !== "create") return undefined;
+        if (!context.session?.itemId) throw new Error("Care note author must be the authenticated actor");
+        return { connect: { id: context.session.itemId } };
+      } },
       ui: {
         displayMode: "select",
         description: "Staff member who wrote this note",
@@ -72,20 +87,6 @@ export const ClientNote = list({
       },
     }),
 
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        createView: { fieldMode: "hidden" },
-        itemView: { fieldMode: "read" },
-      },
-    }),
-
-    updatedAt: timestamp({
-      db: { updatedAt: true },
-      ui: {
-        createView: { fieldMode: "hidden" },
-        itemView: { fieldMode: "read" },
-      },
-    }),
+    ...trackingFields,
   },
 });

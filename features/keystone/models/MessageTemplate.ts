@@ -7,12 +7,17 @@ import {
   checkbox,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const MessageTemplate = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: permissions.canManageClients,
+      create: permissions.canManageClients,
+      update: permissions.canManageClients,
+      delete: permissions.canManageClients,
     },
   },
   ui: {
@@ -61,5 +66,6 @@ export const MessageTemplate = list({
         description: "Whether this template is currently active and available for use",
       },
     }),
+    ...trackingFields,
   },
 });

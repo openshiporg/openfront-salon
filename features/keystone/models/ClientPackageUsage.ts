@@ -3,10 +3,11 @@ import {
   relationship,
   integer,
   timestamp,
+  text,
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -15,16 +16,21 @@ const formatCurrency = (amount: number): string => {
   }).format(amount / 100);
 };
 
+import { trackingFields } from "./trackingFields";
+
 export const ClientPackageUsage = list({
   access: {
     operation: {
       query: () => true,
-      create: isSignedIn,
-      update: isSignedIn,
-      delete: isSignedIn,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadClientPackageUsages,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["clientPackage", "service", "quantityUsed", "valueUsed", "usedAt"],
     },
@@ -76,12 +82,21 @@ export const ClientPackageUsage = list({
       },
     }),
 
+    idempotencyKey: text({
+      validation: { isRequired: true },
+      isIndexed: "unique",
+      ui: {
+        description: "Workflow idempotency key that produced this immutable usage record",
+      },
+    }),
+
     formattedValueUsed: virtual({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const usageId = (item as { id: string }).id;
           const usage = await context.sudo().query.ClientPackageUsage.findOne({
-            where: { id: item.id },
+            where: { id: usageId },
             query: "valueUsed",
           });
 
@@ -90,5 +105,6 @@ export const ClientPackageUsage = list({
         },
       }),
     }),
+    ...trackingFields,
   },
 });

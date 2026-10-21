@@ -1,7 +1,6 @@
 import { graphql } from "@keystone-6/core"
-import { Context } from ".keystone/types"
+import { permissions } from "../access"
 
-// Define return types for commission calculation
 const ServiceCommission = graphql.object<{
   serviceName: string
   revenue: number
@@ -65,14 +64,18 @@ export const calculateCommission = graphql.field({
   type: CommissionResult,
   args: {
     stylistId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
-    startDate: graphql.arg({ type: graphql.nonNull(graphql.String) }), // YYYY-MM-DD format
-    endDate: graphql.arg({ type: graphql.nonNull(graphql.String) }), // YYYY-MM-DD format
+    startDate: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    endDate: graphql.arg({ type: graphql.nonNull(graphql.String) }),
   },
-  async resolve(source, args, context: Context) {
-    const { stylistId, startDate, endDate } = args
+  async resolve(source, args, context: any) {
+    if (!permissions.canManageCommissions({ session: context.session })) {
+      throw new Error("Not authorized to calculate commissions")
+    }
 
-    // Get stylist info including commission rate
-    const stylist = await context.query.Stylist.findOne({
+    const { stylistId, startDate, endDate } = args
+    const sudo = context.sudo()
+
+    const stylist = await sudo.query.Stylist.findOne({
       where: { id: stylistId },
       query: "id user { name } commissionRate tier",
     })
@@ -83,34 +86,30 @@ export const calculateCommission = graphql.field({
 
     const stylistName = stylist.user?.name || "Unknown Stylist"
 
-    // Default commission rates by tier if not explicitly set
     let commissionRate = stylist.commissionRate
     if (!commissionRate) {
       switch (stylist.tier) {
         case "master":
-          commissionRate = 0.50 // 50%
+          commissionRate = 0.5
           break
         case "senior":
-          commissionRate = 0.45 // 45%
+          commissionRate = 0.45
           break
         case "junior":
-          commissionRate = 0.35 // 35%
+          commissionRate = 0.35
           break
         default:
-          commissionRate = 0.40 // 40% default
+          commissionRate = 0.4
       }
     }
 
-    // Get completed appointments for the date range
-    const start = new Date(startDate)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(endDate)
-    end.setHours(23, 59, 59, 999)
+    const start = new Date(`${startDate}T00:00:00`)
+    const end = new Date(`${endDate}T23:59:59.999`)
 
-    const appointments = await context.query.Appointment.findMany({
+    const appointments = await sudo.query.Appointment.findMany({
       where: {
         stylist: { id: { equals: stylistId } },
-        appointmentDate: {
+        startTime: {
           gte: start.toISOString(),
           lte: end.toISOString(),
         },
@@ -118,17 +117,17 @@ export const calculateCommission = graphql.field({
       },
       query: `
         id
-        appointmentDate
-        client { name }
+        startTime
+        client { user { name } }
         services {
           id
           name
+          price
           basePrice
         }
       `,
     })
 
-    // Calculate commissions for each appointment
     let totalServiceRevenue = 0
     let totalServiceCommission = 0
 
@@ -138,8 +137,8 @@ export const calculateCommission = graphql.field({
       let appointmentCommission = 0
 
       const serviceDetails = services.map((service: any) => {
-        const serviceRevenue = service.basePrice || 0
-        const serviceCommission = serviceRevenue * commissionRate
+        const serviceRevenue = service.price || service.basePrice || 0
+        const serviceCommission = Math.round(serviceRevenue * commissionRate)
 
         appointmentRevenue += serviceRevenue
         appointmentCommission += serviceCommission
@@ -156,8 +155,8 @@ export const calculateCommission = graphql.field({
 
       return {
         appointmentId: appointment.id,
-        date: new Date(appointment.appointmentDate).toISOString().split("T")[0],
-        clientName: appointment.client?.name || "Walk-in",
+        date: new Date(appointment.startTime).toISOString().split("T")[0],
+        clientName: appointment.client?.user?.name || "Walk-in",
         services: serviceDetails,
         totalRevenue: appointmentRevenue,
         totalCommission: appointmentCommission,
@@ -178,7 +177,6 @@ export const calculateCommission = graphql.field({
   },
 })
 
-// Export the extended schema
 export const commissionExtension = graphql.extend((base) => ({
   query: {
     calculateCommission,

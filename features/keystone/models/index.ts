@@ -12,6 +12,9 @@ import { StylistSchedule } from './StylistSchedule';
 import { Appointment } from './Appointment';
 import { AppointmentLineItem } from './AppointmentLineItem';
 import { Payment } from './Payment';
+import { PaymentProvider } from './PaymentProvider';
+import { PaymentSession } from './PaymentSession';
+import { PaymentWebhookEvent } from './PaymentWebhookEvent';
 import { ClientPoints } from './ClientPoints';
 import { Referral } from './Referral';
 import { MessageTemplate } from './MessageTemplate';
@@ -28,6 +31,8 @@ import { LoyaltyProgram } from './LoyaltyProgram';
 import { WaitlistEntry } from './WaitlistEntry';
 import { WidgetConfiguration } from './WidgetConfiguration';
 import { Location } from './Location';
+import { StoreSettings } from './StoreSettings';
+import { SalonResource } from './SalonResource';
 import { Product } from './Product';
 import { ProductSale } from './ProductSale';
 import { Commission } from './Commission';
@@ -36,6 +41,21 @@ import { SalonTransaction } from './SalonTransaction';
 import { SalonTransactionLineItem } from './SalonTransactionLineItem';
 import { ClientPackage } from './ClientPackage';
 import { ClientPackageUsage } from './ClientPackageUsage';
+import { DomainEvent } from './DomainEvent';
+import { InventoryMovement } from './InventoryMovement';
+import { ServiceSegment } from './ServiceSegment';
+import { AppointmentSegment } from './AppointmentSegment';
+import { AppointmentScheduleRevision } from './AppointmentScheduleRevision';
+import { SegmentTransition } from './SegmentTransition';
+import { TransactionReversal } from './TransactionReversal';
+import { TransactionReversalLine } from './TransactionReversalLine';
+import { CommissionAdjustment } from './CommissionAdjustment';
+import { GratuityLedgerEntry } from './GratuityLedgerEntry';
+import { ConsultationTemplateVersion } from './ConsultationTemplateVersion';
+import { ConsultationSubmission } from './ConsultationSubmission';
+import { ConsultationReview } from './ConsultationReview';
+import { ClientPackageAdjustment } from './ClientPackageAdjustment';
+import { DepositAdjustment } from './DepositAdjustment';
 
 export const models = {
   User,
@@ -52,6 +72,9 @@ export const models = {
   Appointment,
   AppointmentLineItem,
   Payment,
+  PaymentProvider,
+  PaymentSession,
+  PaymentWebhookEvent,
   ClientPoints,
   Referral,
   MessageTemplate,
@@ -68,6 +91,8 @@ export const models = {
   FormTemplate,
   LoyaltyProgram,
   Location,
+  StoreSettings,
+  SalonResource,
   Product,
   ProductSale,
   Commission,
@@ -76,6 +101,21 @@ export const models = {
   SalonTransactionLineItem,
   ClientPackage,
   ClientPackageUsage,
+  DomainEvent,
+  InventoryMovement,
+  ServiceSegment,
+  AppointmentSegment,
+  AppointmentScheduleRevision,
+  SegmentTransition,
+  TransactionReversal,
+  TransactionReversalLine,
+  CommissionAdjustment,
+  GratuityLedgerEntry,
+  ConsultationTemplateVersion,
+  ConsultationSubmission,
+  ConsultationReview,
+  ClientPackageAdjustment,
+  DepositAdjustment,
 };
 
 export default models;

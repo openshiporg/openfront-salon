@@ -1,490 +1,280 @@
 import { graphql } from "@keystone-6/core";
+import { assertCurrentWorkflowAuthority } from "./currentWorkflowAuthority";
 import type { Context } from ".keystone/types";
+import { permissions } from "../access";
+import { refundAppointmentDeposit } from "./depositRefund";
+import { assertPaymentTransition, paymentRecordStatus, type PaymentLifecycleStatus } from "../payment-lifecycle";
+import {
+  confirmProviderPayment,
+  createProviderPaymentSession,
+  paymentProviderFromRecord,
+  refundProviderPayment,
+} from "../utils/paymentProviderAdapter";
 
-// Stripe configuration (from environment variables)
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const TAX_RATE = Number.parseFloat(process.env.TAX_RATE || "0.08");
 
-// Initialize Stripe if key is available
-let stripe: any = null;
-if (STRIPE_SECRET_KEY) {
-  // Dynamic import to avoid errors if stripe isn't installed
-  import("stripe").then((Stripe) => {
-    stripe = new Stripe.default(STRIPE_SECRET_KEY);
-  }).catch(() => {
-    console.warn("Stripe module not installed. Payment processing disabled.");
+function paymentOperator(context: Context) {
+  return permissions.canManagePayments({ session: context.session as any });
+}
+
+function refundOperator(context: Context) {
+  return permissions.canIssueRefunds({ session: context.session as any });
+}
+
+function denied(extra = {}) {
+  return { success: false, error: "You must be an authorized salon operator", ...extra };
+}
+
+async function paymentTransaction<T>(
+  context: Context,
+  lockKeys: string[],
+  work: (sudo: Context) => Promise<T>,
+) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await context.transaction(async (transactionContext) => {
+        for (const key of [...new Set(lockKeys)].sort()) {
+          await transactionContext.prisma.$executeRawUnsafe(
+            "SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))",
+            "salon-payment-lifecycle",
+            key,
+          );
+        }
+        await assertCurrentWorkflowAuthority(transactionContext);
+        return work(transactionContext.sudo());
+      }, {
+        maxWait: 5_000,
+        timeout: 30_000,
+        isolationLevel: "Serializable" as any,
+      });
+    } catch (error: any) {
+      const message = error instanceof Error ? error.message : String(error);
+      const retryable = error?.code === "P2034" || error?.extensions?.prisma?.code === "P2034"
+        || /write conflict|deadlock|please retry your transaction/i.test(message);
+      if (!retryable || attempt === 3) throw error;
+    }
+  }
+  throw new Error("Payment transaction retry exhausted");
+}
+
+const SAFE_PAYMENT_ERRORS = new Set([
+  "Appointment not found",
+  "Appointment is not eligible for payment",
+  "Appointment already has a payment",
+  "Appointment has no payable line items",
+  "Payment provider is unavailable",
+  "Payment session not found",
+  "Provider has not completed the payment",
+  "Invalid refund amount",
+  "Completed payment not found",
+  "No tip to distribute",
+  "Idempotency key is invalid",
+  "Idempotency key was already used for another operation",
+]);
+
+function safeError(error: unknown) {
+  console.error("Payment workflow failed:", error);
+  if (error instanceof Error && (error.message.startsWith("Invalid payment transition") || SAFE_PAYMENT_ERRORS.has(error.message))) {
+    return error.message;
+  }
+  return "Payment operation failed";
+}
+
+async function loadProvider(sudo: Context, providerCode?: string | null) {
+  const providers = await sudo.query.PaymentProvider.findMany({
+    where: providerCode
+      ? { code: { equals: providerCode }, isInstalled: { equals: true } }
+      : { isInstalled: { equals: true }, isDefault: { equals: true } },
+    take: 1,
+    query: "id code adapter config isInstalled isDefault",
+  });
+  const provider = providers[0];
+  if (!provider) throw new Error("Payment provider is unavailable");
+  return provider;
+}
+
+async function loadSession(sudo: Context, sessionId: string) {
+  return sudo.query.PaymentSession.findOne({
+    where: { id: sessionId },
+    query: `
+      id amount currency status providerReference idempotencyKey data
+      provider { id code adapter config isInstalled }
+      payment { id status totalAmount refundedAmount appointment { id } }
+      appointment { id status client { user { email } } }
+    `,
   });
 }
 
-// Tax rate (configurable)
-const TAX_RATE = parseFloat(process.env.TAX_RATE || "0.08"); // 8% default
-
 export const processPayment = graphql.field({
   type: graphql.object<{
-    success: boolean;
-    paymentId: string | null;
-    error: string | null;
-    clientSecret: string | null;
+    success: boolean; paymentId: string | null; paymentSessionId: string | null;
+    error: string | null; clientSecret: string | null; status: string | null;
   }>()({
     name: "ProcessPaymentResult",
     fields: {
       success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
       paymentId: graphql.field({ type: graphql.String }),
+      paymentSessionId: graphql.field({ type: graphql.String }),
       error: graphql.field({ type: graphql.String }),
       clientSecret: graphql.field({ type: graphql.String }),
+      status: graphql.field({ type: graphql.String }),
     },
   }),
   args: {
     appointmentId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
     paymentMethod: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    tipAmount: graphql.arg({ type: graphql.Float }),
-    discountAmount: graphql.arg({ type: graphql.Float }),
+    providerCode: graphql.arg({ type: graphql.String }),
+    idempotencyKey: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    tipAmount: graphql.arg({ type: graphql.Int }),
+    discountAmount: graphql.arg({ type: graphql.Int }),
   },
-  async resolve(source, { appointmentId, paymentMethod, tipAmount, discountAmount }, context: Context) {
-    // Check authentication
-    if (!context.session) {
-      return {
-        success: false,
-        paymentId: null,
-        error: "You must be logged in to process payments",
-        clientSecret: null,
-      };
-    }
-
+  async resolve(source, args, context: Context) {
+    if (!paymentOperator(context)) return { success: false, paymentId: null, paymentSessionId: null, error: "You must have payment authority", clientSecret: null, status: null };
+    // Settlement must use completeAppointmentCheckout so the sale, snapshots,
+    // stock, benefits, commission evidence, and payment commit together.
+    if (args.appointmentId) return {
+      success: false,
+      paymentId: null,
+      paymentSessionId: null,
+      error: "Use controlled appointment checkout",
+      clientSecret: null,
+      status: null,
+    };
     try {
-      // Fetch appointment with services
-      const appointment = await context.db.Appointment.findOne({
-        where: { id: appointmentId },
-      });
-
-      if (!appointment) {
-        return {
-          success: false,
-          paymentId: null,
-          error: "Appointment not found",
-          clientSecret: null,
-        };
+      return await paymentTransaction(context, [`idempotency:${args.idempotencyKey}`, `appointment:${args.appointmentId}`], async (sudo) => {
+      if (args.idempotencyKey.trim().length < 12 || args.idempotencyKey.length > 200) throw new Error("Idempotency key is invalid");
+      if (!new Set(["credit_card", "debit_card", "cash", "gift_card", "apple_pay", "google_pay"]).has(args.paymentMethod)) {
+        throw new Error("Payment operation failed");
+      }
+      if ((args.tipAmount || 0) < 0 || (args.discountAmount || 0) < 0 || (args.tipAmount || 0) > 10_000_000 || (args.discountAmount || 0) > 10_000_000) {
+        throw new Error("Payment operation failed");
+      }
+      const existing = (await sudo.query.PaymentSession.findMany({
+        where: { idempotencyKey: { equals: args.idempotencyKey } }, take: 1,
+        query: "id status data appointment { id } payment { id }",
+      }))[0];
+      if (existing) {
+        if (existing.appointment?.id !== args.appointmentId) throw new Error("Idempotency key was already used for another operation");
+        const data = existing.data && typeof existing.data === "object" ? existing.data as Record<string, any> : {};
+        return { success: true, paymentId: existing.payment?.id || null, paymentSessionId: existing.id, error: null, clientSecret: data.clientSecret || null, status: existing.status };
       }
 
-      // Get services for this appointment to calculate subtotal
-      const appointmentWithServices = await context.query.Appointment.findOne({
-        where: { id: appointmentId },
-        query: `
-          services {
-            id
-            basePrice
-          }
-          stylist {
-            id
-            tier
-          }
-          client {
-            user {
-              email
-            }
-          }
-        `,
+      const appointment = await sudo.query.Appointment.findOne({
+        where: { id: args.appointmentId },
+        query: `id status payment { id status } lineItems { price quantity } client { user { email } }`,
+      });
+      if (!appointment) throw new Error("Appointment not found");
+      if (!["confirmed", "in_progress"].includes(appointment.status || "")) throw new Error("Appointment is not eligible for payment");
+      if (appointment.payment?.id) throw new Error("Appointment already has a payment");
+
+      const subtotalCents = appointment.lineItems.reduce((sum: number, item: any) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+      if (subtotalCents <= 0) throw new Error("Appointment has no payable line items");
+      const tipCents = Math.max(0, args.tipAmount || 0);
+      const discountCents = Math.max(0, args.discountAmount || 0);
+      const taxCents = Math.round(subtotalCents * TAX_RATE);
+      const totalCents = Math.max(0, subtotalCents + taxCents + tipCents - discountCents);
+      const provider = await loadProvider(sudo, args.providerCode);
+      const providerConfig = paymentProviderFromRecord(provider as { code: string; adapter: string; config?: unknown });
+      const adapterResult = await createProviderPaymentSession({
+        provider: providerConfig, amount: totalCents, currency: "usd", idempotencyKey: args.idempotencyKey,
+        metadata: { appointmentId: appointment.id, operatorId: context.session!.itemId },
       });
 
-      if (!appointmentWithServices?.services?.length) {
-        return {
-          success: false,
-          paymentId: null,
-          error: "No services found for this appointment",
-          clientSecret: null,
-        };
-      }
-
-      // Calculate subtotal from services
-      const subtotal = appointmentWithServices.services.reduce(
-        (sum: number, service: any) => sum + (service.basePrice || 0),
-        0
-      );
-
-      // Calculate tax
-      const tax = subtotal * TAX_RATE;
-
-      // Apply tip and discount
-      const tip = tipAmount || 0;
-      const discount = discountAmount || 0;
-
-      // Calculate total
-      const totalAmount = subtotal + tax + tip - discount;
-
-      // Get client email for receipt
-      const clientEmail = appointmentWithServices.client?.user?.email;
-
-      // Create payment record
-      const payment = await context.db.Payment.createOne({
+      const session = await sudo.query.PaymentSession.createOne({
         data: {
-          subtotal,
-          tax,
-          tip,
-          discount,
-          totalAmount,
-          paymentMethod,
-          status: paymentMethod === "cash" ? "completed" : "pending",
-          appointment: { connect: { id: appointmentId } },
-          processedBy: { connect: { id: context.session.itemId } },
-          processedAt: paymentMethod === "cash" ? new Date() : null,
-          receiptEmail: clientEmail || "",
-        },
+          appointment: { connect: { id: appointment.id } }, provider: { connect: { id: provider.id } },
+          idempotencyKey: args.idempotencyKey, amount: totalCents, currency: "usd", status: adapterResult.status,
+          providerReference: adapterResult.providerReference,
+          data: { ...(adapterResult.data || {}), clientSecret: adapterResult.clientSecret || null },
+        }, query: "id",
       });
-
-      // For card payments, create Stripe Payment Intent
-      if (paymentMethod !== "cash" && stripe) {
-        try {
-          const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(totalAmount * 100), // Stripe uses cents
-            currency: "usd",
-            metadata: {
-              appointmentId,
-              paymentId: payment.id,
-            },
-          });
-
-          // Update payment with Stripe info
-          await context.db.Payment.updateOne({
-            where: { id: payment.id },
-            data: {
-              stripePaymentIntentId: paymentIntent.id,
-              status: "processing",
-            },
-          });
-
-          return {
-            success: true,
-            paymentId: payment.id,
-            error: null,
-            clientSecret: paymentIntent.client_secret,
-          };
-        } catch (stripeError: any) {
-          // Update payment status to failed
-          await context.db.Payment.updateOne({
-            where: { id: payment.id },
-            data: { status: "failed" },
-          });
-
-          return {
-            success: false,
-            paymentId: payment.id,
-            error: `Stripe error: ${stripeError.message}`,
-            clientSecret: null,
-          };
-        }
-      }
-
-      // For cash payments, mark appointment as completed
-      await context.db.Appointment.updateOne({
-        where: { id: appointmentId },
-        data: { status: "completed" },
+      const completed = adapterResult.status === "completed";
+      const payment = await sudo.query.Payment.createOne({
+        data: {
+          subtotal: subtotalCents, tax: taxCents, tip: tipCents, discount: discountCents,
+          totalAmount: totalCents, paymentMethod: args.paymentMethod,
+          status: paymentRecordStatus(adapterResult.status), appointment: { connect: { id: appointment.id } },
+          session: { connect: { id: session.id } }, processedBy: { connect: { id: context.session!.itemId } },
+          processedAt: completed ? new Date().toISOString() : undefined,
+          receiptEmail: appointment.client?.user?.email || "",
+        }, query: "id",
       });
-
-      return {
-        success: true,
-        paymentId: payment.id,
-        error: null,
-        clientSecret: null,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        paymentId: null,
-        error: error.message,
-        clientSecret: null,
-      };
+      await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { payment: { connect: { id: payment.id } }, ...(completed ? { completedAt: new Date().toISOString() } : {}) }, query: "id" });
+      if (completed) await sudo.query.Appointment.updateOne({ where: { id: appointment.id }, data: { status: "completed" }, query: "id" });
+      return { success: true, paymentId: payment.id, paymentSessionId: session.id, error: null, clientSecret: adapterResult.clientSecret || null, status: adapterResult.status };
+      });
+    } catch (error) {
+      return { success: false, paymentId: null, paymentSessionId: null, error: safeError(error), clientSecret: null, status: null };
     }
   },
 });
 
 export const confirmPayment = graphql.field({
-  type: graphql.object<{
-    success: boolean;
-    error: string | null;
-  }>()({
+  type: graphql.object<{ success: boolean; error: string | null; status: string | null }>()({
     name: "ConfirmPaymentResult",
-    fields: {
-      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
-      error: graphql.field({ type: graphql.String }),
-    },
+    fields: { success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), error: graphql.field({ type: graphql.String }), status: graphql.field({ type: graphql.String }) },
   }),
-  args: {
-    paymentId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
-    stripePaymentIntentId: graphql.arg({ type: graphql.String }),
-  },
-  async resolve(source, { paymentId, stripePaymentIntentId }, context: Context) {
-    if (!context.session) {
-      return {
-        success: false,
-        error: "You must be logged in",
-      };
-    }
-
+  args: { paymentSessionId: graphql.arg({ type: graphql.nonNull(graphql.ID) }) },
+  async resolve(source, { paymentSessionId }, context: Context) {
+    if (!paymentOperator(context)) return { success: false, error: "You must have payment authority", status: null };
     try {
-      const payment = await context.db.Payment.findOne({
-        where: { id: paymentId },
+      return await paymentTransaction(context, [`session:${paymentSessionId}`], async (sudo) => {
+      const session = await loadSession(sudo, paymentSessionId);
+      if (!session?.provider || !session.providerReference || !session.payment) throw new Error("Payment session not found");
+      const sessionData = session.data && typeof session.data === "object" ? session.data as Record<string, any> : {};
+      if (sessionData.purpose !== "appointment_deposit") throw new Error("Use the purpose-built settlement confirmation workflow");
+      if (session.status === "completed") return { success: true, error: null, status: "completed" };
+      assertPaymentTransition(session.status as PaymentLifecycleStatus, "completed");
+      if (session.provider.adapter !== "manual") throw new Error("Online deposit confirmation requires the provider reconciliation workflow");
+      const result = await confirmProviderPayment({ provider: paymentProviderFromRecord(session.provider as { code: string; adapter: string; config?: unknown }), providerReference: session.providerReference, amount: session.amount, idempotencyKey: `${session.idempotencyKey}:confirm` });
+      assertPaymentTransition(session.status as PaymentLifecycleStatus, result.status);
+      if (result.status !== "completed") throw new Error("Provider has not completed the payment");
+      if (result.amount != null && result.amount !== session.amount) throw new Error("Provider amount does not match payment session");
+      const now = new Date().toISOString();
+      await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { status: "completed", completedAt: now, data: { ...sessionData, ...(result.data || {}) } }, query: "id" });
+      await sudo.query.Payment.updateOne({ where: { id: session.payment.id }, data: { status: "completed", processedAt: now }, query: "id" });
+      if (session.appointment?.id) {
+        await sudo.query.Appointment.updateOne({
+          where: { id: session.appointment.id },
+          data: sessionData.purpose === "appointment_deposit"
+            ? { depositPaid: true, ...(session.appointment.status === "pending" ? { status: "confirmed", confirmedAt: now } : {}) }
+            : { status: "completed" },
+          query: "id",
+        });
+      }
+      return { success: true, error: null, status: "completed" };
       });
-
-      if (!payment) {
-        return {
-          success: false,
-          error: "Payment not found",
-        };
-      }
-
-      // Verify with Stripe if provided
-      if (stripePaymentIntentId && stripe) {
-        const paymentIntent = await stripe.paymentIntents.retrieve(stripePaymentIntentId);
-
-        if (paymentIntent.status !== "succeeded") {
-          return {
-            success: false,
-            error: `Payment not completed. Status: ${paymentIntent.status}`,
-          };
-        }
-
-        // Get charge details
-        const charge = paymentIntent.latest_charge
-          ? await stripe.charges.retrieve(paymentIntent.latest_charge)
-          : null;
-
-        // Update payment with card details
-        await context.db.Payment.updateOne({
-          where: { id: paymentId },
-          data: {
-            status: "completed",
-            stripeChargeId: charge?.id || "",
-            cardBrand: charge?.payment_method_details?.card?.brand || "",
-            cardLast4: charge?.payment_method_details?.card?.last4 || "",
-            processedAt: new Date(),
-          },
-        });
-      } else {
-        // For non-Stripe confirmations
-        await context.db.Payment.updateOne({
-          where: { id: paymentId },
-          data: {
-            status: "completed",
-            processedAt: new Date(),
-          },
-        });
-      }
-
-      // Get appointment and mark as completed
-      const updatedPayment = await context.query.Payment.findOne({
-        where: { id: paymentId },
-        query: `appointment { id }`,
-      });
-
-      if (updatedPayment?.appointment?.id) {
-        await context.db.Appointment.updateOne({
-          where: { id: updatedPayment.appointment.id },
-          data: { status: "completed" },
-        });
-      }
-
-      return {
-        success: true,
-        error: null,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    } catch (error) { return { success: false, error: safeError(error), status: null }; }
   },
 });
 
 export const refundPayment = graphql.field({
-  type: graphql.object<{
-    success: boolean;
-    refundId: string | null;
-    error: string | null;
-  }>()({
+  type: graphql.object<{ success: boolean; refundId: string | null; error: string | null; status: string | null }>()({
     name: "RefundPaymentResult",
-    fields: {
-      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
-      refundId: graphql.field({ type: graphql.String }),
-      error: graphql.field({ type: graphql.String }),
-    },
+    fields: { success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), refundId: graphql.field({ type: graphql.String }), error: graphql.field({ type: graphql.String }), status: graphql.field({ type: graphql.String }) },
   }),
-  args: {
-    paymentId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
-    amount: graphql.arg({ type: graphql.Float }),
-    reason: graphql.arg({ type: graphql.String }),
-  },
-  async resolve(source, { paymentId, amount, reason }, context: Context) {
-    if (!context.session) {
-      return {
-        success: false,
-        refundId: null,
-        error: "You must be logged in",
-      };
-    }
-
-    try {
-      const payment = await context.db.Payment.findOne({
-        where: { id: paymentId },
-      });
-
-      if (!payment) {
-        return {
-          success: false,
-          refundId: null,
-          error: "Payment not found",
-        };
-      }
-
-      if (payment.status !== "completed") {
-        return {
-          success: false,
-          refundId: null,
-          error: "Can only refund completed payments",
-        };
-      }
-
-      const refundAmount = amount || payment.totalAmount;
-
-      // Process Stripe refund if applicable
-      if (payment.stripeChargeId && stripe) {
-        const refund = await stripe.refunds.create({
-          charge: payment.stripeChargeId,
-          amount: Math.round(refundAmount * 100),
-          reason: reason ? "requested_by_customer" : undefined,
-        });
-
-        await context.db.Payment.updateOne({
-          where: { id: paymentId },
-          data: {
-            status: refundAmount >= payment.totalAmount ? "refunded" : "partially_refunded",
-            stripeRefundId: refund.id,
-            refundedAmount: refundAmount,
-            refundReason: reason || "",
-            refundedAt: new Date(),
-          },
-        });
-
-        return {
-          success: true,
-          refundId: refund.id,
-          error: null,
-        };
-      }
-
-      // For cash refunds
-      await context.db.Payment.updateOne({
-        where: { id: paymentId },
-        data: {
-          status: refundAmount >= payment.totalAmount ? "refunded" : "partially_refunded",
-          refundedAmount: refundAmount,
-          refundReason: reason || "",
-          refundedAt: new Date(),
-        },
-      });
-
-      return {
-        success: true,
-        refundId: null,
-        error: null,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        refundId: null,
-        error: error.message,
-      };
-    }
-  },
+  args: { paymentSessionId: graphql.arg({ type: graphql.nonNull(graphql.ID) }), amount: graphql.arg({ type: graphql.Int }), reason: graphql.arg({ type: graphql.String }), idempotencyKey: graphql.arg({ type: graphql.String }) },
+  resolve(_source, args, context: Context) { return refundAppointmentDeposit(context, args); },
 });
 
 export const distributeTip = graphql.field({
-  type: graphql.object<{
-    success: boolean;
-    error: string | null;
-  }>()({
-    name: "DistributeTipResult",
-    fields: {
-      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
-      error: graphql.field({ type: graphql.String }),
-    },
-  }),
-  args: {
-    paymentId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
-  },
+  type: graphql.object<{ success: boolean; error: string | null }>()({ name: "DistributeTipResult", fields: { success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), error: graphql.field({ type: graphql.String }) } }),
+  args: { paymentId: graphql.arg({ type: graphql.nonNull(graphql.ID) }) },
   async resolve(source, { paymentId }, context: Context) {
-    if (!context.session) {
-      return {
-        success: false,
-        error: "You must be logged in",
-      };
-    }
-
+    if (!paymentOperator(context)) return denied();
+    // A boolean is not a gratuity allocation or payout ledger.
+    if (paymentId) return { success: false, error: "Tip distribution requires the controlled gratuity allocation workflow" };
     try {
-      const payment = await context.query.Payment.findOne({
-        where: { id: paymentId },
-        query: `
-          id
-          tip
-          tipDistributed
-          appointment {
-            stylist {
-              id
-              commissionRate
-            }
-          }
-        `,
+      return await paymentTransaction(context, [`payment:${paymentId}`], async (sudo) => {
+      const payment = await sudo.query.Payment.findOne({ where: { id: paymentId }, query: "id tip tipDistributed status" });
+      if (!payment || payment.status !== "completed") throw new Error("Completed payment not found");
+      if (payment.tipDistributed) return { success: true, error: null };
+      if (!payment.tip || payment.tip <= 0) throw new Error("No tip to distribute");
+      await sudo.query.Payment.updateOne({ where: { id: paymentId }, data: { tipDistributed: true }, query: "id" });
+      return { success: true, error: null };
       });
-
-      if (!payment) {
-        return {
-          success: false,
-          error: "Payment not found",
-        };
-      }
-
-      if (payment.tipDistributed) {
-        return {
-          success: false,
-          error: "Tip already distributed",
-        };
-      }
-
-      if (!payment.tip || payment.tip <= 0) {
-        return {
-          success: false,
-          error: "No tip to distribute",
-        };
-      }
-
-      // Mark tip as distributed
-      // In a real system, you would also:
-      // 1. Create a payout record
-      // 2. Add to stylist's earnings
-      // 3. Generate commission reports
-      await context.db.Payment.updateOne({
-        where: { id: paymentId },
-        data: {
-          tipDistributed: true,
-          notes: `Tip of $${payment.tip.toFixed(2)} distributed to stylist`,
-        },
-      });
-
-      return {
-        success: true,
-        error: null,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    } catch (error) { return { success: false, error: safeError(error) }; }
   },
 });
 
-export const paymentMutations = {
-  processPayment,
-  confirmPayment,
-  refundPayment,
-  distributeTip,
-};
+export const paymentMutations = { processPayment, confirmPayment, refundPayment, distributeTip };

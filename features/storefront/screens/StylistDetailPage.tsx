@@ -1,9 +1,10 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, Calendar, Award, Clock, Star } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, User } from "lucide-react"
 import { getStylistById } from "../lib/data/stylists"
-import { calculateYearsExperience, getTierDisplayName } from "../lib/utils/stylist-helpers"
+import { getTierDisplayName } from "../lib/utils/stylist-helpers"
+import { getStorefrontImageSrc } from "../lib/images"
 
 interface StylistDetailPageProps {
   params: Promise<{ id: string }>
@@ -17,194 +18,142 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
     notFound()
   }
 
-  const name = stylist.user?.name || "Stylist"
-  const photoUrl = stylist.photo?.image?.url
-  const yearsExperience = calculateYearsExperience(stylist.hireDate)
+  const name = stylist.user?.name || "Artist"
+  const photoUrl = getStorefrontImageSrc(stylist.photo)
   const tierName = getTierDisplayName(stylist.tier || "junior")
 
-  // Get available days
   const availableDays = stylist.schedules
     ? stylist.schedules
-        .filter(s => s.isAvailable)
-        .map(s => {
+        .filter((s) => s.isAvailable)
+        .map((s) => {
           const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-          return days[s.dayOfWeek]
+          return s.dayOfWeek == null ? null : days[s.dayOfWeek]
         })
     : []
 
   return (
-    <div className="min-h-screen">
-      {/* Back Button */}
-      <div className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
-          <Link
-            href="/team"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
+    <div>
+      <div className="border-b border-[var(--sf-rule)] sticky top-[4.25rem] z-10 bg-[color-mix(in_oklch,var(--sf-paper)_92%,transparent)] backdrop-blur-md">
+        <div className="sf-container py-3">
+          <Link href="/team" className="sf-link inline-flex items-center gap-2 text-[var(--sf-text-sm)]">
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Team</span>
+            All artists
           </Link>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-3 gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Profile Header */}
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Photo */}
-              <div className="shrink-0">
-                {photoUrl ? (
-                  <img
-                    src={photoUrl}
-                    alt={stylist.photo?.altText || name}
-                    className="w-64 h-64 rounded-lg object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className="w-64 h-64 rounded-lg bg-muted flex items-center justify-center shadow-lg">
-                    <Award className="h-24 w-24 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1">
-                <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-3">
-                  {tierName}
+      <div className="sf-container sf-page-pad">
+        <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.75fr)]">
+          <div className="min-w-0 space-y-[var(--sf-space-lg)]">
+            <div className="grid gap-[var(--sf-space-md)] md:grid-cols-[minmax(0,220px)_1fr] md:items-start">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={stylist.photo?.altText || name}
+                  className="aspect-[4/5] w-full max-w-[220px] object-cover border border-[var(--sf-rule)]"
+                />
+              ) : (
+                <div className="aspect-[4/5] w-full max-w-[220px] flex items-center justify-center border border-[var(--sf-rule)] bg-[var(--sf-paper-2)]">
+                  <User className="h-16 w-16 text-[var(--sf-ink-3)]" />
                 </div>
-                <h1 className="text-5xl font-bold mb-4">{name}</h1>
-                <div className="flex flex-wrap items-center gap-6 text-muted-foreground mb-6">
-                  {yearsExperience > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Award className="h-5 w-5" />
-                      <span>{yearsExperience} years experience</span>
-                    </div>
-                  )}
-                  {stylist.specializations && stylist.specializations.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Star className="h-5 w-5" />
-                      <span>{stylist.specializations.length} specializations</span>
-                    </div>
-                  )}
-                </div>
+              )}
 
-                {stylist.bio && (
-                  <p className="text-lg text-muted-foreground leading-relaxed">
+              <div>
+                <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-2">{tierName}</p>
+                <h1 className="sf-display text-[var(--sf-text-display-s)] mb-4">{name}</h1>
+                <dl className="flex flex-wrap gap-x-6 gap-y-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] mb-6">
+                  {stylist.specializations && stylist.specializations.length > 0 ? (
+                    <div>
+                      <dt className="sr-only">Specializations</dt>
+                      <dd>{stylist.specializations.length} listed specialties</dd>
+                    </div>
+                  ) : null}
+                </dl>
+                {stylist.bio ? (
+                  <p className="text-[var(--sf-text-md)] text-[var(--sf-ink-2)] leading-relaxed max-w-prose">
                     {stylist.bio}
                   </p>
-                )}
+                ) : null}
               </div>
             </div>
 
-            {/* Certifications */}
-            {stylist.certifications && (
-              <div className="p-6 border rounded-lg bg-card">
-                <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-                  <Award className="h-6 w-6 text-primary" />
-                  Certifications & Training
-                </h2>
-                <p className="text-muted-foreground whitespace-pre-line">
+            {stylist.certifications ? (
+              <div className="sf-card p-[var(--sf-space-md)]">
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-3">Training & certifications</h2>
+                <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] whitespace-pre-line leading-relaxed">
                   {stylist.certifications}
                 </p>
               </div>
-            )}
+            ) : null}
 
-            {/* Specializations */}
-            {stylist.specializations && stylist.specializations.length > 0 && (
+            {stylist.specializations && stylist.specializations.length > 0 ? (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Specializations</h2>
-                <div className="grid md:grid-cols-2 gap-4">
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4">Signature services</h2>
+                <ul className="divide-y divide-[var(--sf-rule)] border-y border-[var(--sf-rule)]">
                   {stylist.specializations.map((service) => (
-                    <Link
-                      key={service.id}
-                      href={`/services/${service.id}`}
-                      className="group p-4 border rounded-lg bg-card hover:shadow-lg hover:border-primary/50 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Star className="h-5 w-5 text-primary" />
-                        </div>
-                        <span className="font-medium group-hover:text-primary transition-colors">
-                          {service.name}
-                        </span>
-                      </div>
-                    </Link>
+                    <li key={service.id}>
+                      <Link
+                        href={`/services/${service.id}`}
+                        className="flex items-center justify-between py-3 text-[var(--sf-text-sm)] hover:bg-[var(--sf-paper-2)] -mx-2 px-2 transition-colors"
+                      >
+                        <span className="text-[var(--sf-ink)]">{service.name}</span>
+                        <span className="text-[var(--sf-ink-3)]">View</span>
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
-            )}
+            ) : null}
 
-            {/* Availability */}
-            {availableDays.length > 0 && (
-              <div className="p-6 border rounded-lg bg-card">
-                <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-                  <Clock className="h-6 w-6 text-primary" />
-                  Availability
+            {availableDays.length > 0 ? (
+              <div className="sf-card p-[var(--sf-space-md)]">
+                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4 flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-[var(--sf-accent)]" />
+                  Weekly availability
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {availableDays.map((day) => (
                     <span
                       key={day}
-                      className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium"
+                      className="px-2.5 py-1 text-[var(--sf-text-xs)] border border-[var(--sf-rule)] text-[var(--sf-ink-2)]"
                     >
                       {day}
                     </span>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Specific time slots available during booking
+                <p className="mt-4 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
+                  Exact slots appear during booking.
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
 
-          {/* Sidebar - Booking Card */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 border rounded-lg p-6 bg-card shadow-lg">
-              <h3 className="text-2xl font-bold mb-6">Book with {name}</h3>
-
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between py-3 border-b">
-                  <span className="text-muted-foreground">Level</span>
-                  <span className="font-semibold">{tierName}</span>
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="sf-card p-[var(--sf-space-md)]">
+              <h2 className="sf-display text-[var(--sf-text-xl)] mb-6">Book with {name.split(" ")[0]}</h2>
+              <dl className="space-y-3 text-[var(--sf-text-sm)] mb-6">
+                <div className="flex justify-between gap-4 border-b border-[var(--sf-rule)] pb-3">
+                  <dt className="text-[var(--sf-ink-3)]">Level</dt>
+                  <dd className="font-medium">{tierName}</dd>
                 </div>
-                {yearsExperience > 0 && (
-                  <div className="flex items-center justify-between py-3 border-b">
-                    <span className="text-muted-foreground">Experience</span>
-                    <span className="font-semibold">{yearsExperience} years</span>
+                {stylist.specializations ? (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[var(--sf-ink-3)]">Services</dt>
+                    <dd className="font-medium">{stylist.specializations.length}</dd>
                   </div>
-                )}
-                {stylist.specializations && (
-                  <div className="flex items-center justify-between py-3">
-                    <span className="text-muted-foreground">Services</span>
-                    <span className="font-semibold">{stylist.specializations.length}</span>
-                  </div>
-                )}
-              </div>
+                ) : null}
+              </dl>
 
-              <Link
-                href={`/book?stylist=${stylist.id}`}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-4 text-lg font-medium hover:bg-primary/90 transition-all shadow-md hover:shadow-lg mb-4"
-              >
-                <Calendar className="h-5 w-5" />
-                Book Appointment
+              <Link href={`/book?stylist=${stylist.id}`} className="sf-btn sf-btn-primary w-full mb-3">
+                <Calendar className="h-4 w-4" />
+                Reserve with {name.split(" ")[0]}
               </Link>
 
-              <Link
-                href="/services"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-medium hover:bg-muted transition-all"
-              >
-                View All Services
+              <Link href="/services" className="sf-btn sf-btn-secondary w-full">
+                Browse services
               </Link>
-
-              <div className="mt-6 pt-6 border-t text-sm text-muted-foreground">
-                <p>
-                  <strong>Tip:</strong> Book early for preferred time slots with {name}
-                </p>
-              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

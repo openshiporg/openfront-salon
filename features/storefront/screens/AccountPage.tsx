@@ -1,393 +1,96 @@
-"use client"
+import Link from "next/link";
+import { Calendar, FileCheck2, LogOut, ReceiptText } from "lucide-react";
+import { cancelOwnedAppointment, portalSignOut, rescheduleOwnedAppointment, submitOwnedConsultation } from "../account/actions";
 
-import { Metadata } from "next"
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Calendar, Clock, User, Mail, Phone, MapPin, ChevronRight, XCircle, CheckCircle } from "lucide-react"
-import { getClientAppointmentsByEmail, Appointment } from "../lib/data/appointments"
+import { formatSalonDateTime as dateTime } from "@/features/lib/formatSalonDateTime";
+import { appointmentProviderLabel, segmentProviderLabel } from "../account/providerLabel";
+import { getCancellationPolicyGuidance } from "../account/cancellationPolicyGuidance";
+import { getReschedulePolicyGuidance } from "../account/reschedulePolicyGuidance";
+import type { ConsultationRetryAttempt } from "../account/consultationSubmitOutcome";
 
-export const generateAccountMetadata: Metadata = {
-  title: "My Account - Openfront Salon",
-  description: "View and manage your salon appointments",
-}
+const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((cents || 0) / 100);
 
-interface AppointmentCardProps {
-  appointment: Appointment
-  isPast: boolean
-}
-
-function AppointmentCard({ appointment, isPast }: AppointmentCardProps) {
-  const appointmentDate = new Date(appointment.appointmentDate)
-  const service = appointment.service
-  const stylist = appointment.stylist
-  const isUpcoming = !isPast && appointment.status !== "CANCELLED"
-  const isCancelled = appointment.status === "CANCELLED"
-
+export function AccountPage({ portal, message, consultationUnresolved = false, consultationAttempt = null }: {
+  portal: any;
+  message?: string | null;
+  consultationUnresolved?: boolean;
+  consultationAttempt?: ConsultationRetryAttempt | null;
+}) {
+  const consultationRetryHref = consultationUnresolved
+    ? consultationAttempt
+      ? `/account?consultation=unresolved&consultationTemplate=${encodeURIComponent(consultationAttempt.templateVersionId)}&consultationKey=${encodeURIComponent(consultationAttempt.idempotencyKey)}`
+      : "/account?consultation=unresolved"
+    : "/account";
+  const consultationSignInHref = consultationUnresolved
+    ? consultationAttempt
+      ? `/account/signin?consultation=unresolved&consultationTemplate=${encodeURIComponent(consultationAttempt.templateVersionId)}&consultationKey=${encodeURIComponent(consultationAttempt.idempotencyKey)}`
+      : "/account/signin?consultation=unresolved"
+    : "/account/signin";
+  if (portal?.status === "unavailable" || (portal?.status !== "available" && portal?.status !== "unauthenticated")) {
+    return <div className="sf-page-pad"><div className="sf-container-narrow text-center"><div role="alert" className="sf-card p-6"><h1 className="sf-display text-[var(--sf-text-2xl)] mb-3">Account information unavailable</h1><p className="sf-lead mb-6">Something went wrong loading your account. Try again.</p><Link href={consultationRetryHref} className="sf-btn sf-btn-primary">Try again</Link></div></div></div>;
+  }
+  if (portal.status === "unauthenticated") {
+    return <div className="sf-page-pad"><div className="sf-container-narrow text-center"><h1 className="sf-display text-[var(--sf-text-2xl)] mb-3">Private client portal</h1><p className="sf-lead mb-6">Sign in to view your appointments.</p><Link href={consultationSignInHref} className="sf-btn sf-btn-primary">Client sign in</Link></div></div>;
+  }
+  const account = portal.portal;
+  const appointments = account.appointments;
+  const consultationForms = consultationUnresolved
+    ? consultationAttempt ? account.availableForms.filter((template: { id: string }) => template.id === consultationAttempt.templateVersionId) : []
+    : account.availableForms;
+  const renderTime = Date.now();
   return (
-    <div className={`border rounded-lg p-6 transition-all ${
-      isCancelled
-        ? "bg-muted/30 opacity-60"
-        : isUpcoming
-        ? "bg-card shadow-md hover:shadow-lg"
-        : "bg-card"
-    }`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-bold">{service?.name}</h3>
-            {isCancelled && (
-              <span className="text-xs px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
-                Cancelled
-              </span>
-            )}
-            {isUpcoming && !isCancelled && (
-              <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                Upcoming
-              </span>
-            )}
-            {isPast && !isCancelled && appointment.status === "COMPLETED" && (
-              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                Completed
-              </span>
-            )}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Booking #{appointment.id.slice(0, 8)}
-          </div>
-        </div>
-        {isUpcoming && !isCancelled && (
-          <Link
-            href={`/booking/${appointment.id}`}
-            className="text-primary hover:underline text-sm font-medium flex items-center gap-1"
-          >
-            View Details
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-        )}
-      </div>
+    <div className="sf-page-pad"><div className="sf-container space-y-10">
+      <header className="flex flex-col gap-4 border-b border-[var(--sf-rule)] pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="sf-kicker">Client account</p><h1 className="sf-display text-[var(--sf-text-2xl)]">Your account</h1><p className="mt-2 text-sm text-[var(--sf-ink-2)]">{account.client?.user?.name} · {account.client?.user?.email}</p></div>
+        <form action={portalSignOut}><button className="sf-btn sf-btn-secondary" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form>
+      </header>
+      {message ? <p role="status" className="border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-3 text-sm">{message}</p> : null}
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Date & Time */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Calendar className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <div className="font-medium">
-              {appointmentDate.toLocaleDateString("en-US", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric"
-              })}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {appointmentDate.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true
-              })}
-            </div>
-          </div>
-        </div>
+      <section><div className="mb-5 flex items-center gap-3"><Calendar className="h-5 w-5"/><h2 className="sf-display text-[var(--sf-text-xl)]">Appointments</h2></div>
+        <div className="grid gap-5">{appointments.length ? appointments.map((appointment: any) => {
+          const policy = appointment.metadata?.clientPolicySnapshot;
+          const future = new Date(appointment.startTime).getTime() > renderTime;
+          const mutable = future && ["pending", "confirmed"].includes(appointment.status);
+          const cancellationGuidance = getCancellationPolicyGuidance(policy, renderTime);
+          const rescheduleGuidance = getReschedulePolicyGuidance(policy, renderTime);
+          const shopTimezone = appointment.location?.timezone || "UTC";
+          return <article key={appointment.id} className="sf-card p-5"><div className="flex flex-col gap-4 lg:flex-row lg:justify-between"><div>
+            <p className="sf-kicker">{appointment.status.replaceAll("_", " ")}</p><h3 className="sf-display text-lg">{appointment.lineItems.map((line: any) => line.serviceTitle).join(" · ")}</h3>
+            <p className="mt-2 text-sm">{dateTime(appointment.startTime, appointment.location?.timezone)} · {appointmentProviderLabel(appointment.stylist)}</p>
+            {appointment.segments?.length ? <ol className="mt-3 space-y-1 text-sm text-[var(--sf-ink-2)]">{appointment.segments.map((segment: any) => <li key={segment.id}>{dateTime(segment.plannedStart, appointment.location?.timezone)} · {segment.type} · {segment.durationMinutes} min · {segmentProviderLabel(segment)}{segment.resource?.name ? ` · ${segment.resource.name}` : ""}</li>)}</ol> : null}
+            {policy ? <p className="mt-3 text-xs text-[var(--sf-ink-3)]">{cancellationGuidance.deadline ? `Cancel online until ${dateTime(cancellationGuidance.deadline, appointment.location?.timezone)}.` : null}{rescheduleGuidance.deadline ? ` Reschedule online until ${dateTime(rescheduleGuidance.deadline, appointment.location?.timezone)}.` : null}</p> : null}
+          </div>{mutable ? <div className="grid w-full gap-3 lg:w-auto lg:min-w-72">
+            {cancellationGuidance.expired ? <p role="status" className="border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-3 text-xs text-[var(--sf-ink-2)]">{cancellationGuidance.notice}</p> : <form action={cancelOwnedAppointment} className="grid gap-2"><input type="hidden" name="appointmentId" value={appointment.id}/><label className="grid gap-1 text-sm">Reason (optional)<input className="sf-input" name="reason" maxLength={1000}/></label><button className="sf-btn sf-btn-secondary" type="submit">Request cancellation</button><p className="text-xs text-[var(--sf-ink-3)]">{cancellationGuidance.notice}</p></form>}
+            {appointment.lineItems?.length ? (
+              rescheduleGuidance.expired ? (
+                <p role="status" className="border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-3 text-xs text-[var(--sf-ink-2)]">It's too late to reschedule online. Contact the salon to change this appointment.</p>
+              ) : (
+                <form action={rescheduleOwnedAppointment} className="grid gap-2"><input type="hidden" name="appointmentId" value={appointment.id}/><input type="hidden" name="idempotencyKey" value={`portal-reschedule:${appointment.id}:${appointment.scheduleRevisions?.[0]?.revision || 0}`}/><input type="hidden" name="timeZone" value={shopTimezone}/><label className="grid gap-1 text-sm">New date and time<input className="sf-input" name="startTime" type="datetime-local" step={900} required/></label><p className="text-xs text-[var(--sf-ink-3)]">Times are in the salon's time zone.</p><button className="sf-btn sf-btn-secondary" type="submit">Request reschedule</button></form>
+              )
+            ) : null}
+          </div> : null}</div>
+          {appointment.transaction ? <div className="mt-5 border-t border-[var(--sf-rule)] pt-4"><div className="flex items-center gap-2"><ReceiptText className="h-4 w-4"/><h4 className="font-medium">Receipt</h4></div><div className="mt-3 grid gap-2 text-sm">{appointment.transaction.lineItems.map((line: any) => <div key={line.id} className="flex justify-between"><span>{line.metadata?.title || line.itemType} × {line.quantity}</span><span>{money(line.unitPrice * line.quantity - line.discount)}</span></div>)}<div className="flex justify-between"><span>Tax</span><span>{money(appointment.payment?.tax)}</span></div><div className="flex justify-between"><span>Tip</span><span>{money(appointment.payment?.tip)}</span></div>{appointment.transaction.metadata?.packageCredit > 0 ? <div className="flex justify-between"><span>Package credit</span><span>-{money(appointment.transaction.metadata.packageCredit)}</span></div> : null}{appointment.transaction.metadata?.depositCredit > 0 ? <div className="flex justify-between"><span>Deposit applied</span><span>-{money(appointment.transaction.metadata.depositCredit)}</span></div> : null}<div className="flex justify-between font-medium"><span>Paid</span><span>{money(appointment.payment?.totalAmount)}</span></div>{appointment.payment?.refundedAmount ? <div className="flex justify-between"><span>Refunded</span><span>-{money(appointment.payment.refundedAmount)}</span></div> : null}</div></div> : null}
+          </article>;
+        }) : <div className="border border-[var(--sf-rule)] p-6 text-center"><p>No appointments are linked to this account.</p><Link href="/book" className="sf-btn sf-btn-primary mt-4">Reserve a visit</Link></div>}</div>
+      </section>
 
-        {/* Stylist */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <div className="font-medium">{stylist?.user?.name}</div>
-            <div className="text-sm text-muted-foreground capitalize">
-              {stylist?.tier} Stylist
-            </div>
-          </div>
-        </div>
-
-        {/* Duration */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <div className="font-medium">{service?.baseDuration} minutes</div>
-            <div className="text-sm text-muted-foreground">Duration</div>
-          </div>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-primary font-bold">$</span>
-          </div>
-          <div>
-            <div className="font-medium">${service?.basePrice}</div>
-            <div className="text-sm text-muted-foreground">Price</div>
-          </div>
-        </div>
-      </div>
-
-      {appointment.clientNotes && (
-        <div className="mt-4 pt-4 border-t">
-          <div className="text-sm font-medium mb-1">Notes</div>
-          <div className="text-sm text-muted-foreground">{appointment.clientNotes}</div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-export function AccountPage() {
-  const [email, setEmail] = useState("")
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Check if user has stored email in localStorage
-    const storedEmail = localStorage.getItem("clientEmail")
-    if (storedEmail) {
-      setEmail(storedEmail)
-      fetchAppointments(storedEmail)
-    }
-  }, [])
-
-  const fetchAppointments = async (userEmail: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await getClientAppointmentsByEmail(userEmail)
-      setAppointments(data)
-      setIsLoggedIn(true)
-      localStorage.setItem("clientEmail", userEmail)
-    } catch (err) {
-      setError("Failed to load appointments. Please try again.")
-      setIsLoggedIn(false)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (email) {
-      fetchAppointments(email)
-    }
-  }
-
-  const handleLogout = () => {
-    setIsLoggedIn(false)
-    setEmail("")
-    setAppointments([])
-    localStorage.removeItem("clientEmail")
-  }
-
-  const now = new Date()
-  const upcomingAppointments = appointments.filter(
-    apt => new Date(apt.appointmentDate) >= now && apt.status !== "CANCELLED"
-  )
-  const pastAppointments = appointments.filter(
-    apt => new Date(apt.appointmentDate) < now || apt.status === "CANCELLED"
-  )
-
-  // Login view
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-md mx-auto">
-            <div className="bg-card border rounded-lg shadow-lg p-8">
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8 text-primary" />
-                </div>
-                <h1 className="text-3xl font-bold mb-2">My Account</h1>
-                <p className="text-muted-foreground">
-                  Access your appointment history and upcoming bookings
-                </p>
-              </div>
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg text-red-800 dark:text-red-200 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      Email Address
-                    </div>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="your.email@example.com"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Enter the email address you used when booking your appointments
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5" />
-                      View My Appointments
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className="mt-8 pt-6 border-t text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Don&apos;t have any appointments yet?
-                </p>
-                <Link
-                  href="/book"
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-border px-6 py-2 font-medium hover:bg-muted transition-all"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Book Your First Appointment
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Account dashboard view
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="bg-card border rounded-lg shadow-lg p-6 md:p-8 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">My Account</h1>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="w-4 h-4" />
-                  <span>{email}</span>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <Link
-              href="/book"
-              className="bg-primary text-primary-foreground rounded-lg p-6 hover:bg-primary/90 transition-all shadow-md hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-lg mb-1">Book New Appointment</div>
-                  <div className="text-sm text-primary-foreground/80">
-                    Schedule your next salon visit
-                  </div>
-                </div>
-                <Calendar className="w-8 h-8" />
-              </div>
-            </Link>
-
-            <Link
-              href="/contact"
-              className="bg-card border rounded-lg p-6 hover:bg-muted/50 transition-all shadow-md hover:shadow-lg"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-lg mb-1">Contact Salon</div>
-                  <div className="text-sm text-muted-foreground">
-                    Get in touch with us
-                  </div>
-                </div>
-                <Phone className="w-8 h-8 text-muted-foreground" />
-              </div>
-            </Link>
-          </div>
-
-          {/* Upcoming Appointments */}
-          {upcomingAppointments.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Upcoming Appointments</h2>
-              <div className="space-y-4">
-                {upcomingAppointments.map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                    isPast={false}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Past Appointments */}
-          {pastAppointments.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Past Appointments</h2>
-              <div className="space-y-4">
-                {pastAppointments.slice(0, 5).map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                    isPast={true}
-                  />
-                ))}
-              </div>
-              {pastAppointments.length > 5 && (
-                <div className="text-center mt-4 text-sm text-muted-foreground">
-                  Showing 5 of {pastAppointments.length} past appointments
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* No Appointments */}
-          {appointments.length === 0 && !loading && (
-            <div className="bg-card border rounded-lg p-12 text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No Appointments Found</h3>
-              <p className="text-muted-foreground mb-6">
-                You don&apos;t have any appointments yet. Book your first appointment today!
-              </p>
-              <Link
-                href="/book"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 font-medium hover:bg-primary/90 transition-all"
-              >
-                <Calendar className="h-5 w-5" />
-                Book Appointment
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
+      <section><div className="mb-5 flex items-center gap-3"><FileCheck2 className="h-5 w-5"/><h2 className="sf-display text-[var(--sf-text-xl)]">Consultations</h2></div>
+        {consultationUnresolved && consultationForms.length === 0 ? <p role="status" className="text-sm">The original consultation form version is not available to retry here. Contact the salon before starting another submission.</p> : null}
+        <div className="grid gap-5 lg:grid-cols-2">{consultationForms.map((template: any) => {
+          const questions = Array.isArray(template.questions) ? template.questions : [];
+          const idempotencyKey = consultationAttempt && consultationAttempt.templateVersionId === template.id
+            ? consultationAttempt.idempotencyKey
+            : `portal-consultation:${template.id}:${Date.now()}`;
+          return <form action={submitOwnedConsultation} key={template.id} className="sf-card grid gap-4 p-5">
+            <div><p className="sf-kicker">Version {template.version}</p><h3 className="sf-display text-lg">{template.titleSnapshot}</h3><p className="mt-2 text-sm">{template.purposeSnapshot}</p></div>
+            <input type="hidden" name="templateVersionId" value={template.id}/><input type="hidden" name="questionIds" value={questions.map((question: any) => question.id).join(",")}/><input type="hidden" name="idempotencyKey" value={idempotencyKey}/>
+            <label className="grid gap-1 text-sm">Appointment (optional)<select name="appointmentId" className="sf-input"><option value="">General consultation</option>{appointments.filter((item: any) => ["pending", "confirmed"].includes(item.status)).map((item: any) => <option key={item.id} value={item.id}>{dateTime(item.startTime, item.location?.timezone)}</option>)}</select></label>
+            {questions.map((question: any) => <label key={question.id} className="grid gap-1 text-sm">{question.label}{question.required ? " *" : ""}<textarea className="sf-input min-h-20" name={`answer:${question.id}`} required={Boolean(question.required)} maxLength={5000}/></label>)}
+            <label className="grid gap-1 text-sm">Signer name<input className="sf-input" name="signerName" required maxLength={200}/></label><label className="grid gap-1 text-sm">Signer authority<select className="sf-input" name="signerRole"><option value="self">Self</option><option value="parent">Parent</option><option value="guardian">Guardian</option><option value="representative">Authorized representative</option></select></label><label className="grid gap-1 text-sm">Guardian/representative authority, if applicable<input className="sf-input" name="guardianAuthority" maxLength={1000}/></label><label className="grid gap-1 text-sm">Signature acknowledgment<input className="sf-input" name="signatureEvidence" required maxLength={5000} placeholder="Type your full legal name to sign"/></label>
+            <button className="sf-btn sf-btn-primary" type="submit">Sign and submit</button>
+          </form>;
+        })}</div>
+      </section>
+    </div></div>
+  );
 }

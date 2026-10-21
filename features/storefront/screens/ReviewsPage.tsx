@@ -1,137 +1,107 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { Star, Quote } from "lucide-react"
+import { Star } from "lucide-react"
 import { getApprovedReviews } from "../lib/data/reviews"
 import { formatDistanceToNow } from "date-fns"
+import { PageIntro } from "../components/ui/PageIntro"
+import { getStorefrontBrand, storefrontTitle } from "../lib/data/brand"
 
 export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getStorefrontBrand()
   return {
-    title: "Reviews | Openfront Salon",
-    description: "Read what our clients say about their experience at Openfront Salon",
+    title: await storefrontTitle("Reviews"),
+    description: brand.name ? `Client reviews from the ${brand.name} booking experience.` : "Client reviews from the salon booking experience.",
   }
+}
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          className={`h-3.5 w-3.5 ${
+            i < rating ? "fill-[var(--sf-accent)] text-[var(--sf-accent)]" : "text-[var(--sf-rule)]"
+          }`}
+        />
+      ))}
+    </div>
+  )
 }
 
 export async function ReviewsPage() {
   const reviews = await getApprovedReviews()
-
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-    : 0
-  const totalReviews = reviews.length
+  const averageRating =
+    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 to-primary/5 py-16 border-b">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-5xl font-bold mb-4">Client Reviews</h1>
-            <p className="text-xl text-muted-foreground mb-6">
-              See what our clients are saying about their experience
-            </p>
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <span className="text-2xl font-bold">{averageRating.toFixed(1)}</span>
-              <span className="text-muted-foreground">({totalReviews} reviews)</span>
-            </div>
+    <div className="sf-page-pad">
+      <div className="sf-container">
+        <PageIntro
+          title="Client reviews"
+          description={
+            reviews.length > 0
+              ? `${reviews.length} approved ${reviews.length === 1 ? "review" : "reviews"} — average ${averageRating.toFixed(1)} stars.`
+              : "Approved client reviews will appear here as they are published."
+          }
+          size="large"
+        />
+
+        {reviews.length === 0 ? (
+          <div className="text-center py-[var(--sf-space-2xl)] border border-[var(--sf-rule)]">
+            <Star className="h-8 w-8 mx-auto mb-4 text-[var(--sf-ink-3)]" />
+            <h2 className="sf-display text-[var(--sf-text-2xl)] mb-2">No reviews yet</h2>
+
+            <Link href="/book" className="sf-btn sf-btn-primary">
+              Reserve a visit
+            </Link>
           </div>
-        </div>
-      </section>
+        ) : (
+          <ul className="grid gap-[var(--sf-space-md)] md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((review) => {
+              const timeAgo = formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })
+              const clientName = review.reviewerName || "Client"
+              const serviceName = review.service?.name
+              const stylistName = review.stylistName
 
-      {/* Reviews Grid */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            {reviews.length === 0 ? (
-              <div className="text-center py-20 border rounded-lg bg-muted/30">
-                <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
-                <p className="text-muted-foreground mb-6">
-                  Be the first to share your experience with us!
-                </p>
-                <Link
-                  href="/book"
-                  className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-8 py-3 font-medium hover:bg-primary/90 transition-all"
-                >
-                  Book an Appointment
-                </Link>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reviews.map((review) => {
-                  const timeAgo = formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })
-                  const clientName = review.client?.user?.name || "Anonymous"
-                  const serviceName = review.service?.name || ""
-                  const stylistName = review.stylist?.user?.name || ""
-
-                  return (
-                    <div
-                      key={review.id}
-                      className="p-6 border rounded-lg bg-card hover:shadow-lg transition-all"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="font-semibold text-lg">{clientName}</div>
-                          <div className="text-sm text-muted-foreground">{timeAgo}</div>
-                        </div>
-                        <Quote className="h-8 w-8 text-primary/20" />
-                      </div>
-
-                      <div className="flex items-center gap-1 mb-3">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < review.rating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-
-                      {(serviceName || stylistName) && (
-                        <div className="mb-3">
-                          {serviceName && (
-                            <span className="text-sm font-medium text-primary">{serviceName}</span>
-                          )}
-                          {stylistName && (
-                            <span className="text-sm text-muted-foreground"> with {stylistName}</span>
-                          )}
-                        </div>
-                      )}
-
-                      {review.comment && (
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          "{review.comment}"
-                        </p>
-                      )}
+              return (
+                <li key={review.id} className="sf-card p-[var(--sf-space-md)] flex flex-col">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="font-medium text-[var(--sf-ink)]">{clientName}</p>
+                      <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{timeAgo}</p>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                    <StarRow rating={review.rating} />
+                  </div>
 
-            {/* CTA */}
-            <div className="mt-12 text-center p-8 border rounded-lg bg-muted/30">
-              <h3 className="text-2xl font-semibold mb-2">Experience It Yourself</h3>
-              <p className="text-muted-foreground mb-6">
-                Join our satisfied clients and book your appointment today
-              </p>
-              <Link
-                href="/book"
-                className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-8 py-3 font-medium hover:bg-primary/90 transition-all"
-              >
-                Book an Appointment
-              </Link>
-            </div>
+                  {(serviceName || stylistName) && (
+                    <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-3">
+                      {serviceName}
+                      {serviceName && stylistName ? " with " : ""}
+                      {stylistName}
+                    </p>
+                  )}
+
+                  {review.comment ? (
+                    <blockquote className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] leading-relaxed flex-1">
+                      &ldquo;{review.comment}&rdquo;
+                    </blockquote>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {reviews.length > 0 ? (
+          <div className="mt-[var(--sf-space-xl)] pt-[var(--sf-space-lg)] border-t border-[var(--sf-rule)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="sf-display text-[clamp(1.35rem,2.5vw,1.85rem)]">Appointments</p>
+            <Link href="/book" className="sf-btn sf-btn-primary shrink-0">
+              Reserve online
+            </Link>
           </div>
-        </div>
-      </section>
+        ) : null}
+      </div>
     </div>
   )
 }

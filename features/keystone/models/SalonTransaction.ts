@@ -1,5 +1,4 @@
 import { list, graphql, group } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   select,
   relationship,
@@ -9,7 +8,10 @@ import {
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
+import { transactionReceiptTotals } from "../transactionReceipt";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -21,10 +23,17 @@ const formatCurrency = (amount: number): string => {
 export const SalonTransaction = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadSalonTransactions,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("salon_transaction", ["type", "tip", "paymentMethod", "paymentStatus", "status", "completedAt", "locationId", "clientId", "appointmentId", "staffId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["type", "client", "staff", "total", "paymentStatus", "status"],
     },
@@ -43,11 +52,21 @@ export const SalonTransaction = list({
       },
     }),
 
+    location: relationship({ ref: "Location" }),
+
     client: relationship({
       ref: "Client",
       ui: {
         displayMode: "select",
         description: "Client (optional for walk-ins)",
+      },
+    }),
+
+    appointment: relationship({
+      ref: "Appointment.transaction",
+      ui: {
+        displayMode: "select",
+        description: "Appointment being checked out",
       },
     }),
 
@@ -58,6 +77,8 @@ export const SalonTransaction = list({
         description: "Staff member who processed the transaction",
       },
     }),
+
+    reversals: relationship({ ref: "TransactionReversal.transaction", many: true }),
 
     lineItems: relationship({
       ref: "SalonTransactionLineItem.transaction",
@@ -128,14 +149,6 @@ export const SalonTransaction = list({
       },
     }),
 
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-      ui: {
-        createView: { fieldMode: "hidden" },
-        itemView: { fieldMode: "read" },
-      },
-    }),
-
     ...group({
       label: "Virtual Fields",
       description: "Calculated fields for transaction totals",
@@ -144,26 +157,13 @@ export const SalonTransaction = list({
           field: graphql.field({
             type: graphql.String,
             async resolve(item, args, context) {
+              const transactionId = (item as { id: string }).id;
               const transaction = await context.sudo().query.SalonTransaction.findOne({
-                where: { id: item.id },
-                query: `
-                  lineItems {
-                    quantity
-                    unitPrice
-                    discount
-                  }
-                `,
+                where: { id: transactionId },
+                query: "metadata lineItems { quantity unitPrice discount } appointment { payment { tax totalAmount } }",
               });
-
-              if (!transaction?.lineItems?.length) return "$0.00";
-
-              let subtotal = 0;
-              for (const lineItem of transaction.lineItems) {
-                const lineTotal = (lineItem.unitPrice * lineItem.quantity) - (lineItem.discount || 0);
-                subtotal += lineTotal;
-              }
-
-              return formatCurrency(subtotal);
+              const subtotal = transactionReceiptTotals(transaction || {}).subtotal;
+              return subtotal === null ? null : formatCurrency(subtotal);
             },
           }),
         }),
@@ -172,28 +172,13 @@ export const SalonTransaction = list({
           field: graphql.field({
             type: graphql.String,
             async resolve(item, args, context) {
+              const transactionId = (item as { id: string }).id;
               const transaction = await context.sudo().query.SalonTransaction.findOne({
-                where: { id: item.id },
-                query: `
-                  lineItems {
-                    quantity
-                    unitPrice
-                    discount
-                  }
-                `,
+                where: { id: transactionId },
+                query: "metadata appointment { payment { tax totalAmount } }",
               });
-
-              if (!transaction?.lineItems?.length) return "$0.00";
-
-              let subtotal = 0;
-              for (const lineItem of transaction.lineItems) {
-                const lineTotal = (lineItem.unitPrice * lineItem.quantity) - (lineItem.discount || 0);
-                subtotal += lineTotal;
-              }
-
-              // Assume 8% tax rate (should be configurable)
-              const tax = subtotal * 0.08;
-              return formatCurrency(tax);
+              const tax = transactionReceiptTotals(transaction || {}).tax;
+              return tax === null ? null : formatCurrency(tax);
             },
           }),
         }),
@@ -202,24 +187,13 @@ export const SalonTransaction = list({
           field: graphql.field({
             type: graphql.String,
             async resolve(item, args, context) {
+              const transactionId = (item as { id: string }).id;
               const transaction = await context.sudo().query.SalonTransaction.findOne({
-                where: { id: item.id },
-                query: `
-                  lineItems {
-                    discount
-                  }
-                `,
+                where: { id: transactionId },
+                query: "metadata lineItems { quantity unitPrice discount } appointment { payment { tax totalAmount } }",
               });
-
-              if (!transaction?.lineItems?.length) return "$0.00";
-
-              const totalDiscount = transaction.lineItems.reduce(
-                (sum, item) => sum + (item.discount || 0),
-                0
-              );
-
-              if (totalDiscount === 0) return "$0.00";
-              return formatCurrency(totalDiscount);
+              const discount = transactionReceiptTotals(transaction || {}).discount;
+              return discount === null ? null : formatCurrency(discount);
             },
           }),
         }),
@@ -228,34 +202,19 @@ export const SalonTransaction = list({
           field: graphql.field({
             type: graphql.String,
             async resolve(item, args, context) {
+              const transactionId = (item as { id: string }).id;
               const transaction = await context.sudo().query.SalonTransaction.findOne({
-                where: { id: item.id },
-                query: `
-                  lineItems {
-                    quantity
-                    unitPrice
-                    discount
-                  }
-                  tip
-                `,
+                where: { id: transactionId },
+                query: "metadata appointment { payment { tax totalAmount } }",
               });
-
-              if (!transaction?.lineItems?.length) return "$0.00";
-
-              let subtotal = 0;
-              for (const lineItem of transaction.lineItems) {
-                const lineTotal = (lineItem.unitPrice * lineItem.quantity) - (lineItem.discount || 0);
-                subtotal += lineTotal;
-              }
-
-              const tax = subtotal * 0.08;
-              const total = subtotal + tax + (transaction.tip || 0);
-
-              return formatCurrency(total);
+              const total = transactionReceiptTotals(transaction || {}).total;
+              return total === null ? null : formatCurrency(total);
             },
           }),
         }),
       },
     }),
+
+    ...trackingFields,
   },
 });

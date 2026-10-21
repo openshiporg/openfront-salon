@@ -1,5 +1,5 @@
-import { StylistsPage, generateMetadata } from "@/features/storefront/screens/StylistsPage"
+import { redirect } from "next/navigation"
 
-export { generateMetadata }
-
-export default StylistsPage
+export default function Page() {
+  redirect("/team")
+}

@@ -1,5 +1,4 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
@@ -9,15 +8,28 @@ import {
   integer,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const StylistSchedule = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: ({ session }) => {
+        if (permissions.canManageSchedules({ session })) return true;
+        if (permissions.canManageOwnSchedule({ session }) && session?.itemId) return { stylist: { user: { id: { equals: session.itemId } } } };
+        return { isAvailable: { equals: true }, type: { in: ["recurring", "one_time"] } };
+      },
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("stylist_schedule", ["type", "dayOfWeek", "localDate", "startTime", "endTime", "isAvailable", "revision", "stylistId", "locationId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["stylist", "dayOfWeek", "startTime", "endTime", "isAvailable"],
     },
@@ -33,6 +45,22 @@ export const StylistSchedule = list({
       defaultValue: "recurring",
       validation: {
         isRequired: true,
+      },
+    }),
+
+    idempotencyKey: text({
+      validation: { isRequired: true },
+      isIndexed: "unique",
+      ui: {
+        description: "Stable workflow key for idempotent schedule creation",
+      },
+    }),
+
+    revision: integer({
+      defaultValue: 1,
+      validation: { isRequired: true, min: 1 },
+      ui: {
+        description: "Optimistic concurrency revision managed by schedule workflows",
       },
     }),
 
@@ -61,7 +89,13 @@ export const StylistSchedule = list({
       ],
     }),
 
-    // Date for one-time or time-off entries
+    localDate: text({
+      ui: {
+        description: "Salon-local YYYY-MM-DD date for one-time and time-off entries",
+      },
+    }),
+
+    // Legacy timestamp mirror for one-time or time-off entries
     date: timestamp({
       ui: {
         description: "Specific date for one-time schedule or time-off",
@@ -135,6 +169,8 @@ export const StylistSchedule = list({
       },
     }),
 
+    location: relationship({ ref: "Location.schedules" }),
+
     // Relationship to stylist
     stylist: relationship({
       ref: "Stylist.schedules",
@@ -142,5 +178,7 @@ export const StylistSchedule = list({
         displayMode: "select",
       },
     }),
+
+    ...trackingFields,
   },
 });

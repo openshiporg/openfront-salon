@@ -7,21 +7,38 @@ import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { permissions } from "./access";
 
-const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required`);
+  return value;
+}
+
+function productionEnv(name: string, developmentFallback: string): string {
+  if (process.env[name]) return process.env[name]!;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${name} is required in production`);
+  }
+  return developmentFallback;
+}
+
+const databaseURL = requiredEnv("DATABASE_URL");
+const sessionSecret = requiredEnv("SESSION_SECRET");
+if (sessionSecret.length < 32) {
+  throw new Error("SESSION_SECRET must be at least 32 characters long");
+}
+
+export const basePath = "/dashboard";
 
 const sessionConfig = {
   maxAge: 60 * 60 * 24 * 360, // How long they stay signed in?
-  secret:
-    process.env.SESSION_SECRET || "this secret should only be used in testing",
+  secret: sessionSecret,
 };
 
-const {
-  S3_BUCKET_NAME: bucketName = "keystone-test",
-  S3_REGION: region = "ap-southeast-2",
-  S3_ACCESS_KEY_ID: accessKeyId = "keystone",
-  S3_SECRET_ACCESS_KEY: secretAccessKey = "keystone",
-  S3_ENDPOINT: endpoint = "https://sfo3.digitaloceanspaces.com",
-} = process.env;
+const bucketName = productionEnv("S3_BUCKET_NAME", "keystone-test");
+const region = productionEnv("S3_REGION", "ap-southeast-2");
+const accessKeyId = productionEnv("S3_ACCESS_KEY_ID", "keystone");
+const secretAccessKey = productionEnv("S3_SECRET_ACCESS_KEY", "keystone");
+const endpoint = productionEnv("S3_ENDPOINT", "https://sfo3.digitaloceanspaces.com");
 
 const { withAuth } = createAuth({
   listKey: "User",
@@ -33,13 +50,26 @@ const { withAuth } = createAuth({
       role: {
         create: {
           name: "Admin",
-          canCreateTodos: true,
-          canManageAllTodos: true,
           canSeeOtherPeople: true,
           canEditOtherPeople: true,
           canManagePeople: true,
           canManageRoles: true,
           canAccessDashboard: true,
+          canManageSalon: true,
+          canManageAppointments: true,
+          canManageClients: true,
+          canManageCareRecords: true,
+          canManageCatalog: true,
+          canManageSchedules: true,
+          canManageOwnSchedule: true,
+          canManageResources: true,
+          canManageInventory: true,
+          canManagePayments: true,
+          canIssueRefunds: true,
+          canManageCommissions: true,
+          canViewReports: true,
+          canManageIntegrations: true,
+          canManageOnboarding: true,
         },
       },
     },
@@ -56,13 +86,26 @@ const { withAuth } = createAuth({
     role {
       id
       name
-      canCreateTodos
-      canManageAllTodos
       canSeeOtherPeople
       canEditOtherPeople
       canManagePeople
       canManageRoles
       canAccessDashboard
+      canManageSalon
+      canManageAppointments
+      canManageClients
+      canManageCareRecords
+      canManageCatalog
+      canManageSchedules
+      canManageOwnSchedule
+      canManageResources
+      canManageInventory
+      canManagePayments
+      canIssueRefunds
+      canManageCommissions
+      canViewReports
+      canManageIntegrations
+      canManageOnboarding
     }
   `,
 });
@@ -89,6 +132,7 @@ export default withAuth(
     },
     ui: {
       isAccessAllowed: ({ session }) => permissions.canAccessDashboard({ session }),
+      basePath,
     },
     session: statelessSessions(sessionConfig),
     graphql: {

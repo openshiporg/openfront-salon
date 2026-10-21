@@ -4,26 +4,34 @@ import {
   text,
   relationship,
   select,
-  float,
+  integer,
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const GiftCardTransaction = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadGiftCardTransactions,
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["giftCard", "amount", "type", "createdAt"],
     },
   },
   fields: {
     // Transaction amount
-    amount: float({
+    amount: integer({
       validation: { isRequired: true },
       ui: {
         description: "Transaction amount (positive for purchase/refund, negative for redemption)",
@@ -44,11 +52,11 @@ export const GiftCardTransaction = list({
       },
     }),
 
-    // Timestamps
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
+    idempotencyKey: text({
+      validation: { isRequired: true },
+      isIndexed: "unique",
       ui: {
-        description: "When the transaction occurred",
+        description: "Workflow idempotency key that produced this immutable balance event",
       },
     }),
 
@@ -77,5 +85,6 @@ export const GiftCardTransaction = list({
         description: "Appointment this redemption was applied to (if applicable)",
       },
     }),
+    ...trackingFields,
   },
 });

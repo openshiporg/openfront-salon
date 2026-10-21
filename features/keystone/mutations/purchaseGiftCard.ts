@@ -1,241 +1,282 @@
+import { createHash } from "node:crypto";
 import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
+import { permissions } from "../access";
 import { sendGiftCardEmail } from "../lib/mail";
+import { getStorefrontMessageBrand } from "../lib/storefrontBranding";
+import { assertPaymentTransition, paymentRecordStatus, type PaymentLifecycleStatus } from "../payment-lifecycle";
+import { confirmProviderPayment, createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
+import { serializableWorkflow } from "./serializableWorkflow";
 
-// Stripe configuration (from environment variables)
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-
-// Initialize Stripe if key is available
-let stripe: any = null;
-if (STRIPE_SECRET_KEY) {
-  import("stripe").then((Stripe) => {
-    stripe = new Stripe.default(STRIPE_SECRET_KEY);
-  }).catch(() => {
-    console.warn("Stripe module not installed. Gift card processing disabled.");
-  });
+function giftCardCode(idempotencyKey: string) {
+  const compact = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 12).toUpperCase();
+  return compact.match(/.{1,4}/g)!.join("-");
 }
 
-// Generate a unique gift card code
-function generateGiftCardCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Excluding confusing characters
-  let code = "";
-  for (let i = 0; i < 12; i++) {
-    if (i > 0 && i % 4 === 0) code += "-";
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+function paymentOperator(context: Context) {
+  return permissions.canManagePayments({ session: context.session as any });
+}
+
+function validKey(value: string) {
+  return value.trim().length >= 12 && value.length <= 200;
+}
+
+function safeError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Gift-card payment operation failed";
+  if (/^(Gift card|Payment|Provider|Purchaser|Idempotency|Invalid payment transition)/.test(message)) return message;
+  console.error("Gift-card payment workflow failed:", error);
+  return "Gift-card payment operation failed";
+}
+
+async function defaultProvider(sudo: Context, providerCode?: string | null) {
+  const providers = await sudo.query.PaymentProvider.findMany({
+    where: providerCode
+      ? { code: { equals: providerCode }, isInstalled: { equals: true } }
+      : { isInstalled: { equals: true }, isDefault: { equals: true } },
+    take: 1,
+    query: "id code adapter config",
+  });
+  if (!providers[0]) throw new Error("Payment provider is unavailable");
+  return providers[0];
+}
+
+type PurchaseResult = { success: boolean; giftCardId: string | null; paymentSessionId: string | null; clientSecret: string | null; error: string | null };
+
+export async function purchaseGiftCardTransaction(
+  context: Context,
+  args: {
+    amount: number; recipientEmail?: string | null; recipientName?: string | null; message?: string | null;
+    purchaserEmail: string; purchaserName: string; providerCode?: string | null; idempotencyKey: string;
+  },
+): Promise<PurchaseResult> {
+  const denied = { success: false, giftCardId: null, paymentSessionId: null, clientSecret: null };
+  if (!paymentOperator(context)) return { ...denied, error: "You must have payment authority" };
+  if (!Number.isInteger(args.amount) || args.amount < 2_500 || args.amount > 50_000) return { ...denied, error: "Gift card amount must be between $25 and $500" };
+  if (!validKey(args.idempotencyKey)) return { ...denied, error: "Idempotency key is invalid" };
+  const purchaserEmail = args.purchaserEmail.trim().toLowerCase();
+  const recipientEmail = (args.recipientEmail || purchaserEmail).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(purchaserEmail) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) return { ...denied, error: "Gift card email is invalid" };
+  if (args.purchaserName.trim().length > 120 || (args.recipientName?.length || 0) > 120 || (args.message?.length || 0) > 2_000) return { ...denied, error: "Gift card details are too long" };
+
+  try {
+    return await serializableWorkflow(context, "salon-gift-card", [`purchase:${args.idempotencyKey}`], async (transactionContext) => {
+      const sudo = transactionContext.sudo();
+      const existing = (await sudo.query.PaymentSession.findMany({
+        where: { idempotencyKey: { equals: args.idempotencyKey } }, take: 1,
+        query: "id amount data",
+      }))[0];
+      if (existing) {
+        const data = existing.data && typeof existing.data === "object" ? existing.data as Record<string, any> : {};
+        if (data.purpose !== "gift_card" || existing.amount !== args.amount) throw new Error("Idempotency key was already used for another operation");
+        return { success: true, giftCardId: data.giftCardId || null, paymentSessionId: existing.id, clientSecret: data.clientSecret || null, error: null };
+      }
+      const purchaser = (await sudo.query.User.findMany({ where: { email: { equals: purchaserEmail } }, take: 1, query: "id" }))[0];
+      if (!purchaser) throw new Error("Purchaser must have an authenticated client account");
+      const provider = await defaultProvider(sudo, args.providerCode);
+      if (provider.adapter !== "manual") throw new Error("Provider online gift-card collection is unavailable; use collected tender");
+      const adapter = await createProviderPaymentSession({
+        provider: paymentProviderFromRecord(provider as { code: string; adapter: string; config?: unknown }),
+        amount: args.amount, currency: "usd", idempotencyKey: args.idempotencyKey,
+        metadata: { purpose: "gift_card", purchaserId: purchaser.id },
+      });
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      const completed = adapter.status === "completed";
+      const giftCard = await sudo.query.GiftCard.createOne({
+        data: {
+          code: giftCardCode(args.idempotencyKey), initialValue: args.amount, currentBalance: args.amount,
+          recipientEmail, recipientName: args.recipientName?.trim() || args.purchaserName.trim(),
+          message: args.message?.trim() || "", expiresAt: expiresAt.toISOString(), isActive: completed,
+          purchasedBy: { connect: { id: purchaser.id } },
+        },
+        query: "id",
+      });
+      const now = new Date().toISOString();
+      const session = await sudo.query.PaymentSession.createOne({
+        data: {
+          provider: { connect: { id: provider.id } }, idempotencyKey: args.idempotencyKey,
+          amount: args.amount, currency: "usd", status: adapter.status, providerReference: adapter.providerReference,
+          completedAt: completed ? now : undefined,
+          data: { ...(adapter.data || {}), purpose: "gift_card", clientSecret: adapter.clientSecret || null, giftCardId: giftCard.id },
+        },
+        query: "id",
+      });
+      const payment = await sudo.query.Payment.createOne({
+        data: {
+          subtotal: args.amount, tax: 0, tip: 0, discount: 0, totalAmount: args.amount,
+          paymentMethod: "credit_card", status: paymentRecordStatus(adapter.status),
+          session: { connect: { id: session.id } }, processedBy: { connect: { id: context.session!.itemId } },
+          processedAt: completed ? now : undefined, receiptEmail: purchaserEmail,
+          notes: `Gift-card purchase ${giftCard.id}`,
+        },
+        query: "id",
+      });
+      await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { payment: { connect: { id: payment.id } } }, query: "id" });
+      if (completed) {
+        await sudo.query.GiftCardTransaction.createOne({
+          data: { giftCard: { connect: { id: giftCard.id } }, type: "purchase", amount: args.amount, idempotencyKey: `${args.idempotencyKey}:purchase`, notes: `provider:${provider.code}` },
+          query: "id",
+        });
+      }
+      return { success: true, giftCardId: giftCard.id, paymentSessionId: session.id, clientSecret: adapter.clientSecret || null, error: null };
+    });
+  } catch (error) {
+    return { ...denied, error: safeError(error) };
   }
-  return code;
 }
 
 export const purchaseGiftCard = graphql.field({
-  type: graphql.object<{
-    success: boolean;
-    giftCardId: string | null;
-    clientSecret: string | null;
-    error: string | null;
-  }>()({
+  type: graphql.object<PurchaseResult>()({
     name: "PurchaseGiftCardResult",
     fields: {
-      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
-      giftCardId: graphql.field({ type: graphql.String }),
-      clientSecret: graphql.field({ type: graphql.String }),
-      error: graphql.field({ type: graphql.String }),
+      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), giftCardId: graphql.field({ type: graphql.String }),
+      paymentSessionId: graphql.field({ type: graphql.String }), clientSecret: graphql.field({ type: graphql.String }), error: graphql.field({ type: graphql.String }),
     },
   }),
   args: {
-    amount: graphql.arg({ type: graphql.nonNull(graphql.Float) }),
-    recipientEmail: graphql.arg({ type: graphql.String }),
-    recipientName: graphql.arg({ type: graphql.String }),
-    message: graphql.arg({ type: graphql.String }),
-    purchaserEmail: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    purchaserName: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    amount: graphql.arg({ type: graphql.nonNull(graphql.Int) }), recipientEmail: graphql.arg({ type: graphql.String }),
+    recipientName: graphql.arg({ type: graphql.String }), message: graphql.arg({ type: graphql.String }),
+    purchaserEmail: graphql.arg({ type: graphql.nonNull(graphql.String) }), purchaserName: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    providerCode: graphql.arg({ type: graphql.String }), idempotencyKey: graphql.arg({ type: graphql.nonNull(graphql.String) }),
   },
-  async resolve(
-    source,
-    { amount, recipientEmail, recipientName, message, purchaserEmail, purchaserName },
-    context: Context
-  ) {
-    try {
-      // Validate amount
-      if (amount < 25 || amount > 500) {
-        return {
-          success: false,
-          giftCardId: null,
-          clientSecret: null,
-          error: "Gift card amount must be between $25 and $500",
-        };
-      }
-
-      // Generate unique code
-      const code = generateGiftCardCode();
-
-      // Calculate expiration date (1 year from now, or never expires)
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-      // Create Stripe Payment Intent
-      if (!stripe) {
-        return {
-          success: false,
-          giftCardId: null,
-          clientSecret: null,
-          error: "Payment processing is not available. Please contact support.",
-        };
-      }
-
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Stripe uses cents
-        currency: "usd",
-        metadata: {
-          type: "gift_card",
-          code,
-          purchaserEmail,
-          recipientEmail: recipientEmail || purchaserEmail,
-        },
-        receipt_email: purchaserEmail,
-      });
-
-      // Create the gift card (will be activated once payment is confirmed)
-      const giftCard = await context.db.GiftCard.createOne({
-        data: {
-          code,
-          initialValue: amount,
-          currentBalance: amount,
-          recipientEmail: recipientEmail || purchaserEmail,
-          recipientName: recipientName || purchaserName,
-          message: message || "",
-          expiresAt,
-          isActive: false, // Will be activated when payment is confirmed
-        },
-      });
-
-      // Create initial transaction record
-      await context.db.GiftCardTransaction.createOne({
-        data: {
-          giftCard: { connect: { id: giftCard.id } },
-          type: "purchase",
-          amount,
-        },
-      });
-
-      return {
-        success: true,
-        giftCardId: giftCard.id,
-        clientSecret: paymentIntent.client_secret,
-        error: null,
-      };
-    } catch (error: any) {
-      console.error("Gift card purchase error:", error);
-      return {
-        success: false,
-        giftCardId: null,
-        clientSecret: null,
-        error: error.message || "Failed to process gift card purchase",
-      };
-    }
-  },
+  resolve(_source, args, context: Context) { return purchaseGiftCardTransaction(context, args); },
 });
+
+type ConfirmResult = { success: boolean; error: string | null; code: string | null };
+
+export async function confirmGiftCardPurchaseTransaction(context: Context, paymentSessionId: string): Promise<ConfirmResult> {
+  if (!paymentOperator(context)) return { success: false, error: "You must have payment authority", code: null };
+  try {
+    const result = await serializableWorkflow(context, "salon-gift-card", [`session:${paymentSessionId}`], async (transactionContext) => {
+      const sudo = transactionContext.sudo();
+      const session = await sudo.query.PaymentSession.findOne({
+        where: { id: paymentSessionId },
+        query: "id status providerReference idempotencyKey amount data payment { id } provider { code adapter config }",
+      });
+      if (!session?.provider || !session.providerReference || !session.payment) throw new Error("Payment session not found");
+      const data = session.data && typeof session.data === "object" ? session.data as Record<string, any> : {};
+      if (data.purpose !== "gift_card" || !data.giftCardId) throw new Error("Gift card session is invalid");
+      const giftCard = await sudo.query.GiftCard.findOne({ where: { id: data.giftCardId }, query: "id code initialValue recipientEmail recipientName isActive" });
+      if (!giftCard) throw new Error("Gift card not found");
+      if (session.status === "completed" && giftCard.isActive) return { code: giftCard.code, email: null as null | { to: string; recipientName: string; amount: number; code: string } };
+      assertPaymentTransition(session.status as PaymentLifecycleStatus, "completed");
+      if (session.provider.adapter !== "manual") throw new Error("Provider online gift-card confirmation is unavailable");
+      const providerResult = await confirmProviderPayment({
+        provider: paymentProviderFromRecord(session.provider as { code: string; adapter: string; config?: unknown }),
+        providerReference: session.providerReference, amount: session.amount,
+        idempotencyKey: `${session.idempotencyKey}:confirm`,
+      });
+      assertPaymentTransition(session.status as PaymentLifecycleStatus, providerResult.status);
+      if (providerResult.status !== "completed") throw new Error("Provider has not completed the payment");
+      const now = new Date().toISOString();
+      await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { status: "completed", completedAt: now, data: { ...data, ...(providerResult.data || {}) } }, query: "id" });
+      await sudo.query.Payment.updateOne({ where: { id: session.payment.id }, data: { status: "completed", processedAt: now }, query: "id" });
+      await sudo.query.GiftCard.updateOne({ where: { id: giftCard.id }, data: { isActive: true }, query: "id" });
+      const existingPurchase = (await sudo.query.GiftCardTransaction.findMany({ where: { idempotencyKey: { equals: `${session.idempotencyKey}:purchase` } }, take: 1, query: "id" }))[0];
+      if (!existingPurchase) {
+        await sudo.query.GiftCardTransaction.createOne({
+          data: { giftCard: { connect: { id: giftCard.id } }, type: "purchase", amount: giftCard.initialValue, idempotencyKey: `${session.idempotencyKey}:purchase`, notes: `provider:${session.provider.code}` },
+          query: "id",
+        });
+      }
+      return {
+        code: giftCard.code,
+        email: giftCard.recipientEmail ? { to: giftCard.recipientEmail, recipientName: giftCard.recipientName || "There", amount: giftCard.initialValue / 100, code: giftCard.code || "" } : null,
+      };
+    });
+    if (result.email && process.env.NODE_ENV !== "test") {
+      try {
+        const messageBrand = await getStorefrontMessageBrand(context);
+        await sendGiftCardEmail({ ...result.email, senderName: "A client", storefrontName: messageBrand.name, themeHue: messageBrand.themeHue });
+      } catch (error) { console.error("Gift card email failed:", error); }
+    }
+    return { success: true, error: null, code: result.code };
+  } catch (error) {
+    return { success: false, error: safeError(error), code: null };
+  }
+}
 
 export const confirmGiftCardPurchase = graphql.field({
-  type: graphql.object<{
-    success: boolean;
-    error: string | null;
-    code: string | null;
-  }>()({
+  type: graphql.object<ConfirmResult>()({
     name: "ConfirmGiftCardPurchaseResult",
+    fields: { success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), error: graphql.field({ type: graphql.String }), code: graphql.field({ type: graphql.String }) },
+  }),
+  args: { paymentSessionId: graphql.arg({ type: graphql.nonNull(graphql.ID) }) },
+  resolve(_source, { paymentSessionId }, context: Context) { return confirmGiftCardPurchaseTransaction(context, paymentSessionId); },
+});
+
+type BalanceResult = { success: boolean; giftCardId: string | null; transactionId: string | null; currentBalance: number | null; error: string | null };
+
+export async function applyGiftCardBalanceTransaction(
+  context: Context,
+  args: { giftCardId: string; action: string; amount: number; appointmentId?: string | null; reason?: string | null; idempotencyKey: string },
+): Promise<BalanceResult> {
+  const denied = { success: false, giftCardId: null, transactionId: null, currentBalance: null };
+  if (args.action === "refund") {
+    if (!permissions.canIssueRefunds({ session: context.session as any })) return { ...denied, error: "You must have refund authority" };
+  } else if (!paymentOperator(context)) {
+    return { ...denied, error: "You must have payment authority" };
+  }
+  if (!new Set(["redemption", "refund"]).has(args.action)) return { ...denied, error: "Gift card action is invalid" };
+  if (!Number.isInteger(args.amount) || args.amount <= 0 || args.amount > 10_000_000) return { ...denied, error: "Gift card amount must be positive integer cents" };
+  if (!validKey(args.idempotencyKey)) return { ...denied, error: "Idempotency key is invalid" };
+  if ((args.reason?.length || 0) > 1_000) return { ...denied, error: "Gift card reason is too long" };
+
+  try {
+    return await serializableWorkflow(context, "salon-gift-card", [`card:${args.giftCardId}`, `balance:${args.idempotencyKey}`], async (transactionContext) => {
+      const sudo = transactionContext.sudo();
+      const existing = (await sudo.query.GiftCardTransaction.findMany({
+        where: { idempotencyKey: { equals: args.idempotencyKey } }, take: 1,
+        query: "id type amount giftCard { id currentBalance } appointment { id }",
+      }))[0];
+      if (existing) {
+        if (existing.giftCard?.id !== args.giftCardId || existing.type !== args.action || Math.abs(existing.amount) !== args.amount || (existing.appointment?.id || null) !== (args.appointmentId || null)) {
+          throw new Error("Idempotency key was already used for another gift card operation");
+        }
+        return { success: true, giftCardId: args.giftCardId, transactionId: existing.id, currentBalance: existing.giftCard.currentBalance, error: null };
+      }
+      const giftCard = await sudo.query.GiftCard.findOne({ where: { id: args.giftCardId }, query: "id initialValue currentBalance isActive expiresAt" });
+      if (!giftCard) throw new Error("Gift card not found");
+      if (giftCard.expiresAt && new Date(giftCard.expiresAt).getTime() <= Date.now()) throw new Error("Gift card has expired");
+      if (args.action === "redemption" && (!giftCard.isActive || giftCard.currentBalance < args.amount)) throw new Error("Gift card has insufficient available balance");
+      if (args.action === "refund" && giftCard.currentBalance + args.amount > giftCard.initialValue) throw new Error("Gift card refund exceeds its original value");
+      if (args.appointmentId) {
+        const appointment = await sudo.query.Appointment.findOne({ where: { id: args.appointmentId }, query: "id status" });
+        if (!appointment) throw new Error("Gift card appointment not found");
+      }
+      const currentBalance = args.action === "redemption" ? giftCard.currentBalance - args.amount : giftCard.currentBalance + args.amount;
+      const transaction = await sudo.query.GiftCardTransaction.createOne({
+        data: {
+          giftCard: { connect: { id: giftCard.id } }, type: args.action,
+          amount: args.action === "redemption" ? -args.amount : args.amount,
+          appointment: args.appointmentId ? { connect: { id: args.appointmentId } } : undefined,
+          idempotencyKey: args.idempotencyKey, notes: args.reason?.trim() || "",
+        },
+        query: "id",
+      });
+      await sudo.query.GiftCard.updateOne({ where: { id: giftCard.id }, data: { currentBalance, isActive: currentBalance > 0 }, query: "id" });
+      return { success: true, giftCardId: giftCard.id, transactionId: transaction.id, currentBalance, error: null };
+    });
+  } catch (error) {
+    return { ...denied, error: safeError(error) };
+  }
+}
+
+export const applyGiftCardBalance = graphql.field({
+  type: graphql.object<BalanceResult>()({
+    name: "ApplyGiftCardBalanceResult",
     fields: {
-      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
+      success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), giftCardId: graphql.field({ type: graphql.ID }),
+      transactionId: graphql.field({ type: graphql.ID }), currentBalance: graphql.field({ type: graphql.Int }),
       error: graphql.field({ type: graphql.String }),
-      code: graphql.field({ type: graphql.String }),
     },
   }),
   args: {
-    giftCardId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
-    stripePaymentIntentId: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    giftCardId: graphql.arg({ type: graphql.nonNull(graphql.ID) }), action: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    amount: graphql.arg({ type: graphql.nonNull(graphql.Int) }), appointmentId: graphql.arg({ type: graphql.ID }),
+    reason: graphql.arg({ type: graphql.String }), idempotencyKey: graphql.arg({ type: graphql.nonNull(graphql.String) }),
   },
-  async resolve(source, { giftCardId, stripePaymentIntentId }, context: Context) {
-    try {
-      // Verify payment with Stripe
-      if (!stripe) {
-        return {
-          success: false,
-          error: "Payment verification not available",
-          code: null,
-        };
-      }
-
-      const paymentIntent = await stripe.paymentIntents.retrieve(stripePaymentIntentId);
-
-      if (paymentIntent.status !== "succeeded") {
-        return {
-          success: false,
-          error: `Payment not completed. Status: ${paymentIntent.status}`,
-          code: null,
-        };
-      }
-
-      // Activate the gift card and get full details
-      const giftCard = await context.query.GiftCard.findOne({
-        where: { id: giftCardId },
-        query: `
-          id
-          code
-          initialValue
-          recipientEmail
-          recipientName
-        `,
-      });
-
-      if (!giftCard) {
-        return {
-          success: false,
-          error: "Gift card not found",
-          code: null,
-        };
-      }
-
-      // Activate the gift card
-      await context.db.GiftCard.updateOne({
-        where: { id: giftCardId },
-        data: {
-          isActive: true,
-        },
-      });
-
-      // Send email with gift card details
-      try {
-        // Get purchaser name from payment metadata
-        const purchaserName = paymentIntent.metadata.purchaserEmail || "A friend";
-
-        await sendGiftCardEmail({
-          to: giftCard.recipientEmail || "",
-          recipientName: giftCard.recipientName || "There",
-          senderName: purchaserName,
-          amount: giftCard.initialValue,
-          code: giftCard.code || "",
-          message: undefined, // Could be added to metadata
-        });
-      } catch (emailError) {
-        console.error("Failed to send gift card email:", emailError);
-        // Don't fail the confirmation if email fails
-      }
-
-      return {
-        success: true,
-        error: null,
-        code: giftCard.code,
-      };
-    } catch (error: any) {
-      console.error("Gift card confirmation error:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to confirm gift card purchase",
-        code: null,
-      };
-    }
-  },
+  resolve(_source, args, context: Context) { return applyGiftCardBalanceTransaction(context, args); },
 });
 
-export const giftCardMutations = {
-  purchaseGiftCard,
-  confirmGiftCardPurchase,
-};
+export const giftCardMutations = { purchaseGiftCard, confirmGiftCardPurchase, applyGiftCardBalance };

@@ -7,12 +7,20 @@ import {
   json,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+
+import { trackingFields } from "./trackingFields";
 
 export const ClientPoints = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: permissions.canManageClients,
+      update: permissions.canManageClients,
+      delete: permissions.canManageClients,
+    },
+    filter: {
+      query: rules.canReadClientPoints,
     },
   },
   graphql: {
@@ -26,7 +34,7 @@ export const ClientPoints = list({
   fields: {
     // Link to User/Client
     client: relationship({
-      ref: "User",
+      ref: "User.clientPointsRecords",
       ui: {
         displayMode: "select",
         description: "The client who owns these points",
@@ -56,9 +64,9 @@ export const ClientPoints = list({
       defaultValue: [],
       ui: {
         description: "Array of point transactions with date, amount, and reason",
-        views: "./features/keystone/fields/json-view",
         createView: { fieldMode: "hidden" },
       },
     }),
+    ...trackingFields,
   },
 });

@@ -7,14 +7,23 @@ import {
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { validateCarePhotos } from "../privacy";
+
+import { trackingFields } from "./trackingFields";
 
 export const ColorFormula = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: permissions.canManageCareRecords,
+      create: permissions.canManageCareRecords,
+      // Preserve the exact formula used for each service. A correction is a
+      // new formula record, not a destructive edit of client history.
+      update: () => false,
+      delete: () => false,
     },
   },
+  hooks: { validateInput: validateCarePhotos },
   ui: {
     listView: {
       initialColumns: ["formulaName", "client", "stylist", "createdAt"],
@@ -56,11 +65,7 @@ export const ColorFormula = list({
       },
     }),
 
-    createdAt: timestamp({
-      defaultValue: { kind: "now" },
-    }),
-
-    // Relationships
+// Relationships
     client: relationship({
       ref: "Client.colorFormulas",
       ui: {
@@ -91,5 +96,6 @@ export const ColorFormula = list({
         cardFields: ["image", "altText"],
       },
     }),
+    ...trackingFields,
   },
 });

@@ -4,14 +4,15 @@ import {
   text,
   relationship,
   integer,
-  float,
   checkbox,
   json,
   select,
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions } from "../access";
+import { trackingFields } from "./trackingFields";
+import { workflowOwned } from "../privacy";
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-US", {
@@ -23,10 +24,21 @@ const formatCurrency = (amount: number): string => {
 export const Service = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      // Keep core service writes on the validated, auditable catalog workflow.
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: ({ session }) => session ? true : { AND: [
+        { status: { equals: "active" } },
+        { requiresConsultation: { equals: false } },
+        { requiresPatchTest: { equals: false } },
+      ] },
     },
   },
-  ui: {
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "category", "basePrice", "baseDuration"],
     },
@@ -60,10 +72,10 @@ export const Service = list({
       },
     }),
 
-    // Keep legacy float field for backwards compatibility
-    basePrice: float({
+    // Deprecated alias retained for API compatibility; values are cents.
+    basePrice: integer({
       ui: {
-        description: "Base price for the service (legacy - use price field)",
+        description: "Base price in cents (deprecated; use price)",
       },
     }),
 
@@ -128,7 +140,9 @@ export const Service = list({
       ref: "SalonImage",
       ui: {
         displayMode: "cards",
-        cardFields: ["image", "altText"],
+        cardFields: ["image", "imagePath", "altText"],
+        inlineCreate: { fields: ["imagePath", "altText"] },
+        inlineEdit: { fields: ["imagePath", "altText"] },
       },
     }),
 
@@ -141,12 +155,29 @@ export const Service = list({
       },
     }),
 
-    reviews: relationship({
-      ref: "Review.service",
+    requiredResources: relationship({
+      ref: "SalonResource.services",
       many: true,
       ui: {
         displayMode: "count",
+        description: "Rooms, chairs, stations, or equipment required to deliver this service",
       },
+    }),
+
+    reviews: relationship({
+      ref: "Review.service",
+      many: true,
+      access: workflowOwned,
+      ui: {
+        displayMode: "count",
+      },
+    }),
+
+    segmentDefinitions: relationship({
+      ref: "ServiceSegment.service",
+      many: true,
+      access: workflowOwned,
+      ui: { displayMode: "count", description: "Effective-dated, append-only service timing segments" },
     }),
 
     variants: relationship({
@@ -165,8 +196,9 @@ export const Service = list({
       field: graphql.field({
         type: graphql.String,
         async resolve(item, args, context) {
+          const serviceId = (item as { id: string }).id;
           const service = await context.sudo().query.Service.findOne({
-            where: { id: item.id },
+            where: { id: serviceId },
             query: "price",
           });
 
@@ -175,5 +207,7 @@ export const Service = list({
         },
       }),
     }),
+
+    ...trackingFields,
   },
 });

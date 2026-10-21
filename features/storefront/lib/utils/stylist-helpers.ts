@@ -5,34 +5,23 @@
 
 export type StylistSchedule = {
   id: string
-  dayOfWeek: number
+  dayOfWeek: number | null
   startTime: string
   endTime: string
   isAvailable: boolean
 }
 
 /**
- * Calculate years of experience from hire date
- */
-export function calculateYearsExperience(hireDate: string | null): number {
-  if (!hireDate) return 0
-  const hire = new Date(hireDate)
-  const now = new Date()
-  const years = Math.floor((now.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365))
-  return Math.max(0, years)
-}
-
-/**
  * Get tier display name
  */
-export function getTierDisplayName(tier: string): string {
+export function getTierDisplayName(tier: string | null): string {
   const tierNames: Record<string, string> = {
     junior: "Junior Stylist",
     senior: "Senior Stylist",
     master: "Master Stylist",
     celebrity: "Celebrity Stylist",
   }
-  return tierNames[tier] || tier
+  return tier ? tierNames[tier] || tier : "Stylist"
 }
 
 /**
@@ -42,6 +31,6 @@ export function getAvailableDays(schedules: StylistSchedule[]): string[] {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   return schedules
     .filter((s) => s.isAvailable)
-    .map((s) => dayNames[s.dayOfWeek])
+    .flatMap((s) => s.dayOfWeek == null ? [] : [dayNames[s.dayOfWeek]])
     .filter(Boolean)
 }

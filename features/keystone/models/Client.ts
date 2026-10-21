@@ -1,25 +1,33 @@
 import { list, graphql, group } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   text,
   relationship,
   select,
   integer,
-  float,
   timestamp,
   checkbox,
   virtual,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { permissions, rules } from "../access";
+import { ownCareRead } from "../privacy";
+import { createLifecycleHooks } from "../lifecycle";
+import { trackingFields } from "./trackingFields";
 
 export const Client = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadClients,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("client", ["userId", "preferredStylistId", "homeLocationId", "totalVisits", "lifetimeValue", "marketingConsent"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["user", "hairType", "preferredStylist", "totalVisits", "lifetimeValue"],
     },
@@ -27,13 +35,16 @@ export const Client = list({
   fields: {
     // Link to User for contact info
     user: relationship({
-      ref: "User",
+      ref: "User.clientProfile",
       ui: {
         displayMode: "select",
       },
     }),
 
+    homeLocation: relationship({ ref: "Location.clients" }),
+
     dateOfBirth: timestamp({
+      access: { read: ownCareRead },
       ui: {
         description: "Client's date of birth",
       },
@@ -49,6 +60,7 @@ export const Client = list({
 
     // Health and sensitivity information
     allergies: text({
+      access: { read: ownCareRead },
       ui: {
         displayMode: "textarea",
         description: "Known allergies (e.g., latex, certain dyes)",
@@ -56,6 +68,7 @@ export const Client = list({
     }),
 
     skinSensitivities: text({
+      access: { read: ownCareRead },
       ui: {
         displayMode: "textarea",
         description: "Skin sensitivities or conditions",
@@ -63,6 +76,7 @@ export const Client = list({
     }),
 
     skinType: select({
+      access: { read: ownCareRead },
       type: "enum",
       options: [
         { label: "Oily", value: "oily" },
@@ -102,6 +116,7 @@ export const Client = list({
     }),
 
     scalpCondition: select({
+      access: { read: ownCareRead },
       type: "string",
       options: [
         { label: "Normal", value: "normal" },
@@ -116,6 +131,7 @@ export const Client = list({
 
     // Internal notes
     notes: text({
+      access: { read: permissions.canManageCareRecords },
       ui: {
         displayMode: "textarea",
         description: "Internal notes about client preferences and history",
@@ -142,10 +158,11 @@ export const Client = list({
       },
     }),
 
-    lifetimeValue: float({
+    lifetimeValue: integer({
       defaultValue: 0,
+      validation: { min: 0 },
       ui: {
-        description: "Total revenue from this client",
+        description: "Total revenue from this client in cents",
       },
     }),
 
@@ -189,5 +206,7 @@ export const Client = list({
         displayMode: "count",
       },
     }),
+
+    ...trackingFields,
   },
 });

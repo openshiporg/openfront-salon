@@ -13,6 +13,10 @@ function getBaseUrlForEmails(): string {
   return '';
 }
 
+function hasSmtpConfiguration() {
+  return Boolean(process.env.SMTP_HOST?.trim() && process.env.SMTP_FROM?.trim());
+}
+
 const transport = createTransport({
   // @ts-ignore
   host: process.env.SMTP_HOST,
@@ -84,11 +88,13 @@ function appointmentConfirmationEmail(params: {
   appointmentTime: string;
   duration: number;
   price: number;
+  storefrontName: string | null;
+  themeHue: number;
 }): string {
   const backgroundColor = "#f9f9f9";
   const textColor = "#444444";
   const mainBackgroundColor = "#ffffff";
-  const primaryColor = "#8b5cf6";
+  const primaryColor = `hsl(${params.themeHue} 45% 38%)`;
   const borderColor = "#e5e7eb";
 
   return `
@@ -174,9 +180,7 @@ function appointmentConfirmationEmail(params: {
                   <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
                     Need to reschedule? Please call us or visit our website.
                   </p>
-                  <p style="margin: 15px 0 0 0; font-size: 12px; color: #9ca3af;">
-                    Openfront Salon | ${process.env.SMTP_STORE_LINK || 'https://yoursite.com'}
-                  </p>
+                  ${params.storefrontName ? `<p style="margin: 15px 0 0 0; font-size: 12px; color: #9ca3af;">${params.storefrontName}${process.env.SMTP_STORE_LINK ? ` | ${process.env.SMTP_STORE_LINK}` : ""}</p>` : ""}
                 </td>
               </tr>
 
@@ -197,7 +201,11 @@ export async function sendAppointmentConfirmation(params: {
   appointmentTime: string;
   duration: number;
   price: number;
+  storefrontName: string | null;
+  themeHue: number;
 }): Promise<void> {
+  if (!hasSmtpConfiguration()) return;
+
   try {
     const info = await transport.sendMail({
       to: params.to,
@@ -221,11 +229,14 @@ function giftCardEmail(params: {
   amount: number;
   code: string;
   message?: string;
+  storefrontName: string | null;
+  themeHue: number;
 }): string {
   const backgroundColor = "#f9f9f9";
   const textColor = "#444444";
   const mainBackgroundColor = "#ffffff";
-  const primaryColor = "#8b5cf6";
+  const primaryColor = `hsl(${params.themeHue} 45% 38%)`;
+  const secondaryColor = `hsl(${params.themeHue} 45% 58%)`;
 
   return `
     <body style="background: ${backgroundColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
@@ -236,7 +247,7 @@ function giftCardEmail(params: {
 
               <!-- Header -->
               <tr>
-                <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, ${primaryColor}, #a78bfa); border-radius: 12px 12px 0 0;">
+                <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); border-radius: 12px 12px 0 0;">
                   <h1 style="margin: 0; font-size: 32px; color: #ffffff; font-weight: bold;">You've Received a Gift Card!</h1>
                   <p style="margin: 10px 0 0 0; font-size: 18px; color: #f3e8ff;">From ${params.senderName}</p>
                 </td>
@@ -285,11 +296,7 @@ function giftCardEmail(params: {
                     <li>Provide your gift card code during checkout</li>
                     <li>Enjoy your salon experience!</li>
                   </ol>
-                  <div style="margin-top: 20px; text-align: center;">
-                    <a href="${process.env.SMTP_STORE_LINK}/book" style="display: inline-block; padding: 15px 30px; background: ${primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                      Book Your Appointment
-                    </a>
-                  </div>
+                  ${process.env.SMTP_STORE_LINK ? `<div style="margin-top: 20px; text-align: center;"><a href="${process.env.SMTP_STORE_LINK}/book" style="display: inline-block; padding: 15px 30px; background: ${primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Book Your Appointment</a></div>` : ""}
                 </td>
               </tr>
 
@@ -318,6 +325,8 @@ export async function sendGiftCardEmail(params: {
   amount: number;
   code: string;
   message?: string;
+  storefrontName: string | null;
+  themeHue: number;
 }): Promise<void> {
   try {
     const info = await transport.sendMail({

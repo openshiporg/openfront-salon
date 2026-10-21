@@ -1,20 +1,29 @@
 import { list } from "@keystone-6/core";
-import { allOperations } from "@keystone-6/core/access";
 import {
   relationship,
   select,
   timestamp,
 } from "@keystone-6/core/fields";
 
-import { isSignedIn } from "../access";
+import { rules } from "../access";
+import { createLifecycleHooks } from "../lifecycle";
+
+import { trackingFields } from "./trackingFields";
 
 export const ClientMembership = list({
   access: {
     operation: {
-      query: () => true, create: isSignedIn, update: isSignedIn, delete: isSignedIn,
+      query: () => true,
+      create: () => false,
+      update: () => false,
+      delete: () => false,
+    },
+    filter: {
+      query: rules.canReadClientMemberships,
     },
   },
-  ui: {
+  hooks: createLifecycleHooks("client_membership", ["status", "startDate", "nextBillingDate", "pausedUntil", "clientId", "membershipId"]),
+  ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "membership", "status", "startDate", "nextBillingDate"],
     },
@@ -22,7 +31,7 @@ export const ClientMembership = list({
   fields: {
     // Link to User (client)
     client: relationship({
-      ref: "User",
+      ref: "User.clientMemberships",
       ui: {
         displayMode: "select",
         description: "The client who holds this membership",
@@ -73,5 +82,6 @@ export const ClientMembership = list({
         description: "If paused, when the membership will resume",
       },
     }),
+    ...trackingFields,
   },
 });

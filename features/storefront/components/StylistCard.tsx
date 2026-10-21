@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { User, Award } from "lucide-react"
+import { User } from "lucide-react"
+import { getStorefrontImageSrc } from "../lib/images"
 
 interface StylistCardProps {
   stylist: {
@@ -13,6 +14,7 @@ interface StylistCardProps {
       image: {
         url: string
       } | null
+      imagePath?: string | null
       altText: string | null
     } | null
     specializations?: {
@@ -21,116 +23,95 @@ interface StylistCardProps {
   }
   variant?: "default" | "compact"
   showSpecializations?: boolean
+  linked?: boolean
+}
+
+const tierLabels: Record<string, string> = {
+  junior: "Junior",
+  senior: "Senior",
+  master: "Master",
+  director: "Director",
+  celebrity: "Celebrity",
 }
 
 export function StylistCard({
   stylist,
   variant = "default",
-  showSpecializations = true
+  showSpecializations = true,
+  linked = true,
 }: StylistCardProps) {
-  const name = stylist.user?.name || "Stylist"
-  const photoUrl = stylist.photo?.image?.url
-  const tier = stylist.tier || "junior"
-  const tierLabels: Record<string, string> = {
-    junior: "Junior Stylist",
-    senior: "Senior Stylist",
-    master: "Master Stylist",
-    director: "Creative Director"
-  }
+  const name = stylist.user?.name || "Artist"
+  const photoUrl = getStorefrontImageSrc(stylist.photo)
+  const tier = stylist.tier ? tierLabels[stylist.tier] ?? null : null
 
   if (variant === "compact") {
-    return (
-      <Link
-        href={`/team/${stylist.id}`}
-        className="group flex items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50"
-      >
-        <div className="shrink-0">
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={stylist.photo?.altText || name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-border group-hover:border-primary transition-colors"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-border group-hover:border-primary transition-colors">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors truncate">
-            {name}
-          </h3>
-          <p className="text-sm text-muted-foreground">{tierLabels[tier]}</p>
-          {showSpecializations && stylist.specializations && stylist.specializations.length > 0 && (
-            <div className="flex items-center gap-1 mt-1">
-              <Award className="h-3.5 w-3.5 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground truncate">
-                {stylist.specializations.map(s => s.name).join(", ")}
-              </p>
-            </div>
-          )}
-        </div>
-      </Link>
-    )
-  }
-
-  return (
-    <Link
-      href={`/team/${stylist.id}`}
-      className="group block overflow-hidden rounded-lg border bg-card hover:shadow-xl transition-all hover:border-primary/50"
-    >
-      <div className="relative aspect-square overflow-hidden bg-muted">
+    const content = (
+      <div className="flex items-center gap-4 p-[var(--sf-space-md)]">
         {photoUrl ? (
           <img
             src={photoUrl}
             alt={stylist.photo?.altText || name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+            className="h-14 w-14 shrink-0 object-cover bg-[var(--sf-paper-3)]"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <User className="h-24 w-24 text-muted-foreground" />
+          <div className="h-14 w-14 shrink-0 flex items-center justify-center bg-[var(--sf-paper-3)] border border-[var(--sf-rule)]">
+            <User className="h-6 w-6 text-[var(--sf-ink-3)]" />
           </div>
         )}
-      </div>
-      <div className="p-6">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div>
-            <h3 className="font-semibold text-xl group-hover:text-primary transition-colors">
-              {name}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">{tierLabels[tier]}</p>
-          </div>
+        <div className="min-w-0">
+          <h3 className="sf-display text-[var(--sf-text-lg)] text-[var(--sf-ink)] truncate">{name}</h3>
+          {tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tier}</p> : null}
         </div>
-        {stylist.bio && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-            {stylist.bio}
-          </p>
-        )}
-        {showSpecializations && stylist.specializations && stylist.specializations.length > 0 && (
-          <div className="mt-4 pt-4 border-t">
-            <div className="flex items-center gap-2 mb-2">
-              <Award className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Specializations</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {stylist.specializations.slice(0, 3).map((spec, idx) => (
-                <span
-                  key={idx}
-                  className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary"
-                >
-                  {spec.name}
-                </span>
-              ))}
-              {stylist.specializations.length > 3 && (
-                <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                  +{stylist.specializations.length - 3} more
-                </span>
-              )}
-            </div>
+      </div>
+    )
+
+    return linked ? (
+      <Link href={`/team/${stylist.id}`} className="sf-card group block">
+        {content}
+      </Link>
+    ) : (
+      <div className="sf-card group block w-full text-left">{content}</div>
+    )
+  }
+
+  const content = (
+    <>
+      <div className="aspect-[4/5] overflow-hidden bg-[var(--sf-paper-3)]">
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={stylist.photo?.altText || name}
+            className="h-full w-full object-cover transition-transform duration-[var(--sf-dur-medium)] group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center">
+            <User className="h-16 w-16 text-[var(--sf-ink-3)]" />
           </div>
         )}
       </div>
+      <div className="p-[var(--sf-space-md)]">
+        {tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{tier}</p> : null}
+        <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{name}</h3>
+        {stylist.bio ? (
+          <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">{stylist.bio}</p>
+        ) : null}
+        {showSpecializations && stylist.specializations && stylist.specializations.length > 0 ? (
+          <p className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
+            {stylist.specializations
+              .slice(0, 3)
+              .map((s) => s.name)
+              .join(" · ")}
+          </p>
+        ) : null}
+      </div>
+    </>
+  )
+
+  return linked ? (
+    <Link href={`/team/${stylist.id}`} className="sf-card group block overflow-hidden">
+      {content}
     </Link>
+  ) : (
+    <div className="sf-card group block overflow-hidden">{content}</div>
   )
 }

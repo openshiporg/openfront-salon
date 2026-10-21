@@ -1,11 +1,30 @@
 import { graphql } from "@keystone-6/core";
-import { mergeSchemas } from "@graphql-tools/schema";
-import type { GraphQLSchema } from 'graphql';
+import { registerSalonCustomer } from "./registerSalonCustomer";
 import redirectToInit from "./redirectToInit";
 import { paymentMutations } from "./processPayment";
 import { giftCardMutations } from "./purchaseGiftCard";
-
-const gql = String.raw;
+import { bookAppointment } from "./bookAppointment";
+import { checkAvailability } from "../extendGraphqlSchema/checkAvailability";
+import { calculateCommission } from "../extendGraphqlSchema/calculateCommission";
+import { storefrontStylists, storefrontStylist } from "../extendGraphqlSchema/storefrontStylists";
+import { salonOperationsWorkspace } from "../extendGraphqlSchema/salonOperationsWorkspace";
+import { runSalonOnboarding } from "./runSalonOnboarding";
+import { completeAppointmentCheckout } from "./completeAppointmentCheckout";
+import { processAppointmentDeposit, transitionAppointment } from "./appointmentWorkflows";
+import { redeemClientPackage } from "./packageWorkflows";
+import { joinWaitlist, transitionWaitlistEntry } from "./waitlistWorkflows";
+import { setStylistScheduleAvailability, upsertStylistSchedule } from "./scheduleWorkflows";
+import { payoutCommissions } from "./commissionWorkflows";
+import { adjustSalonInventory } from "./inventoryWorkflows";
+import { setSalonResourceAvailability } from "./resourceWorkflows";
+import { scheduleAppointmentSegments, transitionAppointmentSegment } from "./segmentSchedulingWorkflows";
+import { adjustSaleCompensation, reverseSalonTransaction } from "./reversalWorkflows";
+import { publishConsultationTemplateVersion, reviewConsultation, submitConsultation } from "./consultationWorkflows";
+import { clientPortal } from "../extendGraphqlSchema/clientPortal";
+import { publicStorefrontSettings } from "../extendGraphqlSchema/publicStorefrontSettings";
+import { upsertSalonStoreSettings } from "./storeSettings";
+import { salonManagementWorkspace, saveSalonRecord } from "./managementWorkflows";
+import { salonLocationStock } from "../extendGraphqlSchema/salonLocationStock";
 
 export const extendGraphqlSchema = graphql.extend((base) => ({
   query: {
@@ -13,13 +32,46 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
       type: graphql.Boolean,
       resolve: redirectToInit,
     }),
+    checkAvailability,
+    calculateCommission,
+    storefrontStylists,
+    storefrontStylist,
+    salonOperationsWorkspace,
+    clientPortal,
+    publicStorefrontSettings,
+    salonManagementWorkspace,
+    salonLocationStock,
   },
   mutation: {
+    registerSalonCustomer,
+    bookAppointment,
     processPayment: paymentMutations.processPayment,
     confirmPayment: paymentMutations.confirmPayment,
     refundPayment: paymentMutations.refundPayment,
     distributeTip: paymentMutations.distributeTip,
     purchaseGiftCard: giftCardMutations.purchaseGiftCard,
     confirmGiftCardPurchase: giftCardMutations.confirmGiftCardPurchase,
+    applyGiftCardBalance: giftCardMutations.applyGiftCardBalance,
+    transitionAppointment,
+    processAppointmentDeposit,
+    redeemClientPackage,
+    joinWaitlist,
+    transitionWaitlistEntry,
+    upsertStylistSchedule,
+    setStylistScheduleAvailability,
+    payoutCommissions,
+    adjustSalonInventory,
+    setSalonResourceAvailability,
+    scheduleAppointmentSegments,
+    transitionAppointmentSegment,
+    reverseSalonTransaction,
+    adjustSaleCompensation,
+    publishConsultationTemplateVersion,
+    submitConsultation,
+    reviewConsultation,
+    runSalonOnboarding,
+    completeAppointmentCheckout,
+    upsertSalonStoreSettings,
+    saveSalonRecord,
   },
 }));
