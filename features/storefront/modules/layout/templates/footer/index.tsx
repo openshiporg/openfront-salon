@@ -1,108 +1,75 @@
 import Link from "next/link"
 import { StoreBrand } from "@/features/storefront/components/StoreBrand"
 import type { StorefrontBrand } from "@/features/storefront/lib/data/brand"
+import { publishedHours } from "@/features/storefront/lib/hours"
 
-const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-
-function formatTime(value?: string | null): string | null {
-  if (!value) return null
-  const [hours, minutes] = value.split(":").map(Number)
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value
-  const period = hours >= 12 ? "pm" : "am"
-  const hour = hours % 12 || 12
-  return minutes ? `${hour}:${String(minutes).padStart(2, "0")}${period}` : `${hour}${period}`
-}
-
-function formatHours(hours: StorefrontBrand["hours"]): string[] {
-  if (!hours) return []
-
-  return DAY_ORDER.flatMap((day) => {
-    const schedule = hours[day]
-    if (!schedule) return []
-    const label = day.slice(0, 3).replace(/^./, (letter) => letter.toUpperCase())
-    if (schedule.closed) return [`${label} closed`]
-    const open = formatTime(schedule.open)
-    const close = formatTime(schedule.close)
-    return open && close ? [`${label} ${open}–${close}`] : []
-  })
-}
+const LINKS = [
+  { name: "Services", href: "/services" },
+  { name: "Stylists", href: "/team" },
+  { name: "Gallery", href: "/gallery" },
+  { name: "Reviews", href: "/reviews" },
+  { name: "Gift cards", href: "/gift-cards" },
+  { name: "Visit & hours", href: "/contact" },
+  { name: "My appointments", href: "/account" },
+]
 
 export default function Footer({ brand }: { brand: StorefrontBrand }) {
   const currentYear = new Date().getFullYear()
-  const hours = formatHours(brand.hours)
-  const hasPublishedContact = Boolean(brand.addressLine || brand.phone || brand.email)
+  const hours = publishedHours(brand.hours, "short")
 
   return (
-    <footer className="border-t border-[var(--sf-rule)] bg-[var(--sf-paper-2)]">
-      <div className="sf-container py-[var(--sf-space-xl)]">
-        <div className="grid gap-[var(--sf-space-lg)] lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+    <footer className="sf-footer sf-has-book-bar">
+      <div className="sf-container py-[var(--sf-space-2xl)]">
+        <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <div>
-            <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
-            <p className="sf-lead max-w-[42ch]">
-              {brand.description || (brand.configured
-                ? "Services, real artist schedules, and direct online booking."
-                : "Online booking opens soon.")}
-            </p>
-          </div>
-
-          <div className="space-y-[var(--sf-space-sm)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
-            {brand.addressLine ? (
-              <p>
-                <span className="text-[var(--sf-ink)] font-medium">Visit</span>
-                <br />
-                {brand.addressLine}
-              </p>
-            ) : null}
-
-            {hours.length > 0 ? (
-              <div>
-                <p className="text-[var(--sf-ink)] font-medium">Hours</p>
-                <p className="mt-1 max-w-[34ch] leading-relaxed">{hours.join(" · ")}</p>
+            <p className="sf-footer-title">{brand.configured ? <>Book a <em className="sf-italic">visit</em></> : "Opening soon"}</p>
+            {brand.configured ? (
+              <div className="sf-track mt-8">
+                <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
               </div>
             ) : null}
+          </div>
 
-            {brand.phone || brand.email ? (
-              <p className="flex flex-wrap gap-x-3 gap-y-1">
-                {brand.phone && brand.phoneHref ? (
-                  <a href={brand.phoneHref} className="sf-link">
-                    {brand.phone}
-                  </a>
-                ) : null}
-                {brand.email ? (
-                  <a href={`mailto:${brand.email}`} className="sf-link">
-                    {brand.email}
-                  </a>
-                ) : null}
-              </p>
-            ) : null}
-
-            {!hasPublishedContact && hours.length === 0 ? (
-              <p>Book online for current availability.</p>
+          <div className="grid gap-8 text-[var(--sf-text-sm)] sm:grid-cols-2">
+            <div className="grid content-start gap-5">
+              {brand.addressLine ? (
+                <div>
+                  <p className="sf-eyebrow !text-current opacity-60">Visit</p>
+                  <p className="mt-2 leading-relaxed">{brand.locationName ? <>{brand.locationName}<br /></> : null}{brand.addressLine}</p>
+                </div>
+              ) : null}
+              {brand.phone || brand.email ? (
+                <div className="grid gap-1">
+                  <p className="sf-eyebrow !text-current opacity-60">Contact</p>
+                  {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="mt-1">{brand.phone}</a> : null}
+                  {brand.email ? <a href={`mailto:${brand.email}`} className="break-all">{brand.email}</a> : null}
+                </div>
+              ) : null}
+            </div>
+            {hours.length > 0 ? (
+              <div>
+                <p className="sf-eyebrow !text-current opacity-60">Hours</p>
+                <dl className="mt-2 grid gap-1">
+                  {hours.map((day) => (
+                    <div key={day.key} className="flex justify-between gap-4">
+                      <dt>{day.short}</dt>
+                      <dd className={`tabular-nums ${day.closed ? "opacity-60" : ""}`}>{day.hours}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
             ) : null}
           </div>
         </div>
 
         <hr className="sf-rule my-[var(--sf-space-lg)]" />
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
-          <p>{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            <Link href="/services" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
-              Services
-            </Link>
-            <Link href="/team" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
-              Artists
-            </Link>
-            <Link href="/gallery" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
-              Gallery
-            </Link>
-            <Link href="/book" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
-              Reserve
-            </Link>
-            <Link href="/contact" className="sf-link !text-[var(--sf-ink-3)] hover:!text-[var(--sf-ink)]">
-              Contact
-            </Link>
-          </div>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-[var(--sf-text-sm)]">
+            {LINKS.map((link) => <Link key={link.href} href={link.href}>{link.name}</Link>)}
+          </nav>
+          <p className="text-[var(--sf-text-xs)] opacity-60">{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
         </div>
       </div>
     </footer>

@@ -10,97 +10,73 @@ export async function generateMetadata(): Promise<Metadata> {
   const brand = await getStorefrontBrand()
   return {
     title: await storefrontTitle("Reviews"),
-    description: brand.name ? `Client reviews from the ${brand.name} booking experience.` : "Client reviews from the salon booking experience.",
+    description: brand.name ? `Client reviews for ${brand.name}.` : "Client reviews for the salon.",
   }
 }
 
-function StarRow({ rating }: { rating: number }) {
+function Stars({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-0.5" aria-label={`${rating} out of 5 stars`}>
-      {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          className={`h-3.5 w-3.5 ${
-            i < rating ? "fill-[var(--sf-accent)] text-[var(--sf-accent)]" : "text-[var(--sf-rule)]"
-          }`}
-        />
-      ))}
-    </div>
+    <span className="sf-stars" aria-label={`${rating} out of 5 stars`}>
+      {[0, 1, 2, 3, 4].map((index) => <Star key={index} className={index < rating ? "fill-current" : "opacity-25"} aria-hidden="true" />)}
+    </span>
   )
 }
 
 export async function ReviewsPage() {
   const reviews = await getApprovedReviews()
-  const averageRating =
-    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0
+  const averageRating = reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+  const distribution = [5, 4, 3, 2, 1].map((stars) => ({ stars, count: reviews.filter((review) => Math.round(review.rating) === stars).length }))
 
   return (
     <div className="sf-page-pad">
       <div className="sf-container">
-        <PageIntro
-          title="Client reviews"
-          description={
-            reviews.length > 0
-              ? `${reviews.length} approved ${reviews.length === 1 ? "review" : "reviews"} — average ${averageRating.toFixed(1)} stars.`
-              : "Approved client reviews will appear here as they are published."
-          }
-          size="large"
-        />
+        <PageIntro title={<>Client <em>reviews</em></>} size="large" />
 
         {reviews.length === 0 ? (
-          <div className="text-center py-[var(--sf-space-2xl)] border border-[var(--sf-rule)]">
-            <Star className="h-8 w-8 mx-auto mb-4 text-[var(--sf-ink-3)]" />
-            <h2 className="sf-display text-[var(--sf-text-2xl)] mb-2">No reviews yet</h2>
-
-            <Link href="/book" className="sf-btn sf-btn-primary">
-              Reserve a visit
-            </Link>
+          <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
+            <Star className="mb-4 h-7 w-7 text-[var(--sf-ink-3)]" aria-hidden="true" />
+            <h2 className="sf-display mb-6 text-[var(--sf-text-2xl)]">No reviews yet</h2>
+            <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div>
           </div>
         ) : (
-          <ul className="grid gap-[var(--sf-space-md)] md:grid-cols-2 lg:grid-cols-3">
-            {reviews.map((review) => {
-              const timeAgo = formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })
-              const clientName = review.reviewerName || "Client"
-              const serviceName = review.service?.name
-              const stylistName = review.stylistName
-
-              return (
-                <li key={review.id} className="sf-card p-[var(--sf-space-md)] flex flex-col">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <p className="font-medium text-[var(--sf-ink)]">{clientName}</p>
-                      <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{timeAgo}</p>
-                    </div>
-                    <StarRow rating={review.rating} />
+          <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <aside className="lg:sticky lg:top-24 lg:self-start">
+              <p className="sf-display text-[var(--sf-text-display-s)]">{averageRating.toFixed(1)}</p>
+              <div className="mt-2"><Stars rating={Math.round(averageRating)} /></div>
+              <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</p>
+              <dl className="mt-6 grid gap-2">
+                {distribution.map((row) => (
+                  <div key={row.stars} className="grid grid-cols-[1.5rem_minmax(0,1fr)_2rem] items-center gap-3 text-[var(--sf-text-xs)]">
+                    <dt className="font-semibold">{row.stars}★</dt>
+                    <dd className="sf-bar"><span style={{ width: `${reviews.length ? (row.count / reviews.length) * 100 : 0}%` }} /></dd>
+                    <dd className="text-right tabular-nums text-[var(--sf-ink-3)]">{row.count}</dd>
                   </div>
+                ))}
+              </dl>
+              <div className="sf-track mt-8"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div>
+            </aside>
 
-                  {(serviceName || stylistName) && (
-                    <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-3">
-                      {serviceName}
-                      {serviceName && stylistName ? " with " : ""}
-                      {stylistName}
+            <ul className="grid gap-4 md:grid-cols-2">
+              {reviews.map((review) => {
+                const serviceName = review.service?.name
+                const stylistName = review.stylistName
+                return (
+                  <li key={review.id} className="sf-card flex flex-col gap-4 p-[var(--sf-space-md)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <Stars rating={review.rating} />
+                      <span className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}</span>
+                    </div>
+                    {review.comment ? <blockquote className="sf-quote flex-1">&ldquo;{review.comment}&rdquo;</blockquote> : null}
+                    <p className="text-[var(--sf-text-sm)]">
+                      <span className="font-semibold">{review.reviewerName || "Client"}</span>
+                      {serviceName || stylistName ? <span className="text-[var(--sf-ink-3)]"> · {serviceName}{serviceName && stylistName ? " with " : ""}{stylistName}</span> : null}
                     </p>
-                  )}
-
-                  {review.comment ? (
-                    <blockquote className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] leading-relaxed flex-1">
-                      &ldquo;{review.comment}&rdquo;
-                    </blockquote>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-
-        {reviews.length > 0 ? (
-          <div className="mt-[var(--sf-space-xl)] pt-[var(--sf-space-lg)] border-t border-[var(--sf-rule)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="sf-display text-[clamp(1.35rem,2.5vw,1.85rem)]">Appointments</p>
-            <Link href="/book" className="sf-btn sf-btn-primary shrink-0">
-              Reserve online
-            </Link>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   )

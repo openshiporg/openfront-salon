@@ -1,9 +1,9 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { Calendar, Check, Clock, Mail, MapPin, Phone, User } from "lucide-react"
+import { Check } from "lucide-react"
 import { getAppointmentById } from "../lib/data/appointments"
-import { formatPrice } from "../lib/format-price"
+import { formatMenuPrice } from "../lib/format-price"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -42,127 +42,56 @@ export async function BookingConfirmationPage({ params }: Props) {
     ? [appointmentLocation.address, [appointmentLocation.city, appointmentLocation.state].filter(Boolean).join(", "), appointmentLocation.zipCode].filter(Boolean).join(" ")
     : null
 
+  const zone = appointmentLocation?.timezone || "UTC"
+  const dateLabel = appointmentDate.toLocaleDateString("en-US", { timeZone: zone, weekday: "long", year: "numeric", month: "long", day: "numeric" })
+  const timeLabel = appointmentDate.toLocaleTimeString("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit", hour12: true })
+
   return (
     <div className="sf-page-pad">
       <div className="sf-container-narrow">
-        <div className="sf-card p-8 md:p-10 text-center mb-[var(--sf-space-md)]">
-          <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center border border-[var(--sf-rule)] bg-[var(--sf-paper-2)]">
-            <Check className="h-7 w-7 text-[var(--sf-accent)]" />
+        <div className="sf-ticket overflow-hidden">
+          <div className="p-[var(--sf-space-md)] text-center md:p-[var(--sf-space-lg)]">
+            <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"><Check className="h-6 w-6" aria-hidden="true" /></span>
+            <h1 className="sf-display text-[var(--sf-text-display-s)]">Booking <em>received</em></h1>
+            {client?.email ? <p className="mt-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Account email · <span className="font-semibold text-[var(--sf-ink)]">{client.email}</span></p> : null}
           </div>
-          <h1 className="sf-display text-[var(--sf-text-display-s)] mb-3">Booking received</h1>
-          <p className="text-[var(--sf-text-md)] text-[var(--sf-ink-2)]">
-            Your appointment request has been received.
-          </p>
-          {client?.email ? (
-            <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
-              Account email: <span className="text-[var(--sf-ink)]">{client.email}</span>
-            </p>
-          ) : null}
-        </div>
-
-        <div className="sf-card p-[var(--sf-space-md)] mb-[var(--sf-space-md)]">
-          <h2 className="sf-display text-[var(--sf-text-xl)] mb-6">Appointment details</h2>
-          <dl className="space-y-5 text-[var(--sf-text-sm)]">
-            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
-              <Clock className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-              <div>
-                <dt className="sr-only">Service</dt>
-                <dd className="font-medium text-[var(--sf-text-md)]">{appointment.services.map(item => item.name).join(", ") || "Service snapshot unavailable"}</dd>
-                <p className="text-[var(--sf-ink-3)] mt-1">
-                  {appointment.services.length ? `${appointment.duration} min · ${formatPrice(appointment.services.reduce((sum, item) => sum + item.basePrice, 0))}` : "Price unavailable"}
-                </p>
-
-              </div>
-            </div>
-
-            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
-              <User className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-              <div>
-                <dt className="sr-only">Artist</dt>
-                <dd className="font-medium">{stylist?.user?.name || "To be assigned"}</dd>
-                <p className="text-[var(--sf-ink-3)] capitalize mt-1">{stylist?.tier} artist</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 pb-5 border-b border-[var(--sf-rule)]">
-              <Calendar className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-              <div>
-                <dt className="sr-only">Date and time</dt>
-                <dd className="font-medium">
-                  {appointmentDate.toLocaleDateString("en-US", {
-                    timeZone: appointmentLocation?.timezone || "UTC",
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </dd>
-                <p className="text-[var(--sf-ink-3)] mt-1">
-                  {appointmentDate.toLocaleTimeString("en-US", {
-                    timeZone: appointmentLocation?.timezone || "UTC",
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <Mail className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-              <div>
-                <dt className="font-medium mb-2">Contact</dt>
-                <dd className="space-y-1 text-[var(--sf-ink-2)]">
-                  {client?.name ? <p>{client.name}</p> : null}
-                  {client?.email ? <p>{client.email}</p> : null}
-                  {client?.phone ? (
-                    <p className="inline-flex items-center gap-1">
-                      <Phone className="h-3.5 w-3.5" />
-                      {client.phone}
-                    </p>
-                  ) : null}
-                </dd>
-              </div>
-            </div>
+          <div className="sf-ticket-perf" />
+          <dl className="px-[var(--sf-space-md)] py-2">
+            <div className="sf-summary-row"><dt>Service</dt><dd>{appointment.services.map(item => item.name).join(", ") || "Service snapshot unavailable"}</dd></div>
+            <div className="sf-summary-row"><dt>Stylist</dt><dd>{stylist?.user?.name || "To be assigned"}</dd></div>
+            <div className="sf-summary-row"><dt>Date</dt><dd>{dateLabel}</dd></div>
+            <div className="sf-summary-row"><dt>Time</dt><dd>{timeLabel}</dd></div>
+            <div className="sf-summary-row"><dt>Duration</dt><dd>{appointment.duration} min</dd></div>
+            <div className="sf-summary-row"><dt>Price</dt><dd>{appointment.services.length ? formatMenuPrice(appointment.services.reduce((sum, item) => sum + item.basePrice, 0)) : "Price unavailable"}</dd></div>
           </dl>
-
+          <div className="grid gap-4 border-t border-[var(--sf-rule)] p-[var(--sf-space-md)] text-[var(--sf-text-sm)] sm:grid-cols-2">
+            <div>
+              <p className="sf-eyebrow mb-1.5">Location</p>
+              {appointmentLocation ? (
+                <p><span className="font-semibold">{appointmentLocation.name}</span>{appointmentAddress ? <><br /><span className="text-[var(--sf-ink-2)]">{appointmentAddress}</span></> : null}</p>
+              ) : <p role="status" className="text-[var(--sf-ink-2)]">No published location. Contact the salon before traveling.</p>}
+            </div>
+            <div className="min-w-0">
+              <p className="sf-eyebrow mb-1.5">Contact</p>
+              {client?.name ? <p className="font-semibold">{client.name}</p> : null}
+              {client?.email ? <p className="break-all text-[var(--sf-ink-2)]">{client.email}</p> : null}
+              {client?.phone ? <p className="text-[var(--sf-ink-2)]">{client.phone}</p> : null}
+            </div>
+          </div>
           {appointment.clientNotes ? (
-            <div className="mt-6 pt-5 border-t border-[var(--sf-rule)]">
-              <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">Your notes</p>
+            <div className="border-t border-[var(--sf-rule)] p-[var(--sf-space-md)]">
+              <p className="sf-eyebrow mb-1.5">Your notes</p>
               <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">{appointment.clientNotes}</p>
             </div>
           ) : null}
         </div>
 
-        {appointmentLocation ? (
-          <div className="sf-card p-[var(--sf-space-md)] mb-[var(--sf-space-md)]">
-            <h2 className="sf-display text-[var(--sf-text-lg)] mb-3">Appointment location</h2>
-            <div className="flex gap-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
-              <MapPin className="h-4 w-4 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-              <p>
-                <span className="font-medium text-[var(--sf-ink)]">{appointmentLocation.name}</span>
-                {appointmentAddress ? <><br />{appointmentAddress}</> : null}
-              </p>
-            </div>
+        <div className="mt-[var(--sf-space-md)] flex justify-center">
+          <div className="sf-track">
+            <Link href="/account" className="sf-btn sf-btn-primary">My appointments</Link>
+            <Link href="/book" className="sf-btn sf-btn-quiet">Book another</Link>
+            <Link href="/" className="sf-btn sf-btn-quiet">Home</Link>
           </div>
-        ) : (
-          <p role="status" className="mb-[var(--sf-space-md)] border border-[var(--sf-rule)] bg-[var(--sf-paper-2)] p-[var(--sf-space-md)] text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
-            The appointment record does not currently include a published location. Contact the salon before traveling.
-          </p>
-        )}
-
-
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/" className="sf-btn sf-btn-primary">
-            Home
-          </Link>
-          <Link href="/account" className="sf-btn sf-btn-secondary">
-            My appointments
-          </Link>
-          <Link href="/book" className="sf-btn sf-btn-secondary">
-            Book another
-          </Link>
         </div>
       </div>
     </div>

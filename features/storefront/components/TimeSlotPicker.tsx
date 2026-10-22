@@ -1,8 +1,9 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import { Calendar } from "@/components/ui/calendar"
-import { addDays, isBefore, startOfDay } from "date-fns"
-import { Clock } from "lucide-react"
+import { addDays, isBefore, isSameDay, startOfDay } from "date-fns"
+import { CalendarDays, Clock } from "lucide-react"
 import type { BookingSlot } from "../lib/data/availability"
 
 interface TimeSlotPickerProps {
@@ -12,6 +13,15 @@ interface TimeSlotPickerProps {
   onTimeSelect: (startTime: string) => void
   availableSlots: BookingSlot[]
   loadingSlots?: boolean
+}
+
+const STRIP_DAYS = 14
+
+function slotPeriod(label: string): "Morning" | "Afternoon" | "Evening" | null {
+  const match = label.match(/(\d{1,2})(?::\d{2})?\s*([AaPp])\.?[Mm]/)
+  if (!match) return null
+  const hour = (Number(match[1]) % 12) + (match[2].toLowerCase() === "p" ? 12 : 0)
+  return hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening"
 }
 
 export function TimeSlotPicker({
@@ -24,53 +34,92 @@ export function TimeSlotPicker({
 }: TimeSlotPickerProps) {
   const today = startOfDay(new Date())
   const maxDate = addDays(today, 90)
-
+  const [showCalendar, setShowCalendar] = useState(false)
+  const strip = useMemo(() => Array.from({ length: STRIP_DAYS }, (_, index) => addDays(today, index)), [today.getTime()])
   const disabledDates = (date: Date) => isBefore(date, today) || date > maxDate
+  const outsideStrip = selectedDate && !strip.some((day) => isSameDay(day, selectedDate))
+
+  const groups = useMemo(() => {
+    const ordered: Array<{ label: string; slots: BookingSlot[] }> = []
+    for (const slot of availableSlots) {
+      const label = slotPeriod(slot.label) || "Times"
+      const existing = ordered.find((group) => group.label === label)
+      if (existing) existing.slots.push(slot)
+      else ordered.push({ label, slots: [slot] })
+    }
+    return ordered
+  }, [availableSlots])
 
   return (
-    <div className="grid gap-[var(--sf-space-md)] lg:grid-cols-2">
-      <div className="sf-card p-[var(--sf-space-md)]">
-        <h3 className="sf-display text-[var(--sf-text-lg)] mb-4">Select a date</h3>
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={onDateSelect}
-          disabled={disabledDates}
-          className="rounded-none p-0"
-        />
+    <div className="grid gap-[var(--sf-space-md)]">
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="sf-eyebrow">Date</h3>
+          <div className="sf-track">
+            <button type="button" className="sf-btn sf-btn-sm sf-btn-quiet" aria-expanded={showCalendar} onClick={() => setShowCalendar((value) => !value)}>
+              <CalendarDays aria-hidden="true" />
+              {showCalendar ? "Hide calendar" : "More dates"}
+            </button>
+          </div>
+        </div>
+        <div className="sf-track sf-track-scroll !flex !rounded-[var(--sf-radius-md)]">
+          <div className="sf-date-strip">
+            {strip.map((day) => {
+              const selected = Boolean(selectedDate && isSameDay(day, selectedDate))
+              return (
+                <button key={day.toISOString()} type="button" aria-pressed={selected} onClick={() => onDateSelect(day)} className="sf-date" aria-label={day.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}>
+                  <small>{isSameDay(day, today) ? "Today" : day.toLocaleDateString("en-US", { weekday: "short" })}</small>
+                  <strong>{day.getDate()}</strong>
+                  <small className="!font-medium !normal-case !tracking-normal opacity-70">{day.toLocaleDateString("en-US", { month: "short" })}</small>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        {outsideStrip ? (
+          <p className="mt-2 text-[var(--sf-text-sm)] font-semibold">{selectedDate!.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+        ) : null}
+        {showCalendar ? (
+          <div className="sf-card mt-3 inline-block p-3">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => { onDateSelect(date); if (date) setShowCalendar(false) }}
+              disabled={disabledDates}
+              className="p-0"
+            />
+          </div>
+        ) : null}
       </div>
 
-      <div className="sf-card p-[var(--sf-space-md)]">
-        <h3 className="sf-display text-[var(--sf-text-lg)] mb-4">Select a time</h3>
+      <div>
+        <h3 className="sf-eyebrow mb-3">Time</h3>
         {!selectedDate ? (
-          <div className="flex items-center justify-center h-56 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
-            Choose a date first
-          </div>
+          <div className="sf-slot-well flex min-h-28 items-center justify-center text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">Choose a date</div>
         ) : loadingSlots ? (
-          <div className="flex items-center justify-center h-56">
-            <div className="h-8 w-8 animate-spin border-b-2 border-[var(--sf-ink)]" />
+          <div role="status" className="sf-slot-well flex min-h-28 items-center justify-center gap-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--sf-rule-strong)] border-t-[var(--sf-ink)]" aria-hidden="true" />
+            Checking availability…
           </div>
         ) : availableSlots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-56 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] text-center">
-            <Clock className="h-10 w-10 mb-3 opacity-40" />
-            <p>No open slots on this day.</p>
-            <p className="mt-1">Try another date.</p>
+          <div className="sf-slot-well flex min-h-28 flex-col items-center justify-center gap-1 text-center text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+            <Clock className="mb-1 h-6 w-6 opacity-50" aria-hidden="true" />
+            <p className="font-semibold text-[var(--sf-ink-2)]">No openings this day</p>
+            <p>Try another date.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-            {availableSlots.map((slot) => (
-              <button
-                key={slot.startTime}
-                type="button"
-                onClick={() => onTimeSelect(slot.startTime)}
-                className={`min-h-[2.75rem] px-2 text-[var(--sf-text-sm)] font-medium border transition-colors ${
-                  selectedTime === slot.startTime
-                    ? "border-[var(--sf-ink)] bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"
-                    : "border-[var(--sf-rule)] hover:border-[var(--sf-ink)]"
-                }`}
-              >
-                {slot.label}
-              </button>
+          <div className="sf-slot-well grid gap-4">
+            {groups.map((group) => (
+              <div key={group.label}>
+                {groups.length > 1 || group.label !== "Times" ? <p className="mb-2 px-1 text-[var(--sf-text-xs)] font-semibold text-[var(--sf-ink-3)]">{group.label}</p> : null}
+                <div className="sf-slot-grid">
+                  {group.slots.map((slot) => (
+                    <button key={slot.startTime} type="button" aria-pressed={selectedTime === slot.startTime} onClick={() => onTimeSelect(slot.startTime)} className="sf-slot">
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}

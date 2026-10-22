@@ -2,96 +2,80 @@ import { Metadata } from "next"
 import Link from "next/link"
 import { Search } from "lucide-react"
 import { getServicesGroupedByCategory } from "../lib/data/services"
-import { ServiceCard } from "../components/ServiceCard"
+import { ServiceMenuRow } from "../components/ServiceCard"
 import { PageIntro } from "../components/ui/PageIntro"
 import { storefrontTitle } from "../lib/data/brand"
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: await storefrontTitle("Services"),
-    description:
-      "Browse our services with duration and pricing.",
+    description: "Service menu with duration and pricing.",
   }
 }
 
 export async function ServicesPage() {
   const categories = await getServicesGroupedByCategory()
+  const total = categories.reduce((sum, category) => sum + (category.services?.length || 0), 0)
 
   return (
     <div className="sf-page-pad">
       <div className="sf-container">
         <PageIntro
-          title="The service menu"
+          eyebrow={total ? `${total} ${total === 1 ? "service" : "services"}` : undefined}
+          title={<>Service <em>menu</em></>}
           size="large"
+          aside={total ? <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div> : null}
         />
+      </div>
 
-        {categories.length > 0 ? (
-          <nav
-            className="mb-[var(--sf-space-lg)] flex gap-2 overflow-x-auto pb-2 -mx-1 px-1"
-            aria-label="Service categories"
-          >
-            {categories.map((category) => (
-              <a
-                key={category.id}
-                href={`#${category.id}`}
-                className="sf-btn sf-btn-secondary !min-h-[2.75rem] whitespace-nowrap shrink-0"
-              >
-                {category.name}
-              </a>
-            ))}
-          </nav>
-        ) : null}
+      {categories.length > 1 ? (
+        <div className="sf-sticky-tabs">
+          <div className="sf-container">
+            <nav aria-label="Service categories" className="sf-track sf-track-scroll">
+              {categories.map((category, index) => (
+                <a key={category.id} href={`#${category.id}`} className="sf-btn sf-btn-quiet sf-btn-sm !gap-2 shrink-0">
+                  <span className="sf-swatch !h-3.5 !w-3.5" data-swatch={(index % 6) + 1} aria-hidden="true" />
+                  {category.name}
+                </a>
+              ))}
+            </nav>
+          </div>
+        </div>
+      ) : null}
 
+      <div className="sf-container">
         {categories.length === 0 ? (
-          <div className="text-center py-[var(--sf-space-2xl)] border border-[var(--sf-rule)]">
-            <Search className="h-8 w-8 mx-auto mb-4 text-[var(--sf-ink-3)]" />
-            <h2 className="sf-display text-[var(--sf-text-2xl)] mb-2">No services listed yet</h2>
-            <p className="sf-lead mx-auto mb-6">Contact us to book.</p>
-            <Link href="/" className="sf-btn sf-btn-primary">
-              Back home
-            </Link>
+          <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
+            <Search className="mb-4 h-7 w-7 text-[var(--sf-ink-3)]" aria-hidden="true" />
+            <h2 className="sf-display mb-6 text-[var(--sf-text-2xl)]">No services listed yet</h2>
+            <div className="sf-track"><Link href="/contact" className="sf-btn">Contact the salon</Link></div>
           </div>
         ) : (
-          <div className="space-y-[var(--sf-space-2xl)]">
-            {categories.map((category) => (
-              <section key={category.id} id={category.id} className="scroll-mt-24">
-                <div className="flex flex-col gap-3 mb-[var(--sf-space-md)] pb-[var(--sf-space-sm)] border-b border-[var(--sf-rule)] lg:flex-row lg:items-end lg:justify-between">
-                  <div>
-                    <h2 className="sf-display text-[var(--sf-text-3xl)]">{category.name}</h2>
-                    <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] mt-1">
-                      {category.services?.length || 0}{" "}
-                      {(category.services?.length || 0) === 1 ? "service" : "services"}
-                    </p>
+          <div className="mt-[var(--sf-space-lg)] grid gap-[var(--sf-space-2xl)]">
+            {categories.map((category, index) => (
+              <section key={category.id} id={category.id} className="scroll-mt-36" aria-labelledby={`category-${category.id}`}>
+                <div className="sf-category-head">
+                  <div className="flex items-center gap-4">
+                    <span className="sf-swatch !h-9 !w-9" data-swatch={(index % 6) + 1} aria-hidden="true" />
+                    <div>
+                      <h2 id={`category-${category.id}`} className="sf-display text-[var(--sf-text-3xl)]">{category.name}</h2>
+                      <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{category.services?.length || 0} {(category.services?.length || 0) === 1 ? "service" : "services"}</p>
+                    </div>
                   </div>
-                  {category.description ? (
-                    <p className="sf-lead max-w-md">{category.description}</p>
-                  ) : null}
+                  {category.description ? <p className="text-[var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)] md:text-right">{category.description}</p> : null}
                 </div>
 
                 {category.services && category.services.length > 0 ? (
-                  <div className="grid gap-[var(--sf-space-md)] md:grid-cols-2">
-                    {category.services.map((service) => (
-                      <ServiceCard key={service.id} service={service} variant="compact" />
-                    ))}
+                  <div className="sf-menu">
+                    {category.services.map((service) => <ServiceMenuRow key={service.id} service={service} />)}
                   </div>
                 ) : (
-                  <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)] py-8 text-center border border-dashed border-[var(--sf-rule)]">
-                    No services in this category yet.
-                  </p>
+                  <p className="sf-note text-center">No services in this category yet.</p>
                 )}
               </section>
             ))}
           </div>
         )}
-
-        {categories.length > 0 ? (
-          <div className="mt-[var(--sf-space-2xl)] pt-[var(--sf-space-lg)] border-t border-[var(--sf-rule)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="sf-display text-[clamp(1.35rem,2.5vw,1.85rem)]">Appointments</p>
-            <Link href="/book" className="sf-btn sf-btn-primary shrink-0">
-              Reserve online
-            </Link>
-          </div>
-        ) : null}
       </div>
     </div>
   )

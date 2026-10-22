@@ -6,6 +6,7 @@ import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { permissions } from "./access";
+import { s3ForcePathStyle } from "./lib/s3-storage";
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -127,7 +128,7 @@ export default withAuth(
         secretAccessKey,
         endpoint,
         signed: { expiry: 5000 },
-        forcePathStyle: true,
+        forcePathStyle: s3ForcePathStyle(endpoint),
       },
     },
     ui: {

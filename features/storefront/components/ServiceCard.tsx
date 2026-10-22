@@ -1,139 +1,66 @@
 import Link from "next/link"
-import { Clock, ArrowUpRight } from "lucide-react"
+import { Clock3, ShieldCheck } from "lucide-react"
 import { Service } from "../lib/data/services"
 import { getStorefrontImageSrc } from "../lib/images"
-import { formatPrice } from "../lib/format-price"
+import { formatMenuPrice } from "../lib/format-price"
 
-interface ServiceCardProps {
-  service: Service
-  showCategory?: boolean
-  variant?: "default" | "compact" | "list"
-  linked?: boolean
+export function serviceTags(service: Pick<Service, "requiresConsultation" | "requiresPatchTest">) {
+  return [
+    service.requiresConsultation ? "Consultation first" : null,
+    service.requiresPatchTest ? "Patch test 24–48h before" : null,
+  ].filter((tag): tag is string => Boolean(tag))
 }
 
-export function ServiceCard({
-  service,
-  showCategory = false,
-  variant = "default",
-  linked = true,
-}: ServiceCardProps) {
-  const price = service.basePrice
-  const duration = service.baseDuration
-  const imageSrc = getStorefrontImageSrc(service.image)
+function hasTiers(service: Service) {
+  return Boolean(service.pricingTier && Object.keys(service.pricingTier).length > 0)
+}
 
-  if (variant === "list") {
-    const content = (
-      <div className="flex items-start justify-between gap-4 py-[var(--sf-space-sm)]">
-        <div className="min-w-0 flex-1">
-          {showCategory && service.category ? (
-            <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{service.category.name}</p>
-          ) : null}
-          <h3 className="sf-display text-[var(--sf-text-lg)] text-[var(--sf-ink)]">{service.name}</h3>
-          {service.description ? (
-            <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
-              {service.description}
-            </p>
-          ) : null}
+/** A printed-menu line: name, dotted leader, price, then duration and requirements. */
+export function ServiceMenuRow({ service, showCategory = false, bookHref }: { service: Service; showCategory?: boolean; bookHref?: string }) {
+  const tags = serviceTags(service)
+  return (
+    <article className="sf-menu-row">
+      <div className="min-w-0">
+        {showCategory && service.category ? <p className="sf-eyebrow mb-1.5">{service.category.name}</p> : null}
+        <div className="sf-menu-name">
+          <Link href={`/services/${service.id}`}>{service.name}</Link>
+          <span className="sf-menu-leader hidden sm:block" aria-hidden="true" />
         </div>
-        <div className="shrink-0 text-right text-[var(--sf-text-sm)]">
-          <p className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</p>
-          <p className="text-[var(--sf-ink-3)]">{duration} min</p>
+        {service.description ? <p className="sf-menu-desc line-clamp-2">{service.description}</p> : null}
+        <div className="sf-menu-meta">
+          <span className="sf-chip"><Clock3 aria-hidden="true" />{service.baseDuration} min</span>
+          {tags.map((tag) => <span key={tag} className="sf-chip sf-chip-accent"><ShieldCheck aria-hidden="true" />{tag}</span>)}
         </div>
       </div>
-    )
-
-    return linked ? (
-      <Link href={`/services/${service.id}`} className="block group border-b border-[var(--sf-rule)] last:border-0 hover:bg-[var(--sf-paper-2)] -mx-2 px-2 transition-colors">
-        {content}
-      </Link>
-    ) : (
-      <div className="border-b border-[var(--sf-rule)] last:border-0">{content}</div>
-    )
-  }
-
-  if (variant === "compact") {
-    const content = (
-      <div className="flex items-start justify-between gap-4 p-[var(--sf-space-md)]">
-        <div className="min-w-0 flex-1">
-          {showCategory && service.category ? (
-            <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{service.category.name}</p>
-          ) : null}
-          <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{service.name}</h3>
-          {service.description ? (
-            <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
-              {service.description}
-            </p>
-          ) : null}
-          <div className="mt-4 flex items-center gap-4 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {duration} min
-            </span>
-            <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
-          </div>
+      <p className="sf-menu-price">
+        {hasTiers(service) ? <small>from</small> : null}
+        {formatMenuPrice(service.basePrice)}
+      </p>
+      <div className="sf-menu-action">
+        <div className="sf-track">
+          <Link href={bookHref || `/book?service=${service.id}`} className="sf-btn sf-btn-sm">Book</Link>
         </div>
-        <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--sf-accent)] mt-1 opacity-60 group-hover:opacity-100 transition-opacity" />
       </div>
-    )
-
-    return linked ? (
-      <Link href={`/services/${service.id}`} className="sf-card group block">
-        {content}
-      </Link>
-    ) : (
-      <div className="sf-card group block w-full text-left">{content}</div>
-    )
-  }
-
-  const content = (
-    <>
-      {imageSrc ? (
-        <div className="aspect-[4/3] overflow-hidden bg-[var(--sf-paper-3)]">
-          <img
-            src={imageSrc}
-            alt={service.image?.altText || service.name}
-            className="h-full w-full object-cover transition-transform duration-[var(--sf-dur-medium)] group-hover:scale-[1.02]"
-          />
-        </div>
-      ) : (
-        <div
-          className="aspect-[4/3]"
-          style={{
-            background:
-              "linear-gradient(160deg, var(--sf-paper-3), color-mix(in oklch, var(--sf-accent-soft) 60%, var(--sf-paper)))",
-          }}
-        />
-      )}
-      <div className="p-[var(--sf-space-md)]">
-        {showCategory && service.category ? (
-          <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-2">{service.category.name}</p>
-        ) : null}
-        <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{service.name}</h3>
-        {service.description ? (
-          <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">
-            {service.description}
-          </p>
-        ) : null}
-        <div className="mt-4 pt-4 border-t border-[var(--sf-rule)] flex items-center justify-between text-[var(--sf-text-sm)]">
-          <span className="text-[var(--sf-ink-2)]">{duration} min</span>
-          <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
-        </div>
-        {(service.requiresConsultation || service.requiresPatchTest) && (
-          <p className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
-            {service.requiresConsultation ? "Consultation required" : null}
-            {service.requiresConsultation && service.requiresPatchTest ? " · " : null}
-            {service.requiresPatchTest ? "Patch test required" : null}
-          </p>
-        )}
-      </div>
-    </>
+    </article>
   )
+}
 
-  return linked ? (
-    <Link href={`/services/${service.id}`} className="sf-card group block overflow-hidden">
-      {content}
+/** Image card used where a service is shown as a feature. */
+export function ServiceCard({ service, showCategory = false }: { service: Service; showCategory?: boolean }) {
+  const imageSrc = getStorefrontImageSrc(service.image)
+  return (
+    <Link href={`/services/${service.id}`} className="group flex flex-col">
+      <div className="sf-media aspect-[4/3]">
+        {imageSrc ? <img src={imageSrc} alt={service.image?.altText || service.name} loading="lazy" /> : <div className="sf-arch-placeholder" aria-hidden="true">{service.name.charAt(0)}</div>}
+      </div>
+      <div className="mt-3 flex items-baseline justify-between gap-3">
+        <div className="min-w-0">
+          {showCategory && service.category ? <p className="sf-eyebrow mb-1">{service.category.name}</p> : null}
+          <h3 className="sf-display text-[var(--sf-text-xl)] group-hover:text-[var(--sf-accent)]">{service.name}</h3>
+        </div>
+        <p className="sf-menu-price shrink-0">{formatMenuPrice(service.basePrice)}</p>
+      </div>
+      <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service.baseDuration} min</p>
     </Link>
-  ) : (
-    <div className="sf-card group block overflow-hidden">{content}</div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { parseInventoryIntent } from '../lib/inventoryIntent';
 import { InventoryAdjustmentForm } from './InventoryAdjustmentForm';
+import { pillClass, trackClass } from '../../components/pill';
 
 function subscribe(listener: () => void) {
   window.addEventListener('storage', listener);
@@ -36,13 +37,13 @@ export function InventoryIntentRecovery({ actorId }: { actorId: string }) {
   const snapshot = useSyncExternalStore(subscribe, () => storagePage(actorId, page), () => 'loading');
   const data: { products: string[]; more: boolean; error: boolean } | null = snapshot === 'loading' ? null : JSON.parse(snapshot);
   if (!actorId) return <p role="alert">We couldn't confirm your account. Reload the page and try again.</p>;
-  return <section aria-label="Pending stock adjustments" className="grid gap-3 border bg-background p-4">
-    <h2 className="font-semibold">Pending stock adjustments</h2>
+  return <section aria-label="Pending stock adjustments" className="grid gap-3 rounded-2xl border bg-background p-4 text-sm md:p-5">
+    <h2 className="text-sm font-semibold">Pending stock adjustments</h2>
     {!data ? <p role="status">Loading…</p> : <>
       {data.error && <p role="alert">Some pending adjustments couldn't be loaded. Reload the page and try again.</p>}
-      {data.products.length === 0 && !data.error && <p>No pending adjustments.</p>}
+      {data.products.length === 0 && !data.error && <p className="text-muted-foreground">None</p>}
       {data.products.map(productId => <InventoryAdjustmentForm key={`${actorId}:${productId}`} actorId={actorId} productId={productId} locations={[]} allowNew={false} />)}
     </>}
-    <nav aria-label="Pending adjustment pages" className="flex gap-3 text-xs"><button disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><button disabled={!data?.more} onClick={() => setPage(page + 1)}>Next</button></nav>
+    {page > 0 || data?.more ? <nav aria-label="Pending adjustment pages" className={`${trackClass} justify-self-start`}><button type="button" className={pillClass('quiet', 'sm')} disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button><button type="button" className={pillClass('raised', 'sm')} disabled={!data?.more} onClick={() => setPage(page + 1)}>Next</button></nav> : null}
   </section>;
 }

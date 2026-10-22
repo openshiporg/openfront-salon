@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft, Calendar, Clock, AlertCircle } from "lucide-react"
+import { ArrowLeft, Clock3, ShieldCheck } from "lucide-react"
 import { getServiceById } from "../lib/data/services"
-import { StylistCard } from "../components/StylistCard"
+import { StylistPortrait, tierLabels } from "../components/StylistCard"
+import { serviceTags } from "../components/ServiceCard"
 import { getStorefrontImageSrc } from "../lib/images"
-import { getStorefrontBrand } from "../lib/data/brand"
-import { formatPrice } from "../lib/format-price"
+import { formatMenuPrice } from "../lib/format-price"
 
 interface ServiceDetailPageProps {
   params: Promise<{ id: string }>
@@ -13,146 +13,99 @@ interface ServiceDetailPageProps {
 
 export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { id } = await params
-  const [service, brand] = await Promise.all([getServiceById(id), getStorefrontBrand()])
+  const service = await getServiceById(id)
 
   if (!service) {
     notFound()
   }
 
-  const price = service.basePrice
-  const duration = service.baseDuration
-  const hasPricingTiers = service.pricingTier && Object.keys(service.pricingTier).length > 0
-  const hasSpecialists = service.specialists && service.specialists.length > 0
+  const tiers = service.pricingTier ? Object.entries(service.pricingTier) : []
+  const specialists = service.specialists || []
   const imageSrc = getStorefrontImageSrc(service.image)
+  const tags = serviceTags(service)
 
   return (
-    <div>
-      <div className="border-b border-[var(--sf-rule)] sticky top-[4.25rem] z-10 bg-[color-mix(in_oklch,var(--sf-paper)_92%,transparent)] backdrop-blur-md">
-        <div className="sf-container py-3">
-          <Link href="/services" className="sf-link inline-flex items-center gap-2 text-[var(--sf-text-sm)]">
-            <ArrowLeft className="h-4 w-4" />
-            Service menu
-          </Link>
-        </div>
-      </div>
+    <div className="sf-page-pad !pt-[var(--sf-space-md)]">
+      <div className="sf-container">
+        <Link href="/services" className="sf-link inline-flex min-h-11 items-center gap-2 text-[var(--sf-text-sm)]">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Service menu
+        </Link>
 
-      <div className="sf-container sf-page-pad">
-        <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.75fr)]">
-          <div className="min-w-0 space-y-[var(--sf-space-lg)]">
-            {imageSrc ? (
-              <div className="aspect-[16/10] overflow-hidden border border-[var(--sf-rule)]">
-                <img
-                  src={imageSrc}
-                  alt={service.image?.altText || service.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : null}
-
+        <div className="mt-[var(--sf-space-md)] grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)]">
+          <div className="min-w-0">
             <header>
-              {service.category ? (
-                <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-2">{service.category.name}</p>
-              ) : null}
-              <h1 className="sf-display text-[var(--sf-text-display-s)] mb-4">{service.name}</h1>
-              <div className="flex flex-wrap gap-6 text-[var(--sf-text-sm)]">
-                <span className="inline-flex items-center gap-2 text-[var(--sf-ink-2)]">
-                  <Clock className="h-4 w-4" />
-                  {duration} minutes
-                </span>
-                <span className="font-medium text-[var(--sf-ink)]">{formatPrice(price)}</span>
+              {service.category ? <p className="sf-eyebrow mb-4">{service.category.name}</p> : null}
+              <h1 className="sf-display text-[var(--sf-text-display-s)]">{service.name}</h1>
+              <div className="mt-6 flex flex-wrap items-center gap-2">
+                <span className="sf-chip"><Clock3 aria-hidden="true" />{service.baseDuration} min</span>
+                {tags.map((tag) => <span key={tag} className="sf-chip sf-chip-accent"><ShieldCheck aria-hidden="true" />{tag}</span>)}
               </div>
             </header>
 
-            {service.description ? (
-              <div>
-                <h2 className="sf-display text-[var(--sf-text-xl)] mb-3">About this service</h2>
-                <p className="text-[var(--sf-text-md)] text-[var(--sf-ink-2)] leading-relaxed max-w-prose">
-                  {service.description}
-                </p>
+            {imageSrc ? (
+              <div className="sf-media mt-[var(--sf-space-lg)] aspect-[16/10]">
+                <img src={imageSrc} alt={service.image?.altText || service.name} />
               </div>
             ) : null}
 
-            {hasPricingTiers ? (
-              <div>
-                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4">Pricing by tier</h2>
-                <ul className="divide-y divide-[var(--sf-rule)] border-y border-[var(--sf-rule)]">
-                  {Object.entries(service.pricingTier!).map(([tier, tierPrice]) => (
-                    <li key={tier} className="flex items-center justify-between py-3 text-[var(--sf-text-sm)]">
-                      <span className="capitalize text-[var(--sf-ink-2)]">{tier} artist</span>
-                      <span className="font-medium text-[var(--sf-ink)]">{formatPrice(tierPrice as number)}</span>
+            {service.description ? (
+              <p className="mt-[var(--sf-space-lg)] max-w-[60ch] text-[var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{service.description}</p>
+            ) : null}
+
+            {tiers.length > 0 ? (
+              <section className="mt-[var(--sf-space-xl)]" aria-labelledby="service-tiers">
+                <h2 id="service-tiers" className="sf-display mb-4 text-[var(--sf-text-2xl)]">Price by stylist level</h2>
+                <dl className="sf-menu">
+                  {tiers.map(([tier, tierPrice]) => (
+                    <div key={tier} className="flex items-baseline gap-3 border-b border-[var(--sf-rule)] py-3.5">
+                      <dt className="text-[var(--sf-text-md)]">{tierLabels[tier] || tier}</dt>
+                      <span className="sf-menu-leader" aria-hidden="true" />
+                      <dd className="sf-menu-price">{formatMenuPrice(tierPrice as number)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+
+            {specialists.length > 0 ? (
+              <section className="mt-[var(--sf-space-xl)]" aria-labelledby="service-specialists">
+                <h2 id="service-specialists" className="sf-display mb-5 text-[var(--sf-text-2xl)]">Who does it</h2>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {specialists.map((stylist) => (
+                    <li key={stylist.id} className="sf-card flex items-center gap-4 p-3">
+                      <StylistPortrait stylist={stylist} className="h-20 w-16 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/team/${stylist.id}`} className="sf-display block truncate text-[var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{stylist.user?.name || "Stylist"}</Link>
+                        {stylist.tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[stylist.tier] || stylist.tier}</p> : null}
+                        <div className="sf-track mt-2">
+                          <Link href={`/book?service=${service.id}&stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book</Link>
+                        </div>
+                      </div>
                     </li>
                   ))}
                 </ul>
-                <p role="note" className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] leading-relaxed">
-                  Price shown is the starting price.
-                </p>
-              </div>
-            ) : null}
-
-            {(service.requiresConsultation || service.requiresPatchTest) && (
-              <div className="border border-[color-mix(in_oklch,var(--sf-accent)_35%,var(--sf-rule))] bg-[var(--sf-accent-soft)] p-[var(--sf-space-md)]">
-                <div className="flex gap-3">
-                  <AlertCircle className="h-5 w-5 shrink-0 text-[var(--sf-accent)] mt-0.5" />
-                  <div className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">
-                    <p className="font-medium text-[var(--sf-ink)] mb-2">Before you book</p>
-                    <ul className="space-y-1">
-                      {service.requiresConsultation ? <li>Consultation required before first visit</li> : null}
-                      {service.requiresPatchTest ? <li>Patch test 24–48 hours before service</li> : null}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {hasSpecialists ? (
-              <div>
-                <h2 className="sf-display text-[var(--sf-text-xl)] mb-4">Specialists for this service</h2>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {service.specialists.map((stylist) => (
-                    <StylistCard
-                      key={stylist.id}
-                      stylist={stylist}
-                      variant="compact"
-                      showSpecializations={false}
-                    />
-                  ))}
-                </div>
-              </div>
+              </section>
             ) : null}
           </div>
 
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <div className="sf-card p-[var(--sf-space-md)]">
-              <h2 className="sf-display text-[var(--sf-text-xl)] mb-6">Reserve</h2>
-              <dl className="space-y-3 text-[var(--sf-text-sm)] mb-6">
-                <div className="flex justify-between gap-4 border-b border-[var(--sf-rule)] pb-3">
-                  <dt className="text-[var(--sf-ink-3)]">Duration</dt>
-                  <dd className="font-medium">{duration} min</dd>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-[var(--sf-rule)] pb-3">
-                  <dt className="text-[var(--sf-ink-3)]">From</dt>
-                  <dd className="font-medium">{formatPrice(price)}</dd>
-                </div>
-                {hasSpecialists ? (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-[var(--sf-ink-3)]">Specialists</dt>
-                    <dd className="font-medium">{service.specialists.length}</dd>
-                  </div>
-                ) : null}
+          <aside className="lg:sticky lg:top-24 lg:self-start">
+            <div className="sf-ticket">
+              <div className="p-[var(--sf-space-md)]">
+                <p className="sf-eyebrow">{tiers.length ? "From" : "Price"}</p>
+                <p className="sf-display mt-2 text-[var(--sf-text-3xl)]">{formatMenuPrice(service.basePrice)}</p>
+              </div>
+              <div className="sf-ticket-perf" />
+              <dl className="px-[var(--sf-space-md)] py-2">
+                <div className="sf-summary-row"><dt>Duration</dt><dd>{service.baseDuration} min</dd></div>
+                {specialists.length ? <div className="sf-summary-row"><dt>Stylists</dt><dd>{specialists.length}</dd></div> : null}
+                {tags.map((tag) => <div key={tag} className="sf-summary-row"><dt>Required</dt><dd>{tag}</dd></div>)}
               </dl>
-
-              <Link href={`/book?service=${service.id}`} className="sf-btn sf-btn-primary w-full mb-3">
-                <Calendar className="h-4 w-4" />
-                Reserve this service
-              </Link>
-
-              {hasSpecialists ? (
-                <Link href="/team" className="sf-btn sf-btn-secondary w-full">
-                  View all artists
-                </Link>
-              ) : null}
-
-
+              <div className="px-[var(--sf-space-md)] pb-[var(--sf-space-md)]">
+                <div className="sf-track sf-track-block">
+                  <Link href={`/book?service=${service.id}`} className="sf-btn sf-btn-primary">Book this service</Link>
+                </div>
+              </div>
             </div>
           </aside>
         </div>

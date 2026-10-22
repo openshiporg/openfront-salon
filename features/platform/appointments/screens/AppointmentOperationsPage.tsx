@@ -1,67 +1,65 @@
-import type { ComponentType } from 'react';
 import Link from 'next/link';
+import { ArrowUpRight, CalendarDays, CalendarPlus, ReceiptText, ShieldAlert } from 'lucide-react';
 import { appointmentContact } from '../../lib/appointmentContact';
-import { formatSalonDateTime } from '@/features/lib/formatSalonDateTime';
 import { RetryAppointmentQueueButton } from './RetryAppointmentQueueButton';
-import { AppointmentStatusForm } from './AppointmentStatusForm';
-import { AppointmentCancelForm } from './AppointmentCancelForm';
-import { CalendarDays, Clock, CreditCard, FileText, Scissors, ShieldAlert, UserRound } from 'lucide-react';
+import { AppointmentActions } from './AppointmentActions';
+import { getAppointmentOperations, PlatformAppointment } from '../actions/appointments';
 import {
-  getAppointmentOperations,
-  PlatformAppointment,
-} from '../actions/appointments';
+  appointmentLabel,
+  appointmentTone,
+  Avatar,
+  Chip,
+  EmptyState,
+  ErrorState,
+  MetricStrip,
+  PageHeader,
+  PillLink,
+  PlatformPage,
+  SegmentTabs,
+  TitleStatus,
+  Track,
+  usd,
+} from '../../components/salon-ui';
 
 const statusTabs = [
   { value: 'today', label: 'Today' },
   { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
-  { value: 'in_progress', label: 'In progress' },
+  { value: 'in_progress', label: 'In chair' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'no_show', label: 'No-shows' },
   { value: 'all', label: 'All' },
 ] as const;
 
-const statusLabels: Record<string, string> = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  no_show: 'No-show',
-};
-
-const statusClassNames: Record<string, string> = {
-  pending: 'border-amber-200 bg-amber-50 text-amber-800',
-  confirmed: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  in_progress: 'border-blue-200 bg-blue-50 text-blue-800',
-  completed: 'border-slate-200 bg-slate-50 text-slate-700',
-  cancelled: 'border-rose-200 bg-rose-50 text-rose-800',
-  no_show: 'border-zinc-300 bg-zinc-100 text-zinc-700',
-};
-
 interface PageProps {
   searchParams?: Promise<{ status?: string }>;
 }
 
-function formatCurrency(value?: number | null) {
-  if (!value) return '$0';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
+function zoned(value: string, timezone: string | null | undefined, options: Intl.DateTimeFormatOptions) {
+  return new Intl.DateTimeFormat('en-US', { timeZone: timezone || 'UTC', ...options }).format(new Date(value));
 }
 
-function getServiceTotal(appointment: PlatformAppointment) {
-  if (appointment.lineItems.length) {
-    return appointment.lineItems.reduce((sum, item) => sum + (item.price || 0), 0) / 100;
-  }
-
-  return appointment.services.reduce((sum, service) => sum + (service.basePrice || 0), 0) / 100;
+function timeOf(value: string, timezone?: string | null) {
+  return zoned(value, timezone, { hour: 'numeric', minute: '2-digit' });
 }
 
-function hasComplianceNeeds(appointment: PlatformAppointment) {
+function dayOf(value: string, timezone?: string | null) {
+  return zoned(value, timezone, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function endOf(appointment: PlatformAppointment) {
+  if (appointment.endTime) return appointment.endTime;
+  const minutes = appointment.duration || appointment.services.reduce((sum, service) => sum + (service.baseDuration || 0), 0);
+  return minutes ? new Date(new Date(appointment.startTime).getTime() + minutes * 60000).toISOString() : null;
+}
+
+function serviceTotal(appointment: PlatformAppointment) {
+  if (appointment.lineItems.length) return appointment.lineItems.reduce((sum, item) => sum + (item.price || 0), 0);
+  return appointment.services.reduce((sum, service) => sum + (service.basePrice || 0), 0);
+}
+
+function needsIntake(appointment: PlatformAppointment) {
   return appointment.services.some((service) => service.requiresPatchTest || service.requiresConsultation);
 }
 
@@ -69,199 +67,126 @@ export async function AppointmentOperationsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const activeStatus = resolvedSearchParams.status || 'today';
   const result = await getAppointmentOperations(activeStatus);
+  const counts = result.status === 'available' ? result.data.counts : null;
+  const activeLabel = statusTabs.find((tab) => tab.value === activeStatus)?.label || 'Appointments';
 
   return (
-    <main className="min-h-screen bg-muted/20 px-4 py-6 md:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <header className="rounded-2xl border bg-background p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                <CalendarDays className="h-3.5 w-3.5" />
-                Salon operations
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Appointments</h1>
-              <Link href="/book" className="mt-3 inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background">New appointment</Link>
+    <PlatformPage breadcrumbs={[{ type: 'page', label: 'Appointments' }]}>
+      <PageHeader
+        icon={CalendarDays}
+        title="Appointments"
+        status={counts ? <TitleStatus tone={counts.pending > 0 ? 'amber' : 'emerald'}>{counts.pending > 0 ? `${counts.pending} to confirm` : 'All confirmed'}</TitleStatus> : null}
+        actions={<Track><PillLink href="/book" variant="primary"><CalendarPlus />New appointment</PillLink></Track>}
+      />
 
-            </div>
+      {counts ? (
+        <MetricStrip
+          items={[
+            { label: 'Today', value: counts.today, href: '/dashboard/platform/appointments' },
+            { label: 'To confirm', value: counts.pending, tone: 'amber', href: '/dashboard/platform/appointments?status=pending' },
+            { label: 'Confirmed', value: counts.confirmed, tone: 'emerald', href: '/dashboard/platform/appointments?status=confirmed' },
+            { label: 'In chair', value: counts.in_progress, tone: 'blue', href: '/dashboard/platform/appointments?status=in_progress' },
+            { label: 'No-shows', value: counts.no_show, tone: 'orange', href: '/dashboard/platform/appointments?status=no_show' },
+          ]}
+        />
+      ) : null}
 
-          </div>
-        </header>
+      <SegmentTabs
+        label="Appointment status filters"
+        active={activeStatus}
+        tabs={statusTabs.map((tab) => ({
+          value: tab.value,
+          label: tab.label,
+          href: tab.value === 'today' ? '/dashboard/platform/appointments' : `/dashboard/platform/appointments?status=${tab.value}`,
+          count: counts ? counts[tab.value as keyof typeof counts] : null,
+        }))}
+      />
 
-        <nav className="flex gap-1 overflow-x-auto rounded-xl border bg-muted p-1 shadow-inner" aria-label="Appointment status filters">
-          {statusTabs.map((tab) => {
-            const isActive = activeStatus === tab.value;
-            const href = tab.value === 'today' ? '/dashboard/platform/appointments' : `/dashboard/platform/appointments?status=${tab.value}`;
-            const count = result.status === 'available'
-              ? result.data.counts[tab.value as keyof typeof result.data.counts]
-              : null;
-
-            return (
-              <Link
-                key={tab.value}
-                href={href}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                {tab.label} {count !== null && <span className="ml-1 opacity-70">{count}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {result.status === 'unavailable' ? (
-          <section role="alert" aria-labelledby="appointment-queue-error-title" className="rounded-2xl border border-amber-300 bg-amber-50 p-8 shadow-sm">
-            <h2 id="appointment-queue-error-title" className="text-lg font-semibold">Appointment queue unavailable</h2>
-            <p className="mt-2 max-w-2xl text-sm text-amber-950">
-              Appointments and counts could not be verified, so this view is not shown as empty or zero. Check your access or connection, then retry.
-            </p>
-            <RetryAppointmentQueueButton />
-          </section>
-        ) : result.data.appointments.length === 0 ? (
-          <section className="rounded-2xl border bg-background p-12 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <CalendarDays className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h2 className="text-lg font-semibold">No appointments in this view</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              No appointments match this filter.
-            </p>
-          </section>
-        ) : (
-          <section className="grid gap-4">
-            {result.data.appointments.map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} />
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
+      {result.status === 'unavailable' ? (
+        <ErrorState
+          id="appointment-queue-error-title"
+          title="Appointment queue unavailable"
+          message="Appointments and counts could not be verified, so this view is not shown as empty or zero. Check your access or connection, then retry."
+          action={<RetryAppointmentQueueButton />}
+        />
+      ) : result.data.appointments.length === 0 ? (
+        <EmptyState icon={CalendarDays} title={activeStatus === 'today' ? 'No appointments today' : `No ${activeLabel.toLowerCase()} appointments`} />
+      ) : (
+        <DaySheet appointments={result.data.appointments} showDay={activeStatus !== 'today'} />
+      )}
+    </PlatformPage>
   );
 }
 
-
-function AppointmentCard({ appointment }: { appointment: PlatformAppointment }) {
-  const contact = appointmentContact(appointment);
-  const clientName = contact.name;
-  const clientEmail = contact.email || undefined;
-  const stylistName = appointment.stylist?.user?.name || 'Unassigned';
-  const serviceNames = appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'No services';
-  const complianceNeeded = hasComplianceNeeds(appointment);
-  const serviceTotal = getServiceTotal(appointment);
-
-  return (
-    <article className="rounded-2xl border bg-background p-5 shadow-sm transition hover:shadow-md">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusClassNames[appointment.status] || 'bg-muted text-muted-foreground'}`}>
-              {statusLabels[appointment.status] || appointment.status}
-            </span>
-            {appointment.depositAmount ? (
-              <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${appointment.depositPaid ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-                {appointment.depositPaid ? 'Deposit paid' : `Deposit due ${formatCurrency(appointment.depositAmount / 100)}`}
-              </span>
-            ) : null}
-            {complianceNeeded ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-800">
-                <ShieldAlert className="h-3.5 w-3.5" />
-                Intake / consent required
-              </span>
-            ) : null}
-          </div>
-
-          <h2 className="text-xl font-semibold tracking-tight">{serviceNames}</h2>
-          <div className="mt-3 grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
-            <Info icon={Clock} label="When" value={formatSalonDateTime(appointment.startTime, appointment.location?.timezone)} />
-            <Info icon={UserRound} label="Client" value={clientName} subvalue={clientEmail} />
-            <Info icon={Scissors} label="Provider" value={stylistName} subvalue={appointment.stylist?.tier ? `${appointment.stylist.tier} tier` : undefined} />
-            <Info icon={CreditCard} label="Checkout" value={formatCurrency(serviceTotal)} subvalue={appointment.payment?.status || 'No payment yet'} />
-          </div>
-
-          {(appointment.clientNotes || appointment.internalNotes) && (
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {appointment.clientNotes && <NoteBlock title="Client notes" body={appointment.clientNotes} />}
-              {appointment.internalNotes && <NoteBlock title="Internal notes" body={appointment.internalNotes} />}
-            </div>
-          )}
-        </div>
-
-        <div className="flex shrink-0 flex-col gap-2 lg:w-52">
-          <AppointmentActions appointment={appointment} />
-          <Link
-            href={`/dashboard/platform/appointments/${appointment.id}`}
-            className="inline-flex items-center justify-center rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
-          >
-            Open appointment
-          </Link>
-          <Link
-            href={`/dashboard/platform/checkout/${appointment.id}`}
-            className="inline-flex items-center justify-center rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
-          >
-            Checkout workflow
-          </Link>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function AppointmentActions({ appointment }: { appointment: PlatformAppointment }) {
-  if (appointment.status === 'cancelled' || appointment.status === 'completed' || appointment.status === 'no_show') {
-    return null;
+/** Appointments grouped by salon day, each row anchored to its start time. */
+function DaySheet({ appointments, showDay }: { appointments: PlatformAppointment[]; showDay: boolean }) {
+  const groups: Array<{ key: string; label: string; items: PlatformAppointment[] }> = [];
+  for (const appointment of appointments) {
+    const key = zoned(appointment.startTime, appointment.location?.timezone, { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const last = groups[groups.length - 1];
+    if (last?.key === key) last.items.push(appointment);
+    else groups.push({ key, label: dayOf(appointment.startTime, appointment.location?.timezone), items: [appointment] });
   }
 
   return (
-    <div className="grid gap-2">
-      {appointment.status === 'pending' && (
-        <AppointmentStatusForm id={appointment.id} status="confirmed" label="Confirm" primary />
-      )}
-      {appointment.status === 'confirmed' && (
-        <AppointmentStatusForm id={appointment.id} status="in_progress" label="Check in" primary />
-      )}
-      {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
-        <AppointmentStatusForm id={appointment.id} status="no_show" label="Mark no-show" />
-      )}
-      <AppointmentCancelForm id={appointment.id} variant="queue" />
+    <div className="grid gap-6">
+      {groups.map((group) => (
+        <section key={group.key} aria-label={group.label} className="min-w-0">
+          {showDay ? <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</h2> : null}
+          <ol className="divide-y overflow-hidden rounded-2xl border bg-background">
+            {group.items.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }
 
-function Info({
-  icon: Icon,
-  label,
-  value,
-  subvalue,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  subvalue?: string;
-}) {
+function AppointmentRow({ appointment }: { appointment: PlatformAppointment }) {
+  const contact = appointmentContact(appointment);
+  const timezone = appointment.location?.timezone;
+  const end = endOf(appointment);
+  const services = appointment.services.map((service) => service.name).filter(Boolean).join(' · ') || 'No services';
+  const stylist = appointment.stylist?.user?.name || 'Unassigned';
+  const tone = appointmentTone[appointment.status] || 'zinc';
+  const closed = appointment.status === 'cancelled' || appointment.status === 'no_show';
+
   return (
-    <div className="flex gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-        <Icon className="h-4 w-4 text-muted-foreground" />
+    <li className={`grid min-w-0 gap-3 p-4 md:grid-cols-[6.5rem_minmax(0,1fr)_auto] md:items-start md:gap-5 md:p-5 ${closed ? 'bg-muted/20' : ''}`}>
+      <div className="flex items-baseline gap-2 md:block">
+        <div className={`text-base font-semibold tabular-nums ${closed ? 'text-muted-foreground line-through decoration-1' : ''}`}>{timeOf(appointment.startTime, timezone)}</div>
+        <div className="text-xs tabular-nums text-muted-foreground">{end ? `– ${timeOf(end, timezone)}` : null}{appointment.duration ? ` · ${appointment.duration}m` : ''}</div>
       </div>
+
       <div className="min-w-0">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground/80">{label}</div>
-        <div className="truncate font-medium text-foreground">{value}</div>
-        {subvalue && <div className="truncate text-xs text-muted-foreground">{subvalue}</div>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Link href={`/dashboard/platform/appointments/${appointment.id}`} className="min-w-0 truncate text-base font-semibold hover:underline">{contact.name}</Link>
+          <TitleStatus tone={tone}>{appointmentLabel[appointment.status] || appointment.status}</TitleStatus>
+        </div>
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">{services}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 text-sm"><Avatar name={stylist} className="size-6 text-[10px]" />{stylist}</span>
+          <Chip>{usd(serviceTotal(appointment), { whole: true })}{appointment.payment?.status ? ` · ${appointment.payment.status.replaceAll('_', ' ')}` : ''}</Chip>
+          {appointment.depositAmount ? <Chip tone={appointment.depositPaid ? 'emerald' : 'amber'}>{appointment.depositPaid ? 'Deposit paid' : `Deposit due ${usd(appointment.depositAmount, { whole: true })}`}</Chip> : null}
+          {needsIntake(appointment) ? <Chip tone="violet"><ShieldAlert className="size-3" />Intake / consent</Chip> : null}
+          {appointment.client?.totalVisits ? <Chip>{appointment.client.totalVisits} visits</Chip> : <Chip tone="sky">New client</Chip>}
+        </div>
+        {appointment.clientNotes || appointment.internalNotes ? (
+          <div className="mt-3 grid gap-1 text-sm">
+            {appointment.clientNotes ? <p className="text-muted-foreground"><span className="font-medium text-foreground">Client note · </span>{appointment.clientNotes}</p> : null}
+            {appointment.internalNotes ? <p className="text-muted-foreground"><span className="font-medium text-foreground">Internal · </span>{appointment.internalNotes}</p> : null}
+          </div>
+        ) : null}
       </div>
-    </div>
-  );
-}
 
-function NoteBlock({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-xl border bg-muted/30 p-3 text-sm">
-      <div className="mb-1 flex items-center gap-1.5 font-medium">
-        <FileText className="h-4 w-4" />
-        {title}
+      <div className="grid min-w-0 justify-items-start gap-2 md:justify-items-end">
+        <AppointmentActions id={appointment.id} status={appointment.status} size="sm" />
+        <Track>
+          <PillLink href={`/dashboard/platform/appointments/${appointment.id}`} size="sm" variant="quiet">Open<ArrowUpRight /></PillLink>
+          <PillLink href={`/dashboard/platform/checkout/${appointment.id}`} size="sm" variant="quiet"><ReceiptText />Checkout</PillLink>
+        </Track>
       </div>
-      <p className="text-muted-foreground">{body}</p>
-    </div>
+    </li>
   );
 }
 

@@ -1,117 +1,73 @@
 import Link from "next/link"
-import { User } from "lucide-react"
 import { getStorefrontImageSrc } from "../lib/images"
 
-interface StylistCardProps {
-  stylist: {
-    id: string
-    user: {
-      name: string
-    } | null
-    tier: string | null
-    bio: string | null
-    photo: {
-      image: {
-        url: string
-      } | null
-      imagePath?: string | null
-      altText: string | null
-    } | null
-    specializations?: {
-      name: string
-    }[]
-  }
-  variant?: "default" | "compact"
-  showSpecializations?: boolean
-  linked?: boolean
+export interface StylistCardData {
+  id: string
+  user: { name: string } | null
+  tier: string | null
+  bio: string | null
+  photo: { image: { url: string } | null; imagePath?: string | null; altText: string | null } | null
+  specializations?: { name: string }[]
+  schedules?: { dayOfWeek: number | null; isAvailable: boolean }[]
 }
 
-const tierLabels: Record<string, string> = {
-  junior: "Junior",
-  senior: "Senior",
-  master: "Master",
-  director: "Director",
-  celebrity: "Celebrity",
+export const tierLabels: Record<string, string> = {
+  junior: "Stylist",
+  senior: "Senior stylist",
+  master: "Master stylist",
+  director: "Creative director",
+  celebrity: "Celebrity stylist",
 }
 
-export function StylistCard({
-  stylist,
-  variant = "default",
-  showSpecializations = true,
-  linked = true,
-}: StylistCardProps) {
-  const name = stylist.user?.name || "Artist"
+const WEEK = [
+  { index: 1, label: "M" }, { index: 2, label: "T" }, { index: 3, label: "W" }, { index: 4, label: "T" },
+  { index: 5, label: "F" }, { index: 6, label: "S" }, { index: 0, label: "S" },
+]
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+export function WeekStrip({ schedules = [] }: { schedules?: { dayOfWeek: number | null; isAvailable: boolean }[] }) {
+  const on = new Set(schedules.filter((schedule) => schedule.isAvailable && schedule.dayOfWeek !== null).map((schedule) => schedule.dayOfWeek))
+  if (on.size === 0) return null
+  return (
+    <div className="sf-week" aria-label={`Works ${DAY_NAMES.filter((_, index) => on.has(index)).join(", ")}`}>
+      {WEEK.map((day) => <span key={day.index} data-on={on.has(day.index)} aria-hidden="true">{day.label}</span>)}
+    </div>
+  )
+}
+
+export function StylistPortrait({ stylist, className = "" }: { stylist: StylistCardData; className?: string }) {
+  const name = stylist.user?.name || "Stylist"
   const photoUrl = getStorefrontImageSrc(stylist.photo)
-  const tier = stylist.tier ? tierLabels[stylist.tier] ?? null : null
+  return (
+    <div className={`sf-arch ${className}`}>
+      {photoUrl ? <img src={photoUrl} alt={stylist.photo?.altText || name} loading="lazy" /> : <div className="sf-arch-placeholder" aria-hidden="true">{name.charAt(0)}</div>}
+    </div>
+  )
+}
 
-  if (variant === "compact") {
-    const content = (
-      <div className="flex items-center gap-4 p-[var(--sf-space-md)]">
-        {photoUrl ? (
-          <img
-            src={photoUrl}
-            alt={stylist.photo?.altText || name}
-            className="h-14 w-14 shrink-0 object-cover bg-[var(--sf-paper-3)]"
-          />
-        ) : (
-          <div className="h-14 w-14 shrink-0 flex items-center justify-center bg-[var(--sf-paper-3)] border border-[var(--sf-rule)]">
-            <User className="h-6 w-6 text-[var(--sf-ink-3)]" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <h3 className="sf-display text-[var(--sf-text-lg)] text-[var(--sf-ink)] truncate">{name}</h3>
-          {tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tier}</p> : null}
+/** Portrait in an arch frame, level, specialties, working days and a booking pill. */
+export function StylistCard({ stylist, showSpecializations = true, bookHref }: { stylist: StylistCardData; showSpecializations?: boolean; bookHref?: string }) {
+  const name = stylist.user?.name || "Stylist"
+  const firstName = name.split(" ")[0]
+  const tier = stylist.tier ? tierLabels[stylist.tier] ?? stylist.tier : null
+  const specialties = (stylist.specializations || []).map((service) => service.name).filter(Boolean)
+
+  return (
+    <article className="sf-artist">
+      <Link href={`/team/${stylist.id}`} className="group block">
+        <StylistPortrait stylist={stylist} />
+        <h3 className="sf-artist-name group-hover:text-[var(--sf-accent)]">{name}</h3>
+      </Link>
+      {tier ? <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{tier}</p> : null}
+      {showSpecializations && specialties.length > 0 ? (
+        <p className="mt-2 line-clamp-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">{specialties.slice(0, 3).join(" · ")}</p>
+      ) : null}
+      {stylist.schedules ? <div className="mt-3"><WeekStrip schedules={stylist.schedules} /></div> : null}
+      <div className="mt-4">
+        <div className="sf-track">
+          <Link href={bookHref || `/book?stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book with {firstName}</Link>
         </div>
       </div>
-    )
-
-    return linked ? (
-      <Link href={`/team/${stylist.id}`} className="sf-card group block">
-        {content}
-      </Link>
-    ) : (
-      <div className="sf-card group block w-full text-left">{content}</div>
-    )
-  }
-
-  const content = (
-    <>
-      <div className="aspect-[4/5] overflow-hidden bg-[var(--sf-paper-3)]">
-        {photoUrl ? (
-          <img
-            src={photoUrl}
-            alt={stylist.photo?.altText || name}
-            className="h-full w-full object-cover transition-transform duration-[var(--sf-dur-medium)] group-hover:scale-[1.02]"
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center">
-            <User className="h-16 w-16 text-[var(--sf-ink-3)]" />
-          </div>
-        )}
-      </div>
-      <div className="p-[var(--sf-space-md)]">
-        {tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)] mb-1">{tier}</p> : null}
-        <h3 className="sf-display text-[var(--sf-text-xl)] text-[var(--sf-ink)]">{name}</h3>
-        {stylist.bio ? (
-          <p className="mt-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)] line-clamp-2">{stylist.bio}</p>
-        ) : null}
-        {showSpecializations && stylist.specializations && stylist.specializations.length > 0 ? (
-          <p className="mt-3 text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">
-            {stylist.specializations
-              .slice(0, 3)
-              .map((s) => s.name)
-              .join(" · ")}
-          </p>
-        ) : null}
-      </div>
-    </>
-  )
-
-  return linked ? (
-    <Link href={`/team/${stylist.id}`} className="sf-card group block overflow-hidden">
-      {content}
-    </Link>
-  ) : (
-    <div className="sf-card group block overflow-hidden">{content}</div>
+    </article>
   )
 }

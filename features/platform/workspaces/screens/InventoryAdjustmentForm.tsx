@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adjustSavedInventoryIntent } from '../actions/workspaces';
+import { pillClass, trackClass } from '../../components/pill';
 import { parseInventoryIntent, submitInventoryIntent, releaseAcknowledgedIntent, type InventoryIntent, type InventoryAcknowledgement } from '../lib/inventoryIntent';
 
 type Props = { actorId: string; productId: string; locations: { id: string; name: string }[]; allowNew: boolean };
@@ -48,26 +49,26 @@ export function InventoryAdjustmentForm({ actorId, productId, locations, allowNe
     } catch { setBlocked(true); }
     finally { setBusy(false); }
   }
-  return <section className="grid gap-2 text-xs" aria-label="Stock adjustment">
-    {saved && <p>Pending: {saved.delta > 0 ? '+' : ''}{saved.delta} units{locations.find(location => location.id === saved.locationId) ? ` at ${locations.find(location => location.id === saved.locationId)!.name}` : ''}. Reason: {saved.reason}.</p>}
-    {result?.status === 'acknowledged' ? <p role="status">Stock updated. New balance: {result.balanceAfter}.</p> : <>
+  return <section className="grid gap-2 text-xs text-muted-foreground" aria-label="Stock adjustment">
+    {saved && <p className="text-foreground"><span className="font-semibold">Pending</span> {saved.delta > 0 ? '+' : ''}{saved.delta}{' units'}{locations.find(location => location.id === saved.locationId) ? ` at ${locations.find(location => location.id === saved.locationId)!.name}` : ''}. Reason: {saved.reason}.</p>}
+    {result?.status === 'acknowledged' ? <p role="status" className="text-emerald-700 dark:text-emerald-400">Stock updated · balance {result.balanceAfter}</p> : <>
       {inputError && <p role="alert">{inputError}</p>}
-      <form action={submit} className="grid grid-cols-2 gap-2">
+      <form action={submit} className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.2fr)_5.5rem_minmax(0,1fr)_auto] sm:items-end">
         {!saved && <>
-          <label className="col-span-2">Stock location<select name="locationId" required className="mt-1 h-9 w-full border bg-background px-2 text-sm">{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
-          <label>Quantity change<input name="delta" type="number" step="1" required min={-1000000} max={1000000} className="mt-1 h-9 w-full border bg-background px-2 text-sm" /></label>
-          <label>Reason<input name="reason" required maxLength={500} className="mt-1 h-9 w-full border bg-background px-2 text-sm" /></label>
+          <label className="col-span-2 font-medium sm:col-span-1">Location<select name="locationId" required className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground">{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
+          <label className="font-medium">Change ±<input name="delta" type="number" step="1" required min={-1000000} max={1000000} className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm tabular-nums text-foreground" /></label>
+          <label className="font-medium">Reason<input name="reason" required maxLength={500} className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground" /></label>
         </>}
-        <button disabled={busy || (!saved && locations.length === 0)} className="col-span-2 bg-foreground px-3 py-2 text-sm text-background disabled:opacity-50">{busy ? 'Saving…' : saved ? 'Retry adjustment' : 'Record adjustment'}</button>
+        <div className={`${trackClass} col-span-2 justify-self-start sm:col-span-1`}><button disabled={busy || (!saved && locations.length === 0)} className={pillClass('primary', 'sm')}>{busy ? 'Saving…' : saved ? 'Retry adjustment' : 'Record'}</button></div>
       </form>
       {result?.status === 'unverified' && <p role="alert">We couldn't confirm this adjustment. Retry it; it won't be applied twice.</p>}
     </>}
-    {result?.status === 'acknowledged' && <button className="border p-2" onClick={() => {
+    {result?.status === 'acknowledged' && <div className={`${trackClass} justify-self-start`}><button type="button" className={pillClass('raised', 'sm')} onClick={() => {
       // Only an acknowledged, exact owned record may release the local slot.
       try {
         if (!saved || !releaseAcknowledgedIntent(localStorage, key, saved, result)) { setBlocked(true); return; }
         setSaved(null); setResult(null); window.dispatchEvent(new Event('salon:inventory-intent-updated'));
       } catch { setBlocked(true); }
-    }}>{allowNew ? 'New adjustment' : 'Dismiss'}</button>}
+    }}>{allowNew ? 'New adjustment' : 'Dismiss'}</button></div>}
   </section>;
 }

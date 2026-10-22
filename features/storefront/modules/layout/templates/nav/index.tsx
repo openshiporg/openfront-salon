@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { StoreBrand } from "@/features/storefront/components/StoreBrand"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
-import { useState } from "react"
+import { ArrowUpRight, CalendarPlus, Menu, X } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface NavProps {
   brandName: string | null
@@ -14,86 +14,118 @@ interface NavProps {
 
 const navigation = [
   { name: "Services", href: "/services" },
-  { name: "Artists", href: "/team" },
+  { name: "Stylists", href: "/team" },
   { name: "Gallery", href: "/gallery" },
   { name: "Reviews", href: "/reviews" },
-  { name: "Gift Cards", href: "/gift-cards" },
-  { name: "Account", href: "/account" },
+  { name: "Visit", href: "/contact" },
 ]
+
+const secondary = [
+  { name: "Gift cards", href: "/gift-cards" },
+  { name: "My appointments", href: "/account" },
+]
+
+// Booking and account pages own their primary action; the floating bar would compete.
+const NO_BOOK_BAR = ["/book", "/booking", "/account"]
 
 export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname?.startsWith(href + "/"))
+  const showBookBar = !NO_BOOK_BAR.some((prefix) => pathname === prefix || pathname?.startsWith(prefix + "/"))
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--sf-rule)] bg-[color-mix(in_oklch,var(--sf-paper)_92%,transparent)] backdrop-blur-md">
-      <div className="sf-container flex h-[4.25rem] items-center justify-between gap-6">
-        <StoreBrand name={brandName} logoIcon={logoIcon} logoColor={logoColor} />
+    <>
+      <header className="sf-nav" data-scrolled={scrolled || mobileMenuOpen}>
+        <div className="sf-container sf-nav-inner">
+          <StoreBrand name={brandName} logoIcon={logoIcon} logoColor={logoColor} />
 
-        <nav className="hidden lg:flex items-center gap-8" aria-label="Main">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`text-[var(--sf-text-sm)] font-medium whitespace-nowrap transition-colors ${
-                isActive(item.href)
-                  ? "text-[var(--sf-ink)] underline underline-offset-[6px] decoration-[var(--sf-accent)] decoration-2"
-                  : "text-[var(--sf-ink-2)] hover:text-[var(--sf-ink)]"
-              }`}
-            >
-              {item.name}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <Link href="/book" className="sf-btn sf-btn-primary hidden sm:inline-flex">
-            Reserve
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="sf-btn sf-btn-secondary lg:hidden !min-h-[2.75rem] !min-w-[2.75rem] !px-3"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {mobileMenuOpen ? (
-        <div className="border-t border-[var(--sf-rule)] lg:hidden">
-          <nav className="sf-container py-4 flex flex-col gap-1" aria-label="Mobile">
-            <StoreBrand name={brandName} logoIcon={logoIcon} logoColor={logoColor} onClick={() => setMobileMenuOpen(false)} />
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`min-h-[2.75rem] flex items-center px-2 text-[var(--sf-text-sm)] font-medium ${
-                  isActive(item.href)
-                    ? "text-[var(--sf-ink)]"
-                    : "text-[var(--sf-ink-2)]"
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
-            <Link
-              href="/book"
-              onClick={() => setMobileMenuOpen(false)}
-              className="sf-btn sf-btn-primary mt-3 sm:hidden"
-            >
-              Reserve
-            </Link>
+          <nav className="sf-nav-links hidden lg:block" aria-label="Main">
+            <div className="sf-track">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className="sf-btn sf-btn-quiet"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </div>
           </nav>
+
+          <div className="flex items-center gap-2">
+            <Link href="/account" className="sf-link hidden text-[var(--sf-text-sm)] xl:inline">
+              My appointments
+            </Link>
+            <div className="sf-track">
+              <Link href="/book" className="sf-btn sf-btn-primary hidden sm:inline-flex">
+                Book now
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sf-btn sf-btn-icon lg:hidden"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+                aria-controls="sf-mobile-menu"
+              >
+                {mobileMenuOpen ? <X /> : <Menu />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {mobileMenuOpen ? (
+          <div id="sf-mobile-menu" className="sf-mobile-sheet lg:hidden">
+            <nav className="sf-container pb-6 pt-2" aria-label="Mobile">
+              {[...navigation, ...secondary].map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className="sf-mobile-link"
+                >
+                  {item.name}
+                  <ArrowUpRight className="h-5 w-5 text-[var(--sf-ink-3)]" aria-hidden="true" />
+                </Link>
+              ))}
+              <div className="sf-track sf-track-block mt-6">
+                <Link href="/book" className="sf-btn sf-btn-primary">
+                  <CalendarPlus />
+                  Book an appointment
+                </Link>
+              </div>
+            </nav>
+          </div>
+        ) : null}
+      </header>
+
+      {showBookBar && !mobileMenuOpen ? (
+        <div className="sf-book-bar">
+          <div className="sf-track sf-track-block">
+            <Link href="/book" className="sf-btn sf-btn-primary">
+              <CalendarPlus />
+              Book an appointment
+            </Link>
+          </div>
         </div>
       ) : null}
-    </header>
+    </>
   )
 }

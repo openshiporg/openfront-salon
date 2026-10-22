@@ -1,4 +1,4 @@
-import { Cormorant_Garamond, DM_Sans } from "next/font/google"
+import { Fraunces, Hanken_Grotesk } from "next/font/google"
 import { Metadata } from "next"
 import type { CSSProperties } from "react"
 import Link from "next/link"
@@ -7,15 +7,15 @@ import Footer from "@/features/storefront/modules/layout/templates/footer"
 import { getStorefrontBrand } from "@/features/storefront/lib/data/brand"
 import "../styles/storefront.css"
 
-const display = Cormorant_Garamond({
+const display = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  axes: ["SOFT", "WONK", "opsz"],
   variable: "--font-sf-display",
 })
 
-const body = DM_Sans({
+const body = Hanken_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   variable: "--font-sf-body",
 })
 
@@ -31,8 +31,9 @@ export async function MainLayout({ children }: { children: React.ReactNode }) {
       style={themeStyle}
     >
       {!brand.configured ? (
-        <div role="status" className="border-b border-[var(--sf-rule)] bg-[var(--sf-paper-2)] px-4 py-2 text-center text-[var(--sf-text-xs)] text-[var(--sf-ink-2)]">
-          Online booking opens soon.
+        <div role="status" className="flex items-center justify-center gap-2 border-b border-[var(--sf-rule)] bg-[var(--sf-paper-2)] px-4 py-2 text-center text-[var(--sf-text-xs)] font-medium text-[var(--sf-ink-2)]">
+          <span className="sf-dot" data-tone="warn" aria-hidden="true" />
+          Online booking opens soon
         </div>
       ) : null}
       <Nav brandName={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
@@ -49,13 +50,16 @@ export const MainNotFoundMetadata: Metadata = {
 
 export function MainNotFound() {
   return (
-    <div className="sf-container sf-page-pad-lg flex flex-col items-center justify-center text-center min-h-[60vh]">
+    <div className="sf-container sf-page-pad-lg flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <span className="sf-swatch-fan mb-6" aria-hidden="true">
+        {[1, 2, 3, 4, 5].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}
+      </span>
       <p className="sf-eyebrow mb-4">404</p>
-      <h1 className="sf-display text-[var(--sf-text-display-s)] mb-4">This page isn&apos;t here.</h1>
-      <p className="sf-lead mx-auto mb-8">The route may have moved, or the link is out of date.</p>
-      <Link href="/" className="sf-btn sf-btn-primary">
-        Return home
-      </Link>
+      <h1 className="sf-display mb-8 text-[var(--sf-text-display-s)]">Page not found</h1>
+      <div className="sf-track">
+        <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
+        <Link href="/services" className="sf-btn sf-btn-quiet">Service menu</Link>
+      </div>
     </div>
   )
 }

@@ -3,44 +3,35 @@ import { Check } from "lucide-react"
 interface Step {
   number: number
   title: string
-  description: string
 }
 
 interface BookingStepIndicatorProps {
   currentStep: number
   steps: Step[]
+  /** Steps before the current one are revisitable. */
+  onSelect?: (step: number) => void
 }
 
-export function BookingStepIndicator({ currentStep, steps }: BookingStepIndicatorProps) {
+export function BookingStepIndicator({ currentStep, steps, onSelect }: BookingStepIndicatorProps) {
   return (
-    <ol className="mb-[var(--sf-space-lg)] flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <ol className="sf-steps sf-track sf-track-scroll" aria-label="Booking steps">
       {steps.map((step) => {
         const isCompleted = currentStep > step.number
         const isCurrent = currentStep === step.number
-
         return (
-          <li
-            key={step.number}
-            className={`flex items-start gap-3 min-w-0 flex-1 ${
-              isCurrent ? "text-[var(--sf-ink)]" : "text-[var(--sf-ink-3)]"
-            }`}
-          >
-            <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center text-[var(--sf-text-xs)] font-medium border ${
-                isCompleted
-                  ? "border-[var(--sf-ink)] bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"
-                  : isCurrent
-                  ? "border-[var(--sf-accent)] text-[var(--sf-accent)]"
-                  : "border-[var(--sf-rule)]"
-              }`}
+          <li key={step.number} className="shrink-0">
+            <button
+              type="button"
+              disabled={!isCompleted || !onSelect}
+              onClick={() => onSelect?.(step.number)}
               aria-current={isCurrent ? "step" : undefined}
+              data-done={isCompleted}
+              className={`sf-btn ${isCurrent ? "" : "sf-btn-quiet"} disabled:!opacity-100`}
+              style={isCurrent ? undefined : { cursor: isCompleted ? "pointer" : "default" }}
             >
-              {isCompleted ? <Check className="h-4 w-4" /> : step.number}
-            </span>
-            <div className="min-w-0 pt-0.5">
-              <p className="text-[var(--sf-text-sm)] font-medium">{step.title}</p>
-              <p className="text-[var(--sf-text-xs)] hidden sm:block">{step.description}</p>
-            </div>
+              <span className="sf-step-num">{isCompleted ? <Check className="!h-3 !w-3" aria-hidden="true" /> : step.number}</span>
+              <span className={isCurrent ? "" : "hidden sm:inline"}>{step.title}</span>
+            </button>
           </li>
         )
       })}

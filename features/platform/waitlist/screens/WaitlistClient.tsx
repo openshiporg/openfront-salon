@@ -1,9 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,12 +22,12 @@ import {
 import {
   Plus,
   Clock,
-  User,
   Bell,
   X,
-  CheckCircle,
+  CalendarPlus,
   RefreshCw,
 } from 'lucide-react'
+import { pillClass, trackClass } from '../../components/pill'
 import {
   getWaitlistQueue,
   joinWaitlist,
@@ -64,7 +61,7 @@ function formatTimeAgo(dateString: string): string {
   return `${Math.floor(diffHours / 24)}d ago`
 }
 
-export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue }) {
+export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQueue; icon?: ReactNode }) {
   const [queue, setQueue] = useState<WaitlistQueue>(initialQueue)
   const [refreshing, setRefreshing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -138,159 +135,171 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue }
 
   if (queue.status === 'error') {
     return (
-      <Card>
-        <CardContent className="py-12 text-center space-y-4">
-          <p role="alert" className="text-sm text-destructive">{queue.message}</p>
-          <Button variant="outline" onClick={refresh} disabled={refreshing}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6">
+        <WaitlistHeader icon={icon} />
+        <section role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          <h2 className="text-base font-semibold">Waitlist unavailable</h2>
+          <p className="mt-1.5 text-sm opacity-90">{queue.message}</p>
+          <div className={`${trackClass} mt-4`}>
+            <button type="button" onClick={refresh} disabled={refreshing} className={pillClass('primary')}><RefreshCw />Retry</button>
+          </div>
+        </section>
+      </div>
     )
   }
 
   const { entries, total, truncated, services, servicesTruncated, stylists, stylistsTruncated } = queue
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">{total} waiting</Badge>
-          <Button variant="ghost" size="sm" onClick={refresh} disabled={refreshing} aria-label="Refresh waitlist">
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
+  const notified = entries.filter((entry) => entry.notifiedAt).length
 
-        <Dialog
-          open={addDialogOpen}
-          onOpenChange={(open) => {
-            setAddDialogOpen(open)
-            if (!open) setActionError(null)
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add to Waitlist
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add to Waitlist</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Client Name *</Label>
-                <Input
-                  value={newEntry.clientName}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, clientName: e.target.value })
-                  }
-                  placeholder="Walk-in client name"
-                />
-              </div>
-              <div>
-                <Label>Phone</Label>
-                <Input
-                  value={newEntry.clientPhone}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, clientPhone: e.target.value })
-                  }
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-              <div>
-                <Label>Service *</Label>
-                <Select
-                  value={newEntry.serviceId}
-                  onValueChange={(v) =>
-                    setNewEntry({ ...newEntry, serviceId: v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services.map((service) => (
-                      <SelectItem key={service.id} value={service.id}>
-                        {service.name}{service.baseDuration ? ` (${service.baseDuration}min)` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {servicesTruncated && (
-                  <p className="mt-1 text-xs text-muted-foreground">Showing the first {services.length} active services.</p>
-                )}
-              </div>
-              <div>
-                <Label>Preferred Stylist</Label>
-                <Select
-                  value={newEntry.stylistId}
-                  onValueChange={(v) =>
-                    setNewEntry({ ...newEntry, stylistId: v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any available" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ANY}>Any available</SelectItem>
-                    {stylists.map((stylist) => (
-                      <SelectItem key={stylist.id} value={stylist.id}>
-                        {stylist.name}{stylist.tier ? ` (${stylist.tier})` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {stylistsTruncated && (
-                  <p className="mt-1 text-xs text-muted-foreground">Showing the first {stylists.length} active stylists.</p>
-                )}
-              </div>
-              <div>
-                <Label>Preferred Time</Label>
-                <Select
-                  value={newEntry.preferredTimeRange}
-                  onValueChange={(v) =>
-                    setNewEntry({ ...newEntry, preferredTimeRange: v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Anytime" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ANY}>Anytime</SelectItem>
-                    <SelectItem value="morning">Morning (9am-12pm)</SelectItem>
-                    <SelectItem value="afternoon">Afternoon (12pm-5pm)</SelectItem>
-                    <SelectItem value="evening">Evening (5pm-8pm)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <Textarea
-                  value={newEntry.notes}
-                  onChange={(e) =>
-                    setNewEntry({ ...newEntry, notes: e.target.value })
-                  }
-                  placeholder="Any special requests..."
-                />
-              </div>
-              {actionError && addDialogOpen && (
-                <p role="alert" className="text-sm text-destructive">{actionError}</p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddEntry} disabled={submitting}>
-                {submitting ? 'Adding…' : 'Add to Waitlist'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+  return (
+    <div className="grid gap-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <WaitlistHeader icon={icon} total={total} />
+        <div className="flex items-center gap-2">
+          <div className={trackClass}>
+            <button type="button" onClick={refresh} disabled={refreshing} aria-label="Refresh waitlist" className={pillClass('quiet')}>
+              <RefreshCw className={refreshing ? 'animate-spin' : ''} />
+            </button>
+            <Dialog
+              open={addDialogOpen}
+              onOpenChange={(open) => {
+                setAddDialogOpen(open)
+                if (!open) setActionError(null)
+              }}
+            >
+              <DialogTrigger asChild>
+                <button type="button" className={pillClass('primary')}>
+                  <Plus />
+                  Add walk-in
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add walk-in</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Client name *</Label>
+                    <Input
+                      value={newEntry.clientName}
+                      onChange={(e) =>
+                        setNewEntry({ ...newEntry, clientName: e.target.value })
+                      }
+                      placeholder="Walk-in client name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone</Label>
+                    <Input
+                      value={newEntry.clientPhone}
+                      onChange={(e) =>
+                        setNewEntry({ ...newEntry, clientPhone: e.target.value })
+                      }
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                  <div>
+                    <Label>Service *</Label>
+                    <Select
+                      value={newEntry.serviceId}
+                      onValueChange={(v) =>
+                        setNewEntry({ ...newEntry, serviceId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {services.map((service) => (
+                          <SelectItem key={service.id} value={service.id}>
+                            {service.name}{service.baseDuration ? ` (${service.baseDuration}min)` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {servicesTruncated && (
+                      <p className="mt-1 text-xs text-muted-foreground">Showing the first {services.length} active services.</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Preferred stylist</Label>
+                    <Select
+                      value={newEntry.stylistId}
+                      onValueChange={(v) =>
+                        setNewEntry({ ...newEntry, stylistId: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Any available" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ANY}>Any available</SelectItem>
+                        {stylists.map((stylist) => (
+                          <SelectItem key={stylist.id} value={stylist.id}>
+                            {stylist.name}{stylist.tier ? ` (${stylist.tier})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {stylistsTruncated && (
+                      <p className="mt-1 text-xs text-muted-foreground">Showing the first {stylists.length} active stylists.</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Preferred time</Label>
+                    <Select
+                      value={newEntry.preferredTimeRange}
+                      onValueChange={(v) =>
+                        setNewEntry({ ...newEntry, preferredTimeRange: v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Anytime" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ANY}>Anytime</SelectItem>
+                        <SelectItem value="morning">Morning (9am-12pm)</SelectItem>
+                        <SelectItem value="afternoon">Afternoon (12pm-5pm)</SelectItem>
+                        <SelectItem value="evening">Evening (5pm-8pm)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea
+                      value={newEntry.notes}
+                      onChange={(e) =>
+                        setNewEntry({ ...newEntry, notes: e.target.value })
+                      }
+                      
+                    />
+                  </div>
+                  {actionError && addDialogOpen && (
+                    <p role="alert" className="text-sm text-destructive">{actionError}</p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <div className={trackClass}>
+                    <button type="button" onClick={() => setAddDialogOpen(false)} className={pillClass('quiet')}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleAddEntry} disabled={submitting} className={pillClass('primary')}>
+                      {submitting ? 'Adding…' : 'Add to waitlist'}
+                    </button>
+                  </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
       </div>
+
+      <dl className="grid grid-cols-3 overflow-hidden rounded-2xl border bg-border [&>*]:bg-background" style={{ gap: 1 }}>
+        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Waiting</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{total}</dd></div>
+        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Notified</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{notified}</dd></div>
+        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Longest wait</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{entries[0] ? formatTimeAgo(entries[0].createdAt).replace(' ago', '') : '—'}</dd></div>
+      </dl>
 
       {actionError && !addDialogOpen && (
         <p role="alert" className="text-sm text-destructive">{actionError}</p>
@@ -303,106 +312,60 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue }
       )}
 
       {entries.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-              <Clock className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No one waiting</h3>
-            <p className="text-muted-foreground">
-              Add walk-in clients to the waitlist as they arrive
-            </p>
-          </CardContent>
-        </Card>
+        <section className="flex flex-col items-center rounded-2xl border border-dashed bg-background px-6 py-14 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-muted"><Clock className="size-5 text-muted-foreground" /></span>
+          <h2 className="mt-4 text-base font-semibold">No one waiting</h2>
+        </section>
       ) : (
-        <div className="space-y-3">
+        <ol className="divide-y overflow-hidden rounded-2xl border bg-background">
           {entries.map((entry, index) => (
-            <Card key={entry.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">
-                          {entry.client?.name || entry.guestName || 'Walk-in'}
-                        </span>
-                        {entry.notifiedAt && (
-                          <Badge variant="outline" className="text-green-600">
-                            <Bell className="h-3 w-3 mr-1" />
-                            Notified
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTimeAgo(entry.createdAt)}
-                        </span>
-                        {entry.service && (
-                          <span>{entry.service.name}</span>
-                        )}
-                        {entry.preferredTimeRange && (
-                          <span className="capitalize">
-                            {entry.preferredTimeRange}
-                          </span>
-                        )}
-                      </div>
-                      {entry.preferredStylists.length > 0 && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <User className="h-3 w-3" />
-                          <span>
-                            Prefers:{' '}
-                            {entry.preferredStylists
-                              .map((s) => s.user?.name || 'Stylist')
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
-                      {entry.notes && (
-                        <div className="text-sm text-muted-foreground italic">
-                          &ldquo;{entry.notes}&rdquo;
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {!entry.notifiedAt && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleTransition(entry, 'notify')}
-                      >
-                        <Bell className="h-4 w-4 mr-1" />
-                        Notify
-                      </Button>
-                    )}
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleConvertToAppointment(entry)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Book
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label="Remove from waitlist"
-                      onClick={() => handleTransition(entry, 'remove')}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+            <li key={entry.id} className="grid min-w-0 gap-3 p-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center md:p-5">
+              <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold tabular-nums">{index + 1}</span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="truncate text-base font-semibold">{entry.client?.name || entry.guestName || 'Walk-in'}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <span aria-hidden="true" className={`size-2 rounded-full outline-3 -outline-offset-1 ${entry.notifiedAt ? 'bg-emerald-500 outline-emerald-100 dark:outline-emerald-900/50' : 'bg-amber-500 outline-amber-100 dark:outline-amber-900/50'}`} />
+                    {entry.notifiedAt ? 'Notified' : 'Waiting'} · {formatTimeAgo(entry.createdAt)}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                  {[entry.service?.name, entry.preferredTimeRange ? entry.preferredTimeRange.replace(/^./, (letter) => letter.toUpperCase()) : null, entry.preferredStylists.length ? `Prefers ${entry.preferredStylists.map((s) => s.user?.name || 'Stylist').join(', ')}` : null].filter(Boolean).join(' · ') || 'Any service'}
+                </p>
+                {entry.notes ? <p className="mt-1 text-sm text-muted-foreground">&ldquo;{entry.notes}&rdquo;</p> : null}
+              </div>
+              <div className={trackClass} role="group" aria-label="Waitlist entry actions">
+                {!entry.notifiedAt ? (
+                  <button type="button" onClick={() => handleTransition(entry, 'notify')} className={pillClass('raised', 'sm')}>
+                    <Bell />Notify
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => handleConvertToAppointment(entry)} className={pillClass('primary', 'sm')}>
+                  <CalendarPlus />Book
+                </button>
+                <button type="button" aria-label="Remove from waitlist" onClick={() => handleTransition(entry, 'remove')} className={pillClass('quiet', 'sm')}>
+                  <X />
+                </button>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       )}
     </div>
+  )
+}
+
+function WaitlistHeader({ icon, total }: { icon?: ReactNode; total?: number }) {
+  return (
+    <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {icon ? <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">{icon}</span> : null}
+      <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">Walk-in waitlist</h1>
+      {total !== undefined ? (
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <span aria-hidden="true" className={`size-2 rounded-full outline-3 -outline-offset-1 ${total > 0 ? 'bg-amber-500 outline-amber-100 dark:outline-amber-900/50' : 'bg-emerald-500 outline-emerald-100 dark:outline-emerald-900/50'}`} />
+          {total > 0 ? `${total} waiting` : 'No one waiting'}
+        </span>
+      ) : null}
+    </header>
   )
 }

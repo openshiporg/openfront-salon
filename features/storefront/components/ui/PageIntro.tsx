@@ -1,33 +1,22 @@
+import type { ReactNode } from "react"
+
 interface PageIntroProps {
-  title: string
-  description?: string
-  align?: "left" | "center"
+  title: ReactNode
+  eyebrow?: ReactNode
+  description?: ReactNode
+  aside?: ReactNode
   size?: "default" | "large"
 }
 
-export function PageIntro({
-  title,
-  description,
-  align = "left",
-  size = "default",
-}: PageIntroProps) {
-  const alignClass = align === "center" ? "text-center mx-auto" : ""
-  const titleClass =
-    size === "large" ? "text-[var(--sf-text-display)]" : "text-[var(--sf-text-display-s)]"
-
+export function PageIntro({ title, eyebrow, description, aside, size = "default" }: PageIntroProps) {
   return (
-    <header className={`mb-[var(--sf-space-lg)] max-w-4xl ${alignClass}`}>
-      <h1 className={`sf-display ${titleClass} text-[var(--sf-ink)] mb-[var(--sf-space-sm)]`}>
-        {title}
-      </h1>
-      {description ? (
-        <p
-          className={`sf-lead ${align === "center" ? "mx-auto" : ""}`}
-          style={{ fontSize: size === "large" ? "var(--sf-text-lg)" : undefined }}
-        >
-          {description}
-        </p>
-      ) : null}
+    <header className="mb-[var(--sf-space-xl)] flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div className="min-w-0 max-w-4xl">
+        {eyebrow ? <div className="sf-eyebrow mb-4">{eyebrow}</div> : null}
+        <h1 className={`sf-display ${size === "large" ? "text-[var(--sf-text-display)]" : "text-[var(--sf-text-display-s)]"}`}>{title}</h1>
+        {description ? <p className="sf-lead mt-5">{description}</p> : null}
+      </div>
+      {aside ? <div className="shrink-0">{aside}</div> : null}
     </header>
   )
 }

@@ -9,7 +9,6 @@ export async function StoreSettingsPageServer() {
       <PageBreadcrumbs
         items={[
           { type: 'link', label: 'Dashboard', href: '/' },
-          { type: 'page', label: 'Platform' },
           { type: 'page', label: 'Storefront settings' },
         ]}
       />

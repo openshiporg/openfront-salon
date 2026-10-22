@@ -1,7 +1,7 @@
+import { Armchair, ArrowUpRight, Bath, Box, DoorOpen, Palette, Wrench } from 'lucide-react';
 import type { ComponentType } from 'react';
-import Link from 'next/link';
-import { Armchair, CalendarClock, MapPin, PackageCheck, Scissors, ShieldAlert } from 'lucide-react';
 import { getResourceOperations, PlatformResource, setResourceActive } from '../actions/resources';
+import { Chip, EmptyState, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 interface PageProps {
   searchParams?: Promise<{ status?: string }>;
@@ -13,197 +13,119 @@ const tabs = [
   { value: 'all', label: 'All' },
 ] as const;
 
-const typeLabels: Record<string, string> = {
-  station: 'Station',
-  room: 'Room',
-  shampoo_bowl: 'Shampoo bowl',
-  equipment: 'Equipment',
-  color_bar: 'Color bar',
-  other: 'Other',
+const typeMeta: Record<string, { label: string; icon: ComponentType<{ className?: string }> }> = {
+  station: { label: 'Station', icon: Armchair },
+  room: { label: 'Room', icon: DoorOpen },
+  shampoo_bowl: { label: 'Shampoo bowl', icon: Bath },
+  equipment: { label: 'Equipment', icon: Wrench },
+  color_bar: { label: 'Color bar', icon: Palette },
+  other: { label: 'Other', icon: Box },
 };
 
 function formatDateTime(value?: string | null) {
   if (!value) return 'Unscheduled';
-  return new Date(value).toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 export async function ResourceOperationsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const activeStatus = resolvedSearchParams.status || 'active';
   const { resources, counts } = await getResourceOperations(activeStatus);
+  const held = resources.filter((resource) => resource.appointments.length > 0).length;
 
   return (
-    <main className="min-h-screen min-w-0 overflow-x-hidden bg-muted/20 px-4 py-6 md:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <header className="rounded-2xl border bg-background p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                <Armchair className="h-3.5 w-3.5" />
-                Rooms & equipment
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Resources</h1>
+    <PlatformPage breadcrumbs={[{ type: 'page', label: 'Resources' }]}>
+      <PageHeader
+        icon={Armchair}
+        title="Resources"
+        status={<TitleStatus tone={counts.uncoveredServices > 0 ? 'amber' : 'emerald'}>{counts.uncoveredServices > 0 ? `${counts.uncoveredServices} services unprotected` : 'All services covered'}</TitleStatus>}
+        actions={<Track><PillLink href="/dashboard/platform/administration#management-resource">Add resource<ArrowUpRight /></PillLink></Track>}
+      />
 
-            </div>
+      <MetricStrip
+        items={[
+          { label: 'Active', value: counts.active, tone: 'emerald' },
+          { label: 'Inactive', value: counts.inactive, tone: 'zinc' },
+          { label: 'Held by bookings', value: held, tone: 'blue' },
+        ]}
+      />
 
-          </div>
-        </header>
+      {counts.uncoveredServices > 0 ? (
+        <Notice title={`${counts.uncoveredServices} active service${counts.uncoveredServices === 1 ? '' : 's'} without resource requirements`}>
+          Booking can&apos;t protect chairs, rooms, or equipment for these services.
+        </Notice>
+      ) : null}
 
-        {counts.uncoveredServices > 0 && (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
-              <div>
-                <div className="font-semibold">{counts.uncoveredServices} active service{counts.uncoveredServices === 1 ? '' : 's'} missing resource requirements</div>
-                <p className="mt-1 text-amber-800/80">
-                  These services can still be booked, but availability cannot yet protect chairs, rooms, or equipment from double-booking.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
+      <SegmentTabs
+        label="Resource filters"
+        active={activeStatus}
+        tabs={tabs.map((tab) => ({
+          value: tab.value,
+          label: tab.label,
+          href: tab.value === 'active' ? '/dashboard/platform/resources' : `/dashboard/platform/resources?status=${tab.value}`,
+          count: counts[tab.value as keyof typeof counts] ?? 0,
+        }))}
+      />
 
-        <nav className="flex gap-1 overflow-x-auto rounded-xl border bg-muted p-1 shadow-inner" aria-label="Resource filters">
-          {tabs.map((tab) => {
-            const isActive = activeStatus === tab.value;
-            const href = tab.value === 'active' ? '/dashboard/platform/resources' : `/dashboard/platform/resources?status=${tab.value}`;
-            const count = counts[tab.value as keyof typeof counts] ?? 0;
-            return (
-              <Link
-                key={tab.value}
-                href={href}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                {tab.label} <span className="ml-1 opacity-70">{count}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {resources.length === 0 ? (
-          <section className="rounded-2xl border bg-background p-12 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Armchair className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h2 className="text-lg font-semibold">No resources in this view</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Create SalonResource records for chairs, rooms, stations, and equipment to unlock resource-aware booking.
-            </p>
-          </section>
-        ) : (
-          <section className="grid min-w-0 gap-4">
-            {resources.map((resource) => (
-              <ResourceCard key={resource.id} resource={resource} />
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
+      {resources.length === 0 ? (
+        <EmptyState icon={Armchair} title="No resources in this view" action={<Track><PillLink href="/dashboard/platform/administration#management-resource">Add resource</PillLink></Track>} />
+      ) : (
+        <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {resources.map((resource) => <ResourceTile key={resource.id} resource={resource} />)}
+        </div>
+      )}
+    </PlatformPage>
   );
 }
 
-
-function ResourceCard({ resource }: { resource: PlatformResource }) {
-  const serviceNames = resource.services.map((service) => service.name).filter(Boolean).join(', ') || 'No services assigned';
-  const statusLabel = resource.isActive ? 'Active' : 'Inactive';
+function ResourceTile({ resource }: { resource: PlatformResource }) {
+  const meta = typeMeta[resource.type || ''] || { label: resource.type || 'Resource', icon: Box };
+  const Icon = meta.icon;
+  const serviceNames = resource.services.map((service) => service.name).filter(Boolean);
 
   return (
-    <article className="min-w-0 max-w-full overflow-hidden rounded-2xl border bg-background p-5 shadow-sm">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <article className="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-background">
+      <div className="flex items-start gap-3 p-4 md:p-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon className="size-5" /></span>
         <div className="min-w-0 flex-1">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${resource.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-zinc-300 bg-zinc-100 text-zinc-700'}`}>
-              {statusLabel}
-            </span>
-            <span className="rounded-full border bg-muted/30 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              {typeLabels[resource.type || ''] || resource.type || 'Resource'}
-            </span>
-            <span className="rounded-full border bg-muted/30 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-              Capacity {resource.capacity || 1}
-            </span>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h2 className="min-w-0 truncate text-base font-semibold">{resource.name || 'Unnamed resource'}</h2>
+            <TitleStatus tone={!resource.isActive ? 'zinc' : resource.appointments.length ? 'blue' : 'emerald'}>{!resource.isActive ? 'Inactive' : resource.appointments.length ? `${resource.appointments.length} booked` : 'Free'}</TitleStatus>
           </div>
-
-          <h2 className="text-xl font-semibold tracking-tight">{resource.name || 'Unnamed resource'}</h2>
-          <div className="mt-3 grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
-            <Info icon={MapPin} label="Location" value={resource.location?.name || 'No location'} subvalue={resource.location?.city || undefined} />
-            <Info icon={Scissors} label="Services" value={serviceNames} />
-            <Info icon={CalendarClock} label="Active queue" value={`${resource.appointments.length} appointment${resource.appointments.length === 1 ? '' : 's'}`} />
-          </div>
-
-          {resource.notes && <p className="mt-4 rounded-xl border bg-muted/20 p-3 text-sm text-muted-foreground">{resource.notes}</p>}
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">{meta.label} · capacity {resource.capacity || 1} · {resource.location?.name || 'No location'}</p>
         </div>
+      </div>
 
-        <aside className="min-w-0 max-w-full lg:w-80">
-          <div className="rounded-2xl border bg-muted/20 p-4">
-            <div className="mb-3 text-sm font-semibold">Upcoming resource holds</div>
-            {resource.appointments.length ? (
-              <div className="grid gap-3">
-                {resource.appointments.slice(0, 5).map((appointment) => (
-                  <div key={appointment.id} className="rounded-xl border bg-background p-3 text-sm">
-                    <div className="font-medium">{formatDateTime(appointment.startTime)}</div>
-                    <div className="mt-1 text-muted-foreground">
-                      {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">{appointment.client?.user?.name || 'Unnamed client'}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No active appointments currently holding this resource.</p>
-            )}
+      <div className="flex flex-wrap gap-1.5 px-4 md:px-5">
+        {serviceNames.length ? serviceNames.slice(0, 4).map((name) => <Chip key={name}>{name}</Chip>) : <Chip tone="amber">No services assigned</Chip>}
+        {serviceNames.length > 4 ? <Chip>+{serviceNames.length - 4}</Chip> : null}
+      </div>
+      {resource.notes ? <p className="mx-4 mt-3 text-sm text-muted-foreground md:mx-5">{resource.notes}</p> : null}
 
-            <form action={setResourceActive} className="mt-4">
-              <input type="hidden" name="id" value={resource.id} />
-              <input type="hidden" name="revision" value={resource.revision} />
-              <input type="hidden" name="isActive" value={resource.isActive ? 'false' : 'true'} />
-              <button type="submit" className="inline-flex w-full items-center justify-center rounded-lg border bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
-                {resource.isActive ? 'Deactivate resource' : 'Reactivate resource'}
-              </button>
-            </form>
+      <div className="mt-4 border-t bg-muted/20 px-4 py-3 md:px-5">
+        <div className="text-xs font-medium text-muted-foreground">Upcoming holds</div>
+        {resource.appointments.length ? (
+          <ul className="mt-2 grid gap-2">
+            {resource.appointments.slice(0, 3).map((appointment) => (
+              <li key={appointment.id} className="min-w-0 text-sm">
+                <span className="font-medium tabular-nums">{formatDateTime(appointment.startTime)}</span>
+                <span className="block truncate text-xs text-muted-foreground">{appointment.client?.user?.name || 'Unnamed client'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mt-1 text-sm text-muted-foreground">None</p>}
+      </div>
 
-            <Link
-              href={`/dashboard/salon-resources/${resource.id}`}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background hover:bg-foreground/90"
-            >
-              Open resource record
-            </Link>
-          </div>
-        </aside>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 md:px-5">
+        <form action={setResourceActive} className={trackClass}>
+          <input type="hidden" name="id" value={resource.id} />
+          <input type="hidden" name="revision" value={resource.revision} />
+          <input type="hidden" name="isActive" value={resource.isActive ? 'false' : 'true'} />
+          <button type="submit" className={pillClass(resource.isActive ? 'raised' : 'primary', 'sm')}>{resource.isActive ? 'Deactivate' : 'Reactivate'}</button>
+        </form>
+        <Track><PillLink href={`/dashboard/salon-resources/${resource.id}`} size="sm" variant="quiet">Record<ArrowUpRight /></PillLink></Track>
       </div>
     </article>
-  );
-}
-
-function Info({
-  icon: Icon,
-  label,
-  value,
-  subvalue,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  subvalue?: string;
-}) {
-  return (
-    <div className="flex gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="min-w-0">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground/80">{label}</div>
-        <div className="truncate font-medium text-foreground">{value}</div>
-        {subvalue && <div className="truncate text-xs text-muted-foreground">{subvalue}</div>}
-      </div>
-    </div>
   );
 }
 

@@ -2,7 +2,9 @@
 
 import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Check, RotateCw } from 'lucide-react';
 import type { CheckoutMutationFeedback } from '../lib/checkoutMutationFeedback';
+import { pillClass, trackClass } from '../../components/pill';
 
 export function CheckoutActionForm({
   action,
@@ -47,30 +49,36 @@ export function CheckoutActionForm({
           : 'Complete checkout';
 
   return (
-    <form action={submitAction} aria-busy={pending} className="rounded-2xl border bg-muted/20 p-4">
+    <form action={submitAction} aria-busy={pending}>
       {children}
-      <button
-        type="submit"
-        disabled={alreadyCheckedOut || pending || state !== 'idle'}
-        className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {submitLabel}
-      </button>
+      <div className={`${trackClass} mt-4 flex w-full`}>
+        <button
+          type="submit"
+          disabled={alreadyCheckedOut || pending || state !== 'idle'}
+          className={`${pillClass('primary')} h-10 flex-1`}
+        >
+          <Check />
+          {submitLabel}
+        </button>
+      </div>
       {state === 'failure' && (
-        <div role="alert" className="mt-3 grid gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-          <p>Checkout result could not be confirmed. Refresh this view to verify status before attempting again.</p>
-          <button
-            type="button"
-            onClick={refreshStatus}
-            disabled={refreshPending}
-            aria-label="Refresh checkout status before trying again"
-            className="inline-flex min-h-10 items-center justify-center border border-amber-900 bg-background px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-wait disabled:opacity-60"
-          >
-            {refreshPending ? 'Refreshing…' : 'Refresh checkout status'}
-          </button>
+        <div role="alert" className="mt-3 grid gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          <p>Checkout result not confirmed. Refresh to verify status before trying again.</p>
+          <div className={trackClass}>
+            <button
+              type="button"
+              onClick={refreshStatus}
+              disabled={refreshPending}
+              aria-label="Refresh checkout status before trying again"
+              className={pillClass('raised', 'sm')}
+            >
+              <RotateCw />
+              {refreshPending ? 'Refreshing…' : 'Refresh checkout status'}
+            </button>
+          </div>
         </div>
       )}
-      {state === 'success' && <p role="status" className="mt-3 text-xs text-emerald-800">Checkout recorded.</p>}
+      {state === 'success' && <p role="status" className="mt-3 text-xs text-emerald-700 dark:text-emerald-400">Checkout recorded.</p>}
     </form>
   );
 }
