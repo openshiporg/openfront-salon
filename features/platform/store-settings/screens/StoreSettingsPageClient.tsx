@@ -29,13 +29,13 @@ export function StoreSettingsPageClient({ initialSettings, locations }: { initia
       <form action={action} className="grid gap-5">
         <section className="grid gap-4 rounded-2xl border bg-background p-4 md:p-5">
           <h2 className="text-sm font-semibold">Public identity</h2>
-          <label htmlFor="storefront-name" className={fieldLabelClass}>Storefront name<input id="storefront-name" name="name" value={name} onChange={event => setName(event.target.value)} maxLength={120} required className={inputClass} /></label>
+          <label htmlFor="storefront-name" className={fieldLabelClass}>Storefront name · header, footer, page titles<input id="storefront-name" name="name" value={name} onChange={event => setName(event.target.value)} maxLength={120} required className={inputClass} /></label>
           <label htmlFor="storefront-description" className={fieldLabelClass}>Description<textarea id="storefront-description" name="description" defaultValue={initialSettings?.description || ''} maxLength={240} rows={3} className={textareaClass} /></label>
         </section>
         <LogoPicker initialIcon={initialSettings?.logoIcon} initialColor={initialSettings?.logoColor} name={name} />
         <section className="grid gap-4 rounded-2xl border bg-background p-4 md:p-5">
           <h2 className="text-sm font-semibold">Primary location</h2>
-          <label htmlFor="primary-location" className={fieldLabelClass}>Active location
+          <label htmlFor="primary-location" className={fieldLabelClass}>Location shown · address, hours, booking
             <select id="primary-location" name="primaryLocationId" defaultValue={initialSettings?.primaryLocation?.id || locations[0]?.id || ''} required className={inputClass}>
               {!locations.length ? <option value="">No active location</option> : null}
               {locations.map(location => <option key={location.id} value={location.id}>{location.name} — {location.city}, {location.state}</option>)}

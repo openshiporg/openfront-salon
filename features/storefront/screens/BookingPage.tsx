@@ -40,6 +40,9 @@ interface BookingPageProps {
   initialServiceCatalog: BookingSelectionRead<Service>
   preselectedService?: string | null
   preselectedStylist?: string | null
+  preselectedStylistName?: string | null
+  /** Services the preselected stylist performs; null when unknown. */
+  preselectedStylistServiceIds?: string[] | null
 }
 
 type StylistReadState =
@@ -53,7 +56,7 @@ function formatNotice(minutes?: number | null) {
   return `${value} minutes`
 }
 
-export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null }: BookingPageProps) {
+export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null }: BookingPageProps) {
 
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<string | null>(preselectedService)
@@ -304,9 +307,14 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     await submitBooking()
   }
 
+  // "Book with …" narrows the menu to that stylist's services until the client clears it.
+  const stylistFilter = selectedStylist && selectedStylist === preselectedStylist && preselectedStylistServiceIds?.length ? preselectedStylistServiceIds : null
+  const menuServices = stylistFilter ? services.filter((item) => stylistFilter.includes(item.id)) : services
+  const clearStylistFilter = () => { setSelectedStylist(null); setError(null) }
+
   const location = bookingContext?.locations.find((item) => item.id === locationId)
   const dateLabel = selectedDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
-  const servicesByCategory = services.reduce<Array<{ name: string; items: Service[] }>>((groups, item) => {
+  const servicesByCategory = menuServices.reduce<Array<{ name: string; items: Service[] }>>((groups, item) => {
     const name = item.category?.name || "Services"
     const group = groups.find((entry) => entry.name === name)
     if (group) group.items.push(item)
@@ -332,17 +340,17 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
           <div className="sf-ticket overflow-hidden">
             <div className="p-[var(--sf-space-md)] text-center md:p-[var(--sf-space-lg)]">
               <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"><Check className="h-6 w-6" aria-hidden="true" /></span>
-              <h1 className="sf-display text-[var(--sf-text-display-s)]">Booking <em>received</em></h1>
-              <p className="mt-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Confirmation to <span className="font-semibold text-[var(--sf-ink)]">{clientInfo.email}</span></p>
+              <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking <em>received</em></h1>
+              <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Booked under <span className="font-semibold text-[var(--sf-ink)]">{clientInfo.email}</span></p>
             </div>
             <div className="sf-ticket-perf" />
             {summary}
             <dl className="border-t border-[var(--sf-rule)] px-[var(--sf-space-md)] py-2">
               <div className="sf-summary-row"><dt>Price</dt><dd>{formatMenuPrice(service?.basePrice)}</dd></div>
-              <div className="sf-summary-row"><dt>Reference</dt><dd className="font-mono !text-[var(--sf-text-xs)]">{bookingId}</dd></div>
+              <div className="sf-summary-row"><dt>Reference</dt><dd className="font-mono !text-[length:var(--sf-text-xs)]">{bookingId}</dd></div>
             </dl>
             <div className="grid gap-4 p-[var(--sf-space-md)] text-center">
-              {bookingContext?.client ? <Link className="sf-link text-[var(--sf-text-sm)]" href={`/booking/${bookingId}`}>View your saved appointment</Link> : <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">To change this booking, contact the salon.</p>}
+              {bookingContext?.client ? <Link className="sf-link text-[length:var(--sf-text-sm)]" href={`/booking/${bookingId}`}>View your saved appointment</Link> : <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">To change this booking, contact the salon.</p>}
               <div className="sf-track mx-auto">
                 <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
                 <a href="/book" className="sf-btn sf-btn-quiet">Book another</a>
@@ -358,8 +366,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     <div className="sf-page-pad !pt-[var(--sf-space-lg)]">
       <div className="sf-container">
         <div className="mb-[var(--sf-space-lg)] flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <h1 className="sf-display text-[var(--sf-text-display-s)]">Book an <em>appointment</em></h1>
-          <Link className="sf-link text-[var(--sf-text-sm)]" href="/account">{bookingContext?.client ? `Signed in as ${bookingContext.client.name}` : "Client sign in"}</Link>
+          <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Book an <em>appointment</em></h1>
+          <Link className="sf-link text-[length:var(--sf-text-sm)]" href="/account">{bookingContext?.client ? `Signed in as ${bookingContext.client.name}` : "Client sign in"}</Link>
         </div>
 
         <div className="sf-booking-grid">
@@ -383,8 +391,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
 
             {bookingOutcomeUnresolved ? (
               <div role="alert" className="sf-card grid gap-4 p-[var(--sf-space-md)]">
-                <h2 className="sf-display text-[var(--sf-text-2xl)]">We couldn&apos;t confirm your booking request</h2>
-                <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Retry below; it won&apos;t be booked twice. If it&apos;s still unclear, check your email or contact the salon.</p>
+                <h2 className="sf-display text-[length:var(--sf-text-2xl)]">We couldn&apos;t confirm your booking request</h2>
+                <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Retry below; it won&apos;t be booked twice. If it&apos;s still unclear, check your email or contact the salon.</p>
                 <div className="sf-track justify-self-start">
                   <button type="button" className="sf-btn sf-btn-primary" disabled={submitting || !requestKey} onClick={() => void submitBooking()}>
                     {submitting ? "Checking request…" : "Retry same booking request"}
@@ -395,7 +403,13 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
               <>
                 {step === 1 && (
                   <section aria-labelledby="step-service">
-                    <h2 id="step-service" className="sf-display mb-4 text-[var(--sf-text-2xl)]">Choose a service</h2>
+                    <h2 id="step-service" className="sf-display mb-4 text-[length:var(--sf-text-2xl)]">Choose a service</h2>
+                    {stylistFilter ? (
+                      <div className="mb-5 flex flex-wrap items-center gap-3">
+                        <span className="sf-chip sf-chip-accent">With {preselectedStylistName || "your stylist"}</span>
+                        <div className="sf-track"><button type="button" className="sf-btn sf-btn-sm sf-btn-quiet" onClick={clearStylistFilter}>Any stylist</button></div>
+                      </div>
+                    ) : null}
                     {initialServiceCatalog.status === "unavailable" ? (
                       <div role="alert" className="sf-alert">
                         Service choices could not be verified. No service can be selected until the catalog loads.
@@ -436,8 +450,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
 
                 {step === 2 && (
                   <section aria-labelledby="step-stylist">
-                    <h2 id="step-stylist" className="sf-display mb-1 text-[var(--sf-text-2xl)]">Choose a stylist</h2>
-                    <p className="mb-5 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service?.name}</p>
+                    <h2 id="step-stylist" className="sf-display mb-1 text-[length:var(--sf-text-2xl)]">Choose a stylist</h2>
+                    <p className="mb-5 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service?.name}</p>
                     {stylistRead.status === "loading" || stylistRead.status === "idle" ? <p role="status" className="sf-note">Loading stylists…</p> : null}
                     {stylistRead.status === "unavailable" ? <div role="alert" className="sf-alert">Stylist choices could not be verified. No stylist is selected. <button type="button" className="sf-link ml-1" onClick={() => setStylistRetryAttempt(attempt => attempt + 1)}>Retry stylist list</button></div> : null}
                     {stylistRead.status === "available" && stylists.length === 0 ? <p role="status" className="sf-note">No stylists are available for this service. Contact the salon.</p> : null}
@@ -447,8 +461,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                           <button key={styl.id} type="button" aria-pressed={selectedStylist === styl.id} onClick={() => handleStylistSelect(styl.id)} className="sf-pick">
                             <StylistPortrait stylist={styl} className="h-20 w-16 shrink-0" />
                             <span className="min-w-0 flex-1">
-                              <span className="sf-display block truncate text-[var(--sf-text-lg)]">{styl.user?.name || "Stylist"}</span>
-                              {styl.tier ? <span className="block text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[styl.tier] || styl.tier}</span> : null}
+                              <span className="sf-display block truncate text-[length:var(--sf-text-lg)]">{styl.user?.name || "Stylist"}</span>
+                              {styl.tier ? <span className="block text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[styl.tier] || styl.tier}</span> : null}
                             </span>
                             <ChevronRight className="h-5 w-5 shrink-0 text-[var(--sf-ink-3)]" aria-hidden="true" />
                           </button>
@@ -460,8 +474,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
 
                 {step === 3 && (
                   <section aria-labelledby="step-time">
-                    <h2 id="step-time" className="sf-display mb-1 text-[var(--sf-text-2xl)]">Pick a time</h2>
-                    <p className="mb-5 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service?.name} · {stylist?.user?.name}</p>
+                    <h2 id="step-time" className="sf-display mb-1 text-[length:var(--sf-text-2xl)]">Pick a time</h2>
+                    <p className="mb-5 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service?.name} · {stylist?.user?.name}</p>
                     <TimeSlotPicker
                       selectedDate={selectedDate}
                       onDateSelect={handleDateSelect}
@@ -483,7 +497,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
 
                 {step === 4 && (
                   <form onSubmit={handleSubmit} aria-labelledby="step-details" className="grid gap-[var(--sf-space-md)]">
-                    <h2 id="step-details" className="sf-display text-[var(--sf-text-2xl)]">Your details</h2>
+                    <h2 id="step-details" className="sf-display text-[length:var(--sf-text-2xl)]">Your details</h2>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <label htmlFor="booking-name" className="sf-field sm:col-span-2">Full name
                         <input id="booking-name" type="text" required autoComplete="name" value={clientInfo.name} onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })} className="sf-input" />
@@ -499,7 +513,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                       </label>
                     </div>
 
-                    <label className="sf-card-quiet flex items-start gap-3 p-4 text-[var(--sf-text-sm)]">
+                    <label className="sf-card-quiet flex items-start gap-3 p-4 text-[length:var(--sf-text-sm)]">
                       <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sf-ink)]" />
                       <span>I agree to the booking policy: cancel at least {formatNotice(bookingContext?.policy.cancellationNoticeMinutes)} and reschedule at least {formatNotice(bookingContext?.policy.rescheduleNoticeMinutes)} before my appointment.</span>
                     </label>
@@ -536,13 +550,13 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
           <aside className="sf-booking-aside" aria-label="Your visit">
             <div className="sf-ticket overflow-hidden">
               <div className="flex items-center justify-between gap-3 p-[var(--sf-space-md)]">
-                <h2 className="sf-display text-[var(--sf-text-xl)]">Your visit</h2>
+                <h2 className="sf-display text-[length:var(--sf-text-xl)]">Your visit</h2>
                 <span className="sf-swatch-fan" aria-hidden="true">{[1, 2, 3].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}</span>
               </div>
               <div className="sf-ticket-perf" />
               {summary}
               <div className="flex items-baseline justify-between gap-3 border-t border-[var(--sf-rule)] px-[var(--sf-space-md)] py-4">
-                <span className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service ? `${service.baseDuration} min` : "Total"}</span>
+                <span className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service ? `${service.baseDuration} min` : "Total"}</span>
                 <span className="sf-menu-price">{service ? formatMenuPrice(service.basePrice) : "—"}</span>
               </div>
             </div>

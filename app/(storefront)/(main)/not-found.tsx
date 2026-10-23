@@ -1,5 +1,5 @@
-import { MainNotFound, MainNotFoundMetadata } from "@/features/storefront/screens/MainLayout"
+import { generateNotFoundMetadata, MainNotFound } from "@/features/storefront/screens/MainLayout"
 
-export const metadata = MainNotFoundMetadata
+export const generateMetadata = generateNotFoundMetadata
 
 export default MainNotFound

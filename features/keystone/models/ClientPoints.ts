@@ -27,6 +27,7 @@ export const ClientPoints = list({
     plural: "ClientPointsRecords",
   },
   ui: {
+    plural: "Client Points Records",
     listView: {
       initialColumns: ["client", "points", "tier"],
     },

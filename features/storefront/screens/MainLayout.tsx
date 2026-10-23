@@ -4,7 +4,7 @@ import type { CSSProperties } from "react"
 import Link from "next/link"
 import Nav from "@/features/storefront/modules/layout/templates/nav"
 import Footer from "@/features/storefront/modules/layout/templates/footer"
-import { getStorefrontBrand } from "@/features/storefront/lib/data/brand"
+import { getStorefrontBrand, storefrontTitle } from "@/features/storefront/lib/data/brand"
 import "../styles/storefront.css"
 
 const display = Fraunces({
@@ -31,7 +31,7 @@ export async function MainLayout({ children }: { children: React.ReactNode }) {
       style={themeStyle}
     >
       {!brand.configured ? (
-        <div role="status" className="flex items-center justify-center gap-2 border-b border-[var(--sf-rule)] bg-[var(--sf-paper-2)] px-4 py-2 text-center text-[var(--sf-text-xs)] font-medium text-[var(--sf-ink-2)]">
+        <div role="status" className="flex items-center justify-center gap-2 border-b border-[var(--sf-rule)] bg-[var(--sf-paper-2)] px-4 py-2 text-center text-[length:var(--sf-text-xs)] font-medium text-[var(--sf-ink-2)]">
           <span className="sf-dot" data-tone="warn" aria-hidden="true" />
           Online booking opens soon
         </div>
@@ -43,9 +43,8 @@ export async function MainLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-export const MainNotFoundMetadata: Metadata = {
-  title: "404",
-  description: "Page not found",
+export async function generateNotFoundMetadata(): Promise<Metadata> {
+  return { title: await storefrontTitle("Page not found"), description: "Page not found" }
 }
 
 export function MainNotFound() {
@@ -55,7 +54,7 @@ export function MainNotFound() {
         {[1, 2, 3, 4, 5].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}
       </span>
       <p className="sf-eyebrow mb-4">404</p>
-      <h1 className="sf-display mb-8 text-[var(--sf-text-display-s)]">Page not found</h1>
+      <h1 className="sf-display mb-8 text-[length:var(--sf-text-display-s)]">Page not found</h1>
       <div className="sf-track">
         <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
         <Link href="/services" className="sf-btn sf-btn-quiet">Service menu</Link>

@@ -41,6 +41,25 @@ export const Client = list({
       },
     }),
 
+    // Contact details for a client without a sign-in account (web guests, desk records).
+    // Never used as account identity.
+    guestName: text({ ui: { description: "Contact name when the client has no account" } }),
+    guestEmail: text({ isIndexed: true, ui: { description: "Contact email when the client has no account" } }),
+    guestPhone: text({ ui: { description: "Contact phone when the client has no account" } }),
+    displayName: virtual({
+      field: graphql.field({
+        type: graphql.String,
+        async resolve(item: any, _args, context) {
+          if (item.userId) {
+            const user = await context.sudo().query.User.findOne({ where: { id: item.userId }, query: "name" });
+            if (user?.name) return user.name;
+          }
+          return item.guestName || null;
+        },
+      }),
+      ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" }, createView: { fieldMode: "hidden" } },
+    }),
+
     homeLocation: relationship({ ref: "Location.clients" }),
 
     dateOfBirth: timestamp({

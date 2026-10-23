@@ -97,7 +97,7 @@ export async function CommissionOperationsPage({ searchParams }: PageProps) {
 }
 
 function CommissionRow({ commission }: { commission: PlatformCommission }) {
-  const clientName = commission.payment?.appointment?.client?.user?.name || 'No client';
+  const clientName = commission.payment?.appointment?.client?.displayName || 'Walk-in';
   const stylistName = commission.stylist?.user?.name || 'Unassigned';
   const appointmentId = commission.payment?.appointment?.id;
 

@@ -27,6 +27,7 @@ import {
   TitleStatus,
   Track,
   usd,
+  labelize,
 } from '../../components/salon-ui';
 
 function zonedTime(value: string | null | undefined, timezone?: string | null) {
@@ -82,7 +83,7 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Avatar name={clientName} />
           <h2 className="min-w-0 truncate text-lg font-semibold">{clientName}</h2>
-          {alreadyCheckedOut ? <TitleStatus tone="emerald">Paid</TitleStatus> : <TitleStatus tone={appointmentTone[status] || 'blue'}>{appointmentLabel[status] || status.replaceAll('_', ' ') || 'Appointment'}</TitleStatus>}
+          {alreadyCheckedOut ? <TitleStatus tone="emerald">Paid</TitleStatus> : <TitleStatus tone={appointmentTone[status] || 'blue'}>{appointmentLabel[status] || labelize(status) || 'Appointment'}</TitleStatus>}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{zonedTime(appointment.startTime, appointment.location?.timezone)} · {appointment.duration || 60} min · {stylistName}</p>
         {appointment.depositPaid ? <p className="mt-2 text-xs text-muted-foreground">Deposit on file · applied at checkout</p> : null}
@@ -103,7 +104,14 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
             {packageOptions.length > 0 ? <Row label={`${packageOptions[0].package?.name || 'Package'} credit available`} value={usd(packageOptions[0].remainingValue)} /> : null}
             <Row label="Tax estimate" value={usd(totals.tax)} />
             {totals.depositCredit > 0 ? <Row label="Deposit credit" value={`−${usd(totals.depositCredit)}`} /> : null}
-            <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Estimated due</dt><dd className="text-lg font-semibold tabular-nums">{usd(totals.totalDue)}</dd></div>
+            {alreadyCheckedOut && appointment.payment ? (
+              <>
+                {appointment.payment.tip ? <Row label="Tip" value={usd(appointment.payment.tip)} /> : null}
+                <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Paid</dt><dd className="text-lg font-semibold tabular-nums">{usd(appointment.payment.totalAmount)}</dd></div>
+              </>
+            ) : (
+              <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Estimated due</dt><dd className="text-lg font-semibold tabular-nums">{usd(totals.totalDue)}</dd></div>
+            )}
           </dl>
         </div>
         <div className="mt-4">
@@ -112,6 +120,18 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
       </div>
 
       <aside className="min-w-0 border-t bg-muted/20 p-4 md:p-5 xl:border-l xl:border-t-0">
+        {alreadyCheckedOut ? (
+          <div className="grid gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><TitleStatus tone="emerald">Payment recorded</TitleStatus></h3>
+            <dl className="grid gap-1.5 text-sm">
+              <Row label="Method" value={labelize(appointment.payment?.paymentMethod || appointment.transaction?.paymentMethod) || '—'} />
+              {appointment.payment?.tax ? <Row label="Tax" value={usd(appointment.payment.tax)} /> : null}
+              {appointment.payment?.discount ? <Row label="Discount" value={`−${usd(appointment.payment.discount)}`} /> : null}
+              <Row label="Tip" value={usd(appointment.payment?.tip || 0)} />
+              <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Total</dt><dd className="font-semibold tabular-nums">{usd(appointment.payment?.totalAmount || 0)}</dd></div>
+            </dl>
+          </div>
+        ) : (
         <CheckoutActionForm action={completeAppointmentCheckout} alreadyCheckedOut={alreadyCheckedOut}>
           <input type="hidden" name="appointmentId" value={appointment.id} />
           <h3 className="text-sm font-semibold">Record payment</h3>
@@ -155,6 +175,7 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
             )}
           </div>
         </CheckoutActionForm>
+        )}
       </aside>
     </article>
   );
@@ -163,8 +184,11 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
 function MoneyInput({ name, label }: { name: string; label: string }) {
   return (
     <label className={fieldLabelClass}>
-      {label} · cents
-      <input name={name} type="number" min="0" step="100" defaultValue="0" inputMode="numeric" className={`${inputClass} tabular-nums`} />
+      {label}
+      <span className="relative block">
+        <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+        <input name={name} type="number" min="0" step="0.01" placeholder="0.00" inputMode="decimal" className={`${inputClass} pl-7 tabular-nums`} />
+      </span>
     </label>
   );
 }

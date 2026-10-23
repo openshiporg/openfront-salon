@@ -13,8 +13,8 @@ export const clientPortal = graphql.field({
     const appointments = await context.query.Appointment.findMany({
       where: { client: { user: { id: { equals: userId } } } }, orderBy: { startTime: "desc" }, take: 100,
       query: `id startTime endTime duration status bookedAt confirmedAt cancelledAt cancellationReason clientNotes clientPolicy
-        stylist { id user { name } } location { name timezone }
-        lineItems { id serviceTitle serviceImagePath duration price quantity }
+        stylist { id user { name } } location { id name timezone }
+        lineItems { id serviceTitle serviceImagePath duration price quantity service { id } }
         scheduleRevisions(orderBy: { revision: desc }, take: 10) { id revision priorStart priorEnd nextStart nextEnd scheduleHash createdAt }
         segments(where: { status: { notIn: [superseded] } }, orderBy: { plannedStart: asc }) { id stableKey sequence parallelGroup type plannedStart plannedEnd durationMinutes practitionerRequired resourceUnits status lineItem { id } definition { id } practitioner { id user { name } } resource { id name } }
         consultationSubmissions(orderBy: { submittedAt: desc }) { id evidenceHash submittedAt effectiveFrom effectiveUntil signerName signerRole templateVersion { id version titleSnapshot questionsHash documentHash } reviews(orderBy: { occurredAt: desc }) { status reason occurredAt } }
@@ -42,7 +42,7 @@ export const clientPortal = graphql.field({
       client: clients[0] || null,
       appointments: appointments.map((appointment: any) => ({
         ...appointment,
-        stylist: appointment.stylist ? { user: { name: names.get(appointment.stylist.id) || null } } : null,
+        stylist: appointment.stylist ? { id: appointment.stylist.id, user: { name: names.get(appointment.stylist.id) || null } } : null,
         segments: (appointment.segments || []).map((segment: any) => ({ ...segment, practitioner: segment.practitioner ? { id: segment.practitioner.id, user: { name: names.get(segment.practitioner.id) || null } } : null })),
         // Only policy snapshot and transition evidence are client-safe.
         metadata: {

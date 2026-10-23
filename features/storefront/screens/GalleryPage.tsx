@@ -37,8 +37,8 @@ export async function GalleryPage() {
                 </div>
                 {image.metadata?.title || image.metadata?.caption ? (
                   <figcaption className="mt-2.5 px-1">
-                    {image.metadata?.title ? <p className="font-semibold text-[var(--sf-text-sm)]">{image.metadata.title}</p> : null}
-                    {image.metadata?.caption ? <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{image.metadata.caption}</p> : null}
+                    {image.metadata?.title ? <p className="font-semibold text-[length:var(--sf-text-sm)]">{image.metadata.title}</p> : null}
+                    {image.metadata?.caption ? <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{image.metadata.caption}</p> : null}
                   </figcaption>
                 ) : null}
               </figure>
@@ -46,7 +46,7 @@ export async function GalleryPage() {
           </div>
         ) : (
           <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
-            <h2 className="sf-display mb-6 text-[var(--sf-text-2xl)]">No photos yet</h2>
+            <h2 className="sf-display mb-6 text-[length:var(--sf-text-2xl)]">No photos yet</h2>
             <div className="sf-track"><Link href="/services" className="sf-btn">Service menu</Link></div>
           </div>
         )}

@@ -221,6 +221,9 @@ model Client {
   id                           String              @id @default(cuid())
   user                         User?               @relation("Client_user", fields: [userId], references: [id])
   userId                       String?             @unique @map("user")
+  guestName                    String              @default("")
+  guestEmail                   String              @default("")
+  guestPhone                   String              @default("")
   homeLocation                 Location?           @relation("Client_homeLocation", fields: [homeLocationId], references: [id])
   homeLocationId               String?             @map("homeLocation")
   dateOfBirth                  DateTime?
@@ -247,6 +250,7 @@ model Client {
   from_ClientNote_client       ClientNote[]        @relation("ClientNote_client")
   from_SalonTransaction_client SalonTransaction[]  @relation("SalonTransaction_client")
 
+  @@index([guestEmail])
   @@index([homeLocationId])
   @@index([preferredStylistId])
 }

@@ -23,7 +23,7 @@ export async function ContactPage() {
     <div className="sf-page-pad">
       <div className="sf-container">
         <PageIntro
-          eyebrow={status ? <span className="sf-status !text-[var(--sf-text-sm)] !normal-case !tracking-normal"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : undefined}
+          eyebrow={status ? <span className="sf-status !text-[length:var(--sf-text-sm)] !normal-case !tracking-normal"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : undefined}
           title={<>Visit <em>&amp;</em> hours</>}
           size="large"
         />
@@ -36,8 +36,8 @@ export async function ContactPage() {
               {brand.addressLine ? (
                 <div className="sf-card p-[var(--sf-space-md)]">
                   <h2 className="sf-eyebrow mb-3 flex items-center gap-2"><MapPin className="h-4 w-4" aria-hidden="true" />Location</h2>
-                  {brand.locationName ? <p className="sf-display text-[var(--sf-text-xl)]">{brand.locationName}</p> : null}
-                  <p className="mt-1 text-[var(--sf-text-md)] leading-relaxed text-[var(--sf-ink-2)]">{brand.addressLine}</p>
+                  {brand.locationName ? <p className="sf-display text-[length:var(--sf-text-xl)]">{brand.locationName}</p> : null}
+                  <p className="mt-1 text-[length:var(--sf-text-md)] leading-relaxed text-[var(--sf-ink-2)]">{brand.addressLine}</p>
                   {mapsHref ? <div className="sf-track mt-4"><a href={mapsHref} target="_blank" rel="noopener noreferrer" className="sf-btn sf-btn-sm">Directions<ArrowUpRight /></a></div> : null}
                 </div>
               ) : null}
@@ -47,13 +47,13 @@ export async function ContactPage() {
                   {brand.phone && brand.phoneHref ? (
                     <div>
                       <h2 className="sf-eyebrow mb-2 flex items-center gap-2"><Phone className="h-4 w-4" aria-hidden="true" />Phone</h2>
-                      <a href={brand.phoneHref} className="sf-link text-[var(--sf-text-md)]">{brand.phone}</a>
+                      <a href={brand.phoneHref} className="sf-link text-[length:var(--sf-text-md)]">{brand.phone}</a>
                     </div>
                   ) : null}
                   {brand.email ? (
                     <div className="min-w-0">
                       <h2 className="sf-eyebrow mb-2 flex items-center gap-2"><Mail className="h-4 w-4" aria-hidden="true" />Email</h2>
-                      <a href={`mailto:${brand.email}`} className="sf-link break-all text-[var(--sf-text-md)]">{brand.email}</a>
+                      <a href={`mailto:${brand.email}`} className="sf-link break-all text-[length:var(--sf-text-md)]">{brand.email}</a>
                     </div>
                   ) : null}
                 </div>
@@ -71,14 +71,14 @@ export async function ContactPage() {
                   {hours.map((schedule) => {
                     const isToday = schedule.key === status?.todayKey
                     return (
-                      <div key={schedule.key} className={`flex justify-between gap-4 py-3 text-[var(--sf-text-md)] ${isToday ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
-                        <dt>{schedule.day}{isToday ? <span className="ml-2 text-[var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
+                      <div key={schedule.key} className={`flex justify-between gap-4 py-3 text-[length:var(--sf-text-md)] ${isToday ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
+                        <dt>{schedule.day}{isToday ? <span className="ml-2 text-[length:var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
                         <dd className={`tabular-nums ${schedule.closed ? "text-[var(--sf-ink-3)]" : ""}`}>{schedule.hours}</dd>
                       </div>
                     )
                   })}
                 </dl>
-              ) : <p className="text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">Hours not published.</p>}
+              ) : <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Hours not published.</p>}
             </div>
           </div>
         )}

@@ -83,3 +83,12 @@ export async function startOnboarding() {
 export async function completeOnboarding() {
   return { success: false, error: 'Completion is set only by the authoritative salon onboarding transaction.' };
 }
+
+/** True once the salon has real records, so demo seeding is no longer offered on top of them. */
+export async function getSalonHasRecords(): Promise<boolean | null> {
+  const response = await keystoneClient<{ servicesCount: number; stylistsCount: number; appointmentsCount: number }>(`
+    query SalonSetupState { servicesCount stylistsCount appointmentsCount }
+  `);
+  if (!response.success) return null;
+  return (response.data.servicesCount || 0) + (response.data.stylistsCount || 0) + (response.data.appointmentsCount || 0) > 0;
+}

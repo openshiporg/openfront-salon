@@ -1,12 +1,19 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { getStylistById } from "../lib/data/stylists"
 import { getTierDisplayName } from "../lib/utils/stylist-helpers"
 import { StylistPortrait, WeekStrip } from "../components/StylistCard"
+import { storefrontTitle } from "../lib/data/brand"
 
 interface StylistDetailPageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: StylistDetailPageProps): Promise<Metadata> {
+  const stylist = await getStylistById((await params).id)
+  return { title: await storefrontTitle(stylist?.user?.name || "Stylist"), description: stylist?.bio || undefined }
 }
 
 export async function StylistDetailPage({ params }: StylistDetailPageProps) {
@@ -25,7 +32,7 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
   return (
     <div className="sf-page-pad !pt-[var(--sf-space-md)]">
       <div className="sf-container">
-        <Link href="/team" className="sf-link inline-flex min-h-11 items-center gap-2 text-[var(--sf-text-sm)]">
+        <Link href="/team" className="sf-link inline-flex min-h-11 items-center gap-2 text-[length:var(--sf-text-sm)]">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           All stylists
         </Link>
@@ -42,8 +49,8 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
 
           <div className="min-w-0">
             <p className="sf-eyebrow mb-4">{tierName}</p>
-            <h1 className="sf-display text-[var(--sf-text-display-s)]">{name}</h1>
-            {stylist.bio ? <p className="mt-6 max-w-[58ch] text-[var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{stylist.bio}</p> : null}
+            <h1 className="sf-display text-[length:var(--sf-text-display-s)]">{name}</h1>
+            {stylist.bio ? <p className="mt-6 max-w-[58ch] text-[length:var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{stylist.bio}</p> : null}
 
             {stylist.schedules?.some((schedule) => schedule.isAvailable) ? (
               <section className="mt-[var(--sf-space-lg)] max-w-sm" aria-labelledby="stylist-days">
@@ -54,11 +61,11 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
 
             {specialties.length > 0 ? (
               <section className="mt-[var(--sf-space-xl)]" aria-labelledby="stylist-services">
-                <h2 id="stylist-services" className="sf-display mb-4 text-[var(--sf-text-2xl)]">Book a service with {firstName}</h2>
+                <h2 id="stylist-services" className="sf-display mb-4 text-[length:var(--sf-text-2xl)]">Book a service with {firstName}</h2>
                 <ul className="sf-menu">
                   {specialties.map((service) => (
                     <li key={service.id} className="flex items-center gap-4 border-b border-[var(--sf-rule)] py-3.5">
-                      <Link href={`/services/${service.id}`} className="sf-display min-w-0 truncate text-[var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{service.name}</Link>
+                      <Link href={`/services/${service.id}`} className="sf-display min-w-0 truncate text-[length:var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{service.name}</Link>
                       <span className="sf-menu-leader" aria-hidden="true" />
                       <div className="sf-track shrink-0">
                         <Link href={`/book?service=${service.id}&stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book</Link>
@@ -72,7 +79,7 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
             {stylist.certifications ? (
               <section className="sf-card-quiet mt-[var(--sf-space-xl)] p-[var(--sf-space-md)]" aria-labelledby="stylist-training">
                 <h2 id="stylist-training" className="sf-eyebrow mb-3">Training & certifications</h2>
-                <p className="whitespace-pre-line text-[var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)]">{stylist.certifications}</p>
+                <p className="whitespace-pre-line text-[length:var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)]">{stylist.certifications}</p>
               </section>
             ) : null}
           </div>

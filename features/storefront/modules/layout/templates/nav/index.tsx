@@ -70,7 +70,7 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/account" className="sf-link hidden text-[var(--sf-text-sm)] xl:inline">
+            <Link href="/account" className="sf-link hidden text-[length:var(--sf-text-sm)] xl:inline">
               My appointments
             </Link>
             <div className="sf-track">

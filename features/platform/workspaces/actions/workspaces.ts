@@ -15,6 +15,7 @@ export interface SalonManagementRecord {
   cost?: number | null; reorderPoint?: number | null; description?: string | null; category?: string | { id: string; name?: string | null } | null;
   baseDuration?: number | null; tier?: string | null; role?: string | null; baseCommissionRate?: number | null; commissionRate?: number | null;
   displayOrder?: number | null; sortOrder?: number | null; isVisible?: boolean | null; timezone?: string | null;
+  guestName?: string | null; guestEmail?: string | null; guestPhone?: string | null;
   hours?: Record<string, { open?: string | null; close?: string | null; closed?: boolean }> | null;
   user?: { id?: string; name?: string | null; email?: string | null; phone?: string | null } | null;
   homeLocation?: { id: string } | null; location?: { id: string; name?: string | null } | null;
@@ -31,14 +32,14 @@ const workspaceSections = ['clients', 'catalog', 'benefits', 'inventory', 'engag
 export type WorkspaceSection = typeof workspaceSections[number];
 export interface WorkspaceMetric { label: string; value: number; format: 'money' | 'count' | string }
 export interface WorkspaceRecord { id: string; title: string; subtitle?: string | null; status?: string | null; detail?: string | null; amount?: number | null; metric?: number | null; occurredAt?: string | null; href?: string | null; action?: string | null }
-export interface WorkspaceData { actorId?: string | null; section: WorkspaceSection; title: string; description: string; attentionCount: number; metrics: WorkspaceMetric[]; records: WorkspaceRecord[] }
+export interface WorkspaceData { actorId?: string | null; section: WorkspaceSection; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: WorkspaceMetric[]; records: WorkspaceRecord[] }
 
 export async function getSalonWorkspace(section: WorkspaceSection): Promise<WorkspaceData> {
   if (!workspaceSections.includes(section)) throw new Error('Unsupported salon workspace');
   const response = await keystoneClient<{ salonOperationsWorkspace: WorkspaceData }>(`
     query SalonOperationsWorkspace($section: String!) {
       salonOperationsWorkspace(section: $section) {
-        actorId section title description attentionCount
+        actorId section title description attentionCount attentionLabel
         metrics { label value format }
         records { id title subtitle status detail amount metric occurredAt href action }
       }

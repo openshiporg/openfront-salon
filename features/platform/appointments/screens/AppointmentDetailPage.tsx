@@ -18,11 +18,19 @@ import {
   TitleStatus,
   Track,
   usd,
+  labelize,
 } from '../../components/salon-ui';
 
 interface PageProps { params: Promise<{ id: string }> }
 
-function date(value?: string | null) { return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not recorded'; }
+function stamp(value?: string | null, timeZone?: string | null) {
+  return value ? new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined }) : 'Not recorded';
+}
+/** Latest time the appointment moved into `status`, from its transition history. */
+function transitionAt(metadata: unknown, status: string) {
+  const history = metadata && typeof metadata === 'object' && Array.isArray((metadata as { transitionHistory?: unknown }).transitionHistory) ? (metadata as { transitionHistory: Array<{ to?: string; at?: string }> }).transitionHistory : [];
+  return [...history].reverse().find((entry) => entry?.to === status)?.at || null;
+}
 function title(appointment: AppointmentDetail) { return appointment.services.map((service) => service.name).filter(Boolean).join(' · ') || appointment.lineItems.map((line) => line.serviceTitle).filter(Boolean).join(' · ') || 'Appointment'; }
 
 export async function AppointmentDetailPage({ params }: PageProps) {
@@ -71,7 +79,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
             ) : <p className="p-5 text-sm text-muted-foreground">No services on this appointment.</p>}
           </Panel>
 
-          {canReschedule ? <Panel title="Reschedule" icon={CalendarClock}><AppointmentRescheduleForm id={appointment.id} startTime={appointment.startTime!} /></Panel> : null}
+          {canReschedule ? <Panel title="Reschedule" icon={CalendarClock}><AppointmentRescheduleForm id={appointment.id} startTime={appointment.startTime!} timeZone={appointment.location?.timezone} /></Panel> : null}
 
           <Panel title="Payment" icon={WalletCards}>
             {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} integrations={capabilities.integrations} />}
@@ -85,7 +93,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
 
           {capabilities.inventory && inventory ? (
             <Panel title="Retail sold" icon={Package} padded={false}>
-              {inventory.length ? <ul className="divide-y">{inventory.map((movement) => <li key={movement.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"><span className="min-w-0">{movement.product?.name || 'Product'} <span className="text-muted-foreground">· {movement.type || 'movement'}</span><span className="block text-xs text-muted-foreground">{movement.reason || 'No reason recorded'}</span></span><span className="tabular-nums">{movement.delta && movement.delta > 0 ? '+' : ''}{movement.delta || 0} <span className="text-xs text-muted-foreground">({movement.balanceBefore || 0} → {movement.balanceAfter || 0})</span></span></li>)}</ul> : <p className="p-5 text-sm text-muted-foreground">No retail items sold with this appointment.</p>}
+              {inventory.length ? <ul className="divide-y">{inventory.map((movement) => <li key={movement.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"><span className="min-w-0">{movement.product?.name || 'Product'} <span className="text-muted-foreground">· {labelize(movement.type) || 'Movement'}</span><span className="block text-xs text-muted-foreground">{movement.reason || 'No reason recorded'}</span></span><span className="tabular-nums">{movement.delta && movement.delta > 0 ? '+' : ''}{movement.delta || 0} <span className="text-xs text-muted-foreground">({movement.balanceBefore || 0} → {movement.balanceAfter || 0})</span></span></li>)}</ul> : <p className="p-5 text-sm text-muted-foreground">No retail items sold with this appointment.</p>}
             </Panel>
           ) : null}
         </div>
@@ -97,7 +105,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
             <dl className="mt-4 grid grid-cols-2 gap-3"><Fact label="Visits">{String(appointment.client?.totalVisits || 0)}</Fact><Fact label="Lifetime value">{usd(appointment.client?.lifetimeValue)}</Fact></dl>
           </Panel>
           <Panel title="Stylist & station" icon={Scissors}>
-            <div className="flex items-center gap-3"><Avatar name={appointment.stylist?.user?.name} /><div className="min-w-0"><div className="truncate font-medium">{appointment.stylist?.user?.name || 'No stylist assigned'}</div><div className="truncate text-sm capitalize text-muted-foreground">{appointment.stylist?.tier ? `${appointment.stylist.tier} tier` : 'No tier recorded'}{appointment.resource?.name ? ` · ${appointment.resource.name}` : ''}</div></div></div>
+            <div className="flex items-center gap-3"><Avatar name={appointment.stylist?.user?.name} /><div className="min-w-0"><div className="truncate font-medium">{appointment.stylist?.user?.name || 'No stylist assigned'}</div><div className="truncate text-sm text-muted-foreground">{appointment.stylist?.tier ? `${labelize(appointment.stylist.tier)} tier` : 'No tier recorded'}{appointment.resource?.name ? ` · ${appointment.resource.name}` : ''}</div></div></div>
           </Panel>
           <Panel title="Notes" icon={FileText}>
             <div className="grid gap-3">
@@ -109,9 +117,12 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           </Panel>
           <Panel title="Lifecycle" icon={CalendarClock}>
             <dl className="grid gap-3">
-              <Fact label="Booked">{date(appointment.bookedAt)}</Fact>
-              <Fact label="Confirmed">{date(appointment.confirmedAt)}</Fact>
-              {status === 'cancelled' || status === 'no_show' ? <Fact label="Cancelled">{date(appointment.cancelledAt)}</Fact> : null}
+              <Fact label="Booked">{stamp(appointment.bookedAt, appointment.location?.timezone)}</Fact>
+              <Fact label="Confirmed">{stamp(appointment.confirmedAt || transitionAt(appointment.metadata, 'confirmed'), appointment.location?.timezone)}</Fact>
+              {transitionAt(appointment.metadata, 'in_progress') ? <Fact label="Checked in">{stamp(transitionAt(appointment.metadata, 'in_progress'), appointment.location?.timezone)}</Fact> : null}
+              {transitionAt(appointment.metadata, 'completed') || status === 'completed' ? <Fact label="Completed">{stamp(transitionAt(appointment.metadata, 'completed'), appointment.location?.timezone)}</Fact> : null}
+              {status === 'no_show' ? <Fact label="No-show">{stamp(transitionAt(appointment.metadata, 'no_show'), appointment.location?.timezone)}</Fact> : null}
+              {status === 'cancelled' ? <Fact label="Cancelled">{stamp(appointment.cancelledAt, appointment.location?.timezone)}</Fact> : null}
             </dl>
             {appointment.cancellationReason ? <div className="mt-3"><Note label="Reason" value={appointment.cancellationReason} /></div> : null}
           </Panel>
@@ -126,7 +137,7 @@ function PaymentBoundary({ boundary, integrations }: { boundary: NonNullable<Awa
     <div className="grid gap-3">
       {boundary.payments.map((payment) => (
         <div key={payment.id} className="rounded-xl border p-3 text-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2"><TitleStatus tone={payment.status === 'completed' ? 'emerald' : 'amber'}>{payment.status || 'Payment'} · {payment.paymentMethod?.replaceAll('_', ' ') || 'Method not recorded'}</TitleStatus><span className="font-semibold tabular-nums">{usd(payment.totalAmount)}</span></div>
+          <div className="flex flex-wrap items-center justify-between gap-2"><TitleStatus tone={payment.status === 'completed' ? 'emerald' : 'amber'}>{labelize(payment.status) || 'Payment'} · {labelize(payment.paymentMethod) || 'Method not recorded'}</TitleStatus><span className="font-semibold tabular-nums">{usd(payment.totalAmount)}</span></div>
           <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"><Fact label="Subtotal">{usd(payment.subtotal)}</Fact><Fact label="Tax">{usd(payment.tax)}</Fact><Fact label="Tip">{usd(payment.tip)}</Fact><Fact label="Refunded">{usd(payment.refundedAmount)}</Fact></dl>
           {payment.cardLast4 ? <p className="mt-2 text-xs text-muted-foreground">{payment.cardBrand || 'Card'} ending {payment.cardLast4}</p> : null}
         </div>

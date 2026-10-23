@@ -118,7 +118,7 @@ export const calculateCommission = graphql.field({
       query: `
         id
         startTime
-        client { user { name } }
+        client { displayName }
         services {
           id
           name
@@ -156,7 +156,7 @@ export const calculateCommission = graphql.field({
       return {
         appointmentId: appointment.id,
         date: new Date(appointment.startTime).toISOString().split("T")[0],
-        clientName: appointment.client?.user?.name || "Walk-in",
+        clientName: appointment.client?.displayName || "Walk-in",
         services: serviceDetails,
         totalRevenue: appointmentRevenue,
         totalCommission: appointmentCommission,

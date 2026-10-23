@@ -5,6 +5,7 @@ import { isPolicyDeadlineOpen } from "../bookingPolicy";
 import { paymentRecordStatus } from "../payment-lifecycle";
 import { createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { serializableWorkflow } from "./serializableWorkflow";
+import { assertServiceDayOpen, assertStartPassed } from "../appointmentTiming";
 
 type AppointmentTransition = "confirmed" | "in_progress" | "cancelled" | "no_show";
 type WorkflowResult = { success: boolean; appointmentId: string | null; status: string | null; error: string | null };
@@ -51,7 +52,7 @@ export async function transitionAppointmentTransaction(
       const sudo = transactionContext.sudo();
       const appointment = await sudo.query.Appointment.findOne({
         where: { id: args.appointmentId },
-        query: "id status metadata client { user { id } } payment { id status refundedAmount totalAmount } transaction { id }",
+        query: "id status startTime metadata location { timezone } client { user { id } } payment { id status refundedAmount totalAmount } transaction { id }",
       });
       if (!appointment) throw new Error("Appointment not found");
       const operator = isOperator(context);
@@ -66,6 +67,8 @@ export async function transitionAppointmentTransaction(
         throw new Error(`Cannot transition appointment from ${appointment.status || "unknown"} to ${args.status}`);
       }
       if (args.status === "in_progress" && appointment.transaction?.id) throw new Error("Checked-out appointments cannot be restarted");
+      if (args.status === "in_progress") assertServiceDayOpen(appointment.startTime, appointment.location?.timezone, "Check-in");
+      if (args.status === "no_show") assertStartPassed(appointment.startTime, "A no-show");
 
       const now = new Date().toISOString();
       const history = Array.isArray(metadata.transitionHistory) ? metadata.transitionHistory.slice(-49) : [];

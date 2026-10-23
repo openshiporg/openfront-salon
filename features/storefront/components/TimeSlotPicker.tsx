@@ -51,8 +51,8 @@ export function TimeSlotPicker({
   }, [availableSlots])
 
   return (
-    <div className="grid gap-[var(--sf-space-md)]">
-      <div>
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-[var(--sf-space-md)]">
+      <div className="min-w-0">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="sf-eyebrow">Date</h3>
           <div className="sf-track">
@@ -77,7 +77,7 @@ export function TimeSlotPicker({
           </div>
         </div>
         {outsideStrip ? (
-          <p className="mt-2 text-[var(--sf-text-sm)] font-semibold">{selectedDate!.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+          <p className="mt-2 text-[length:var(--sf-text-sm)] font-semibold">{selectedDate!.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
         ) : null}
         {showCalendar ? (
           <div className="sf-card mt-3 inline-block p-3">
@@ -92,17 +92,17 @@ export function TimeSlotPicker({
         ) : null}
       </div>
 
-      <div>
+      <div className="min-w-0">
         <h3 className="sf-eyebrow mb-3">Time</h3>
         {!selectedDate ? (
-          <div className="sf-slot-well flex min-h-28 items-center justify-center text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">Choose a date</div>
+          <div className="sf-slot-well flex min-h-28 items-center justify-center text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">Choose a date</div>
         ) : loadingSlots ? (
-          <div role="status" className="sf-slot-well flex min-h-28 items-center justify-center gap-3 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+          <div role="status" className="sf-slot-well flex min-h-28 items-center justify-center gap-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--sf-rule-strong)] border-t-[var(--sf-ink)]" aria-hidden="true" />
             Checking availability…
           </div>
         ) : availableSlots.length === 0 ? (
-          <div className="sf-slot-well flex min-h-28 flex-col items-center justify-center gap-1 text-center text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+          <div className="sf-slot-well flex min-h-28 flex-col items-center justify-center gap-1 text-center text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">
             <Clock className="mb-1 h-6 w-6 opacity-50" aria-hidden="true" />
             <p className="font-semibold text-[var(--sf-ink-2)]">No openings this day</p>
             <p>Try another date.</p>
@@ -111,7 +111,7 @@ export function TimeSlotPicker({
           <div className="sf-slot-well grid gap-4">
             {groups.map((group) => (
               <div key={group.label}>
-                {groups.length > 1 || group.label !== "Times" ? <p className="mb-2 px-1 text-[var(--sf-text-xs)] font-semibold text-[var(--sf-ink-3)]">{group.label}</p> : null}
+                {groups.length > 1 || group.label !== "Times" ? <p className="mb-2 px-1 text-[length:var(--sf-text-xs)] font-semibold text-[var(--sf-ink-3)]">{group.label}</p> : null}
                 <div className="sf-slot-grid">
                   {group.slots.map((slot) => (
                     <button key={slot.startTime} type="button" aria-pressed={selectedTime === slot.startTime} onClick={() => onTimeSelect(slot.startTime)} className="sf-slot">

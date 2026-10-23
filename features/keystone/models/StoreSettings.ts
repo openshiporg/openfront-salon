@@ -21,6 +21,7 @@ export const StoreSettings = list({
   isSingleton: true,
   graphql: { plural: "storeSettingsItems" },
   ui: { hideCreate: true, hideDelete: true,
+    plural: "Store Settings Items",
     isHidden: true,
     listView: {
       initialColumns: ["name", "primaryLocation", "themeHue"],

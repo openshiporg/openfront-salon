@@ -197,7 +197,7 @@ export const salonManagementWorkspace = graphql.field({ type: graphql.JSON, args
   const query = context.sudo().query as any;
   const canManageCompensation = permissions.canManageCommissions({ session: context.session as any });
   const selections: Record<Kind, string> = {
-    client: "id user { name email phone } homeLocation { id }",
+    client: "id guestName guestEmail guestPhone user { name email phone } homeLocation { id }",
     staff: `id tier role status isActive user { name email phone } locations { id } specializations { id }${canManageCompensation ? " baseCommissionRate commissionRate" : ""}`,
     location: "id name address city state zipCode phone email timezone hours isActive",
     resource: "id name type capacity isActive location { id }",

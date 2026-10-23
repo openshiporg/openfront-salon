@@ -56,11 +56,11 @@ export function ServiceCard({ service, showCategory = false }: { service: Servic
       <div className="mt-3 flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           {showCategory && service.category ? <p className="sf-eyebrow mb-1">{service.category.name}</p> : null}
-          <h3 className="sf-display text-[var(--sf-text-xl)] group-hover:text-[var(--sf-accent)]">{service.name}</h3>
+          <h3 className="sf-display text-[length:var(--sf-text-xl)] group-hover:text-[var(--sf-accent)]">{service.name}</h3>
         </div>
         <p className="sf-menu-price shrink-0">{formatMenuPrice(service.basePrice)}</p>
       </div>
-      <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service.baseDuration} min</p>
+      <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{service.baseDuration} min</p>
     </Link>
   )
 }

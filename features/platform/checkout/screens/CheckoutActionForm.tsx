@@ -17,6 +17,7 @@ export function CheckoutActionForm({
 }) {
   const router = useRouter();
   const [state, setState] = useState<'idle' | 'success' | 'failure'>('idle');
+  const [rejection, setRejection] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [refreshPending, startRefresh] = useTransition();
   const pending = submitting || refreshPending;
@@ -25,7 +26,8 @@ export function CheckoutActionForm({
     setSubmitting(true);
     try {
       const result = await action(formData);
-      setState(result.status);
+      setRejection(result.status === 'failure' ? result.message || null : null);
+      setState(result.status === 'failure' && result.message ? 'idle' : result.status);
     } catch {
       setState('failure');
     } finally {
@@ -61,6 +63,7 @@ export function CheckoutActionForm({
           {submitLabel}
         </button>
       </div>
+      {rejection && state === 'idle' ? <p role="alert" className="mt-3 text-xs text-destructive">{rejection}</p> : null}
       {state === 'failure' && (
         <div role="alert" className="mt-3 grid gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
           <p>Checkout result not confirmed. Refresh to verify status before trying again.</p>

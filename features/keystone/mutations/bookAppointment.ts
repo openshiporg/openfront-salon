@@ -38,6 +38,35 @@ function guestPassword() {
   return randomBytes(32).toString("base64url");
 }
 
+/**
+ * Public guests get a contact-only Client so the front desk sees them. It is
+ * matched only against other account-less records, never a signed-in client.
+ */
+async function resolveGuestClient(
+  sudo: ReturnType<Context["sudo"]>,
+  input: { name: string; email: string; phone?: string | null },
+): Promise<{ id: string; user: null }> {
+  const existing = await sudo.query.Client.findMany({
+    where: { user: null, guestEmail: { equals: input.email, mode: "insensitive" } },
+    orderBy: { createdAt: "asc" },
+    take: 1,
+    query: "id",
+  });
+  if (existing[0]) {
+    await sudo.query.Client.updateOne({
+      where: { id: existing[0].id },
+      data: { guestName: input.name, ...(input.phone ? { guestPhone: input.phone } : {}) },
+      query: "id",
+    });
+    return { id: existing[0].id, user: null };
+  }
+  const created = await sudo.query.Client.createOne({
+    data: { guestName: input.name, guestEmail: input.email, guestPhone: input.phone || "", firstVisit: new Date().toISOString(), totalVisits: 0, lifetimeValue: 0 },
+    query: "id",
+  });
+  return { id: created.id, user: null };
+}
+
 async function resolveAuthorizedClient(
   sudo: ReturnType<Context["sudo"]>,
   input: { name: string; email: string; phone?: string | null },
@@ -57,6 +86,9 @@ async function resolveAuthorizedClient(
   }
 
   if (!user && isOperator) {
+    // Front desk booking for a known guest keeps their existing account-less record.
+    const guest = await sudo.query.Client.findMany({ where: { user: null, guestEmail: { equals: input.email, mode: "insensitive" } }, orderBy: { createdAt: "asc" }, take: 1, query: "id" });
+    if (guest[0]) return { id: guest[0].id, user: null };
     user = await sudo.query.User.createOne({
       data: {
         name: input.name,
@@ -313,7 +345,7 @@ export const bookAppointment = graphql.field({
           { name: clientName, email: clientEmail, phone: clientPhone },
           isOperator ? undefined : context.session?.itemId,
           isOperator,
-        );
+        ) ?? await resolveGuestClient(sudo, { name: clientName, email: clientEmail, phone: clientPhone });
 
         const appointment = await sudo.query.Appointment.createOne({
           data: {
@@ -324,7 +356,7 @@ export const bookAppointment = graphql.field({
             depositAmount: services.reduce((sum: number, service: any) => sum + Number(service.depositAmount || 0), 0),
             depositPaid: false,
             location: availability.locationId ? { connect: { id: availability.locationId } } : undefined,
-            client: client ? { connect: { id: client.id } } : undefined,
+            client: { connect: { id: client.id } },
             stylist: { connect: { id: args.stylistId } },
             resource: resourceId ? { connect: { id: resourceId } } : undefined,
             services: { connect: serviceIds.map((id) => ({ id })) },
@@ -332,7 +364,7 @@ export const bookAppointment = graphql.field({
             metadata: {
               source: "storefront_booking",
               bookingRequestKey: requestKey, bookingRequestHash: requestHash,
-              guest: client ? null : { name: clientName, email: clientEmail, phone: clientPhone },
+              guest: client.user ? null : { name: clientName, email: clientEmail, phone: clientPhone },
               clientPolicySnapshot: {
                 version: policy.version,
                 effectiveFrom: new Date().toISOString(),

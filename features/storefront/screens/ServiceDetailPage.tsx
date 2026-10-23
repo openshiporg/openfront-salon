@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Clock3, ShieldCheck } from "lucide-react"
@@ -6,9 +7,15 @@ import { StylistPortrait, tierLabels } from "../components/StylistCard"
 import { serviceTags } from "../components/ServiceCard"
 import { getStorefrontImageSrc } from "../lib/images"
 import { formatMenuPrice } from "../lib/format-price"
+import { storefrontTitle } from "../lib/data/brand"
 
 interface ServiceDetailPageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: ServiceDetailPageProps): Promise<Metadata> {
+  const service = await getServiceById((await params).id)
+  return { title: await storefrontTitle(service?.name || "Service"), description: service?.description || undefined }
 }
 
 export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
@@ -27,7 +34,7 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   return (
     <div className="sf-page-pad !pt-[var(--sf-space-md)]">
       <div className="sf-container">
-        <Link href="/services" className="sf-link inline-flex min-h-11 items-center gap-2 text-[var(--sf-text-sm)]">
+        <Link href="/services" className="sf-link inline-flex min-h-11 items-center gap-2 text-[length:var(--sf-text-sm)]">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Service menu
         </Link>
@@ -36,7 +43,7 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           <div className="min-w-0">
             <header>
               {service.category ? <p className="sf-eyebrow mb-4">{service.category.name}</p> : null}
-              <h1 className="sf-display text-[var(--sf-text-display-s)]">{service.name}</h1>
+              <h1 className="sf-display text-[length:var(--sf-text-display-s)]">{service.name}</h1>
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <span className="sf-chip"><Clock3 aria-hidden="true" />{service.baseDuration} min</span>
                 {tags.map((tag) => <span key={tag} className="sf-chip sf-chip-accent"><ShieldCheck aria-hidden="true" />{tag}</span>)}
@@ -50,16 +57,16 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             ) : null}
 
             {service.description ? (
-              <p className="mt-[var(--sf-space-lg)] max-w-[60ch] text-[var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{service.description}</p>
+              <p className="mt-[var(--sf-space-lg)] max-w-[60ch] text-[length:var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{service.description}</p>
             ) : null}
 
             {tiers.length > 0 ? (
               <section className="mt-[var(--sf-space-xl)]" aria-labelledby="service-tiers">
-                <h2 id="service-tiers" className="sf-display mb-4 text-[var(--sf-text-2xl)]">Price by stylist level</h2>
+                <h2 id="service-tiers" className="sf-display mb-4 text-[length:var(--sf-text-2xl)]">Price by stylist level</h2>
                 <dl className="sf-menu">
                   {tiers.map(([tier, tierPrice]) => (
                     <div key={tier} className="flex items-baseline gap-3 border-b border-[var(--sf-rule)] py-3.5">
-                      <dt className="text-[var(--sf-text-md)]">{tierLabels[tier] || tier}</dt>
+                      <dt className="text-[length:var(--sf-text-md)]">{tierLabels[tier] || tier}</dt>
                       <span className="sf-menu-leader" aria-hidden="true" />
                       <dd className="sf-menu-price">{formatMenuPrice(tierPrice as number)}</dd>
                     </div>
@@ -70,14 +77,14 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
             {specialists.length > 0 ? (
               <section className="mt-[var(--sf-space-xl)]" aria-labelledby="service-specialists">
-                <h2 id="service-specialists" className="sf-display mb-5 text-[var(--sf-text-2xl)]">Who does it</h2>
+                <h2 id="service-specialists" className="sf-display mb-5 text-[length:var(--sf-text-2xl)]">Who does it</h2>
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {specialists.map((stylist) => (
                     <li key={stylist.id} className="sf-card flex items-center gap-4 p-3">
                       <StylistPortrait stylist={stylist} className="h-20 w-16 shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <Link href={`/team/${stylist.id}`} className="sf-display block truncate text-[var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{stylist.user?.name || "Stylist"}</Link>
-                        {stylist.tier ? <p className="text-[var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[stylist.tier] || stylist.tier}</p> : null}
+                        <Link href={`/team/${stylist.id}`} className="sf-display block truncate text-[length:var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{stylist.user?.name || "Stylist"}</Link>
+                        {stylist.tier ? <p className="text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[stylist.tier] || stylist.tier}</p> : null}
                         <div className="sf-track mt-2">
                           <Link href={`/book?service=${service.id}&stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book</Link>
                         </div>
@@ -93,7 +100,7 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             <div className="sf-ticket">
               <div className="p-[var(--sf-space-md)]">
                 <p className="sf-eyebrow">{tiers.length ? "From" : "Price"}</p>
-                <p className="sf-display mt-2 text-[var(--sf-text-3xl)]">{formatMenuPrice(service.basePrice)}</p>
+                <p className="sf-display mt-2 text-[length:var(--sf-text-3xl)]">{formatMenuPrice(service.basePrice)}</p>
               </div>
               <div className="sf-ticket-perf" />
               <dl className="px-[var(--sf-space-md)] py-2">

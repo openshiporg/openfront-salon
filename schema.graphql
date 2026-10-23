@@ -1521,6 +1521,10 @@ input WaitlistEntryRelateToManyForCreateInput {
 type Client {
   id: ID!
   user: User
+  guestName: String
+  guestEmail: String
+  guestPhone: String
+  displayName: String
   homeLocation: Location
   dateOfBirth: DateTime
   preferredStylist: Stylist
@@ -1572,6 +1576,9 @@ input ClientWhereInput {
   NOT: [ClientWhereInput!]
   id: IDFilter
   user: UserWhereInput
+  guestName: StringFilter
+  guestEmail: StringFilter
+  guestPhone: StringFilter
   homeLocation: LocationWhereInput
   dateOfBirth: DateTimeNullableFilter
   preferredStylist: StylistWhereInput
@@ -1611,6 +1618,9 @@ input ClientHairTypeTypeNullableFilter {
 
 input ClientOrderByInput {
   id: OrderDirection
+  guestName: OrderDirection
+  guestEmail: OrderDirection
+  guestPhone: OrderDirection
   dateOfBirth: OrderDirection
   allergies: OrderDirection
   skinSensitivities: OrderDirection
@@ -1631,6 +1641,9 @@ input ClientOrderByInput {
 
 input ClientUpdateInput {
   user: UserRelateToOneForUpdateInput
+  guestName: String
+  guestEmail: String
+  guestPhone: String
   homeLocation: LocationRelateToOneForUpdateInput
   dateOfBirth: DateTime
   preferredStylist: StylistRelateToOneForUpdateInput
@@ -1673,6 +1686,9 @@ input ClientUpdateArgs {
 
 input ClientCreateInput {
   user: UserRelateToOneForCreateInput
+  guestName: String
+  guestEmail: String
+  guestPhone: String
   homeLocation: LocationRelateToOneForCreateInput
   dateOfBirth: DateTime
   preferredStylist: StylistRelateToOneForCreateInput
@@ -7633,7 +7649,7 @@ type Mutation {
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
-  registerSalonCustomer(name: String!, email: String!, password: String!): Boolean!
+  registerSalonCustomer(name: String!, email: String!, password: String!, phone: String): Boolean!
   bookAppointment(serviceIds: [ID!]!, stylistId: ID!, locationId: ID, startTime: String!, clientName: String!, clientEmail: String!, clientPhone: String, clientNotes: String, policyAccepted: Boolean, policyVersion: String, requestKey: String): BookAppointmentResult
   processPayment(appointmentId: ID!, paymentMethod: String!, providerCode: String, idempotencyKey: String!, tipAmount: Int, discountAmount: Int): ProcessPaymentResult
   confirmPayment(paymentSessionId: ID!): ConfirmPaymentResult
@@ -8140,6 +8156,7 @@ type SalonOperationsWorkspace {
   title: String!
   description: String!
   attentionCount: Int!
+  attentionLabel: String
   metrics: [SalonWorkspaceMetric!]!
   records: [SalonWorkspaceRecord!]!
 }

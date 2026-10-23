@@ -29,7 +29,7 @@ export async function StylistsPage() {
         {stylists.length === 0 ? (
           <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
             <Search className="mb-4 h-7 w-7 text-[var(--sf-ink-3)]" aria-hidden="true" />
-            <h2 className="sf-display mb-6 text-[var(--sf-text-2xl)]">No stylists listed online</h2>
+            <h2 className="sf-display mb-6 text-[length:var(--sf-text-2xl)]">No stylists listed online</h2>
             <div className="sf-track"><Link href="/services" className="sf-btn">Service menu</Link></div>
           </div>
         ) : (

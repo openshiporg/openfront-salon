@@ -1,6 +1,6 @@
 export type CheckoutMutationFeedback =
   | { status: 'success' }
-  | { status: 'failure' };
+  | { status: 'failure'; message?: string };
 
 export function resolveCheckoutMutationFeedback(response: {
   success: boolean;
@@ -15,7 +15,7 @@ export function resolveCheckoutMutationFeedback(response: {
   error?: string;
 }): CheckoutMutationFeedback {
   const result = response.data?.completeAppointmentCheckout;
-  return response.success && result?.success === true && Boolean(result.transactionId && result.paymentId)
-    ? { status: 'success' }
-    : { status: 'failure' };
+  if (response.success && result?.success === true && Boolean(result.transactionId && result.paymentId)) return { status: 'success' };
+  // A definite rejection carries its reason; anything else is an unconfirmed outcome.
+  return response.success && result?.success === false && result.error ? { status: 'failure', message: result.error } : { status: 'failure' };
 }

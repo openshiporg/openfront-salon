@@ -1,7 +1,7 @@
 import { Armchair, ArrowUpRight, Bath, Box, DoorOpen, Palette, Wrench } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { getResourceOperations, PlatformResource, setResourceActive } from '../actions/resources';
-import { Chip, EmptyState, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, TitleStatus, Track, trackClass } from '../../components/salon-ui';
+import { Chip, EmptyState, labelize, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 interface PageProps {
   searchParams?: Promise<{ status?: string }>;
@@ -22,9 +22,9 @@ const typeMeta: Record<string, { label: string; icon: ComponentType<{ className?
   other: { label: 'Other', icon: Box },
 };
 
-function formatDateTime(value?: string | null) {
+function formatDateTime(value?: string | null, timeZone?: string | null) {
   if (!value) return 'Unscheduled';
-  return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined });
 }
 
 export async function ResourceOperationsPage({ searchParams }: PageProps) {
@@ -79,7 +79,7 @@ export async function ResourceOperationsPage({ searchParams }: PageProps) {
 }
 
 function ResourceTile({ resource }: { resource: PlatformResource }) {
-  const meta = typeMeta[resource.type || ''] || { label: resource.type || 'Resource', icon: Box };
+  const meta = typeMeta[resource.type || ''] || { label: labelize(resource.type) || 'Resource', icon: Box };
   const Icon = meta.icon;
   const serviceNames = resource.services.map((service) => service.name).filter(Boolean);
 
@@ -108,8 +108,8 @@ function ResourceTile({ resource }: { resource: PlatformResource }) {
           <ul className="mt-2 grid gap-2">
             {resource.appointments.slice(0, 3).map((appointment) => (
               <li key={appointment.id} className="min-w-0 text-sm">
-                <span className="font-medium tabular-nums">{formatDateTime(appointment.startTime)}</span>
-                <span className="block truncate text-xs text-muted-foreground">{appointment.client?.user?.name || 'Unnamed client'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}</span>
+                <span className="font-medium tabular-nums">{formatDateTime(appointment.startTime, appointment.location?.timezone)}</span>
+                <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || 'Walk-in'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}</span>
               </li>
             ))}
           </ul>

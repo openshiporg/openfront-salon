@@ -18,3 +18,9 @@ export function pillClass(variant: 'raised' | 'primary' | 'danger' | 'quiet' = '
 export const fieldLabelClass = 'grid min-w-0 gap-1.5 text-xs font-medium text-muted-foreground';
 export const inputClass = 'h-10 w-full min-w-0 rounded-xl border bg-background px-3 text-sm text-foreground outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60';
 export const textareaClass = 'min-h-24 w-full min-w-0 rounded-xl border bg-background px-3 py-2 text-sm text-foreground outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring';
+
+/** Stored enum values to merchant labels: "nail_tech" → "Nail tech". */
+export function labelize(value?: string | null) {
+  const text = String(value || '').replaceAll('_', ' ').trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+}

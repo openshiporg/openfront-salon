@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
 import { getPlatformActor } from '@/features/platform/lib/getPlatformActor';
 import { parseExplicitIsoInstant } from '@/features/lib/parseExplicitIsoInstant';
+import { zonedLocalTimeToIso } from '@/features/lib/zonedLocalTime';
 
 export type RescheduleState = { status: 'idle' | 'success' | 'error'; message: string };
 export async function rescheduleOperatorAppointment(_previous: RescheduleState, formData: FormData): Promise<RescheduleState> {
@@ -11,10 +12,10 @@ export async function rescheduleOperatorAppointment(_previous: RescheduleState, 
   const actor = authenticated.success ? authenticated.data?.authenticatedItem : null;
   if (!actor?.role?.canManageSalon && !actor?.role?.canManageAppointments) return { status: 'error', message: 'Appointment permission required.' };
   const id = String(formData.get('appointmentId') || '');
-  const startTime = parseExplicitIsoInstant(formData.get('startTime'));
+  const startTime = parseExplicitIsoInstant(formData.get('startTime')) ?? zonedLocalTimeToIso(formData.get('startTime'), String(formData.get('timeZone') || 'UTC'));
   const reason = String(formData.get('reason') || '').trim();
   const idempotencyKey = String(formData.get('idempotencyKey') || '');
-  if (!id || !startTime || !reason || reason.length > 1000 || idempotencyKey.length < 12 || idempotencyKey.length > 200) return { status: 'error', message: 'Enter a start time with a UTC offset and a reason.' };
+  if (!id || !startTime || !reason || reason.length > 1000 || idempotencyKey.length < 12 || idempotencyKey.length > 200) return { status: 'error', message: 'Enter a new date, time and reason.' };
   await keystoneClient(`mutation RescheduleOperatorAppointment($id:ID!, $start:String!, $reason:String!, $key:String!) {
     scheduleAppointmentSegments(appointmentId:$id,startTime:$start,reason:$reason,idempotencyKey:$key){success appointmentId revision error}
   }`, { id, start: startTime, reason, key: idempotencyKey });

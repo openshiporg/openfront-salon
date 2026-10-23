@@ -21,7 +21,8 @@ export interface PlatformResource {
     endTime?: string | null;
     duration?: number | null;
     status?: string | null;
-    client?: { user?: { name?: string | null } | null } | null;
+    client?: { displayName?: string | null } | null;
+    location?: { timezone?: string | null } | null;
     stylist?: { user?: { name?: string | null } | null } | null;
     services: { name?: string | null }[];
   }[];
@@ -57,7 +58,8 @@ const RESOURCE_QUERY = `
     endTime
     duration
     status
-    client { user { name } }
+    client { displayName }
+    location { timezone }
     stylist { user { name } }
     services { name }
   }

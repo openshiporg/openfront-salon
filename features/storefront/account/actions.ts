@@ -15,6 +15,12 @@ import { isOwnedAppointmentCancelled, isVerifiedCancellationResponse } from "./c
 import { isVerifiedRescheduleResponse } from "./rescheduleOutcome";
 import { isVerifiedConsultationResponse, parseConsultationRetryAttempt } from "./consultationSubmitOutcome";
 
+const SIGN_IN_EMAIL_COOKIE = "sf-signin-email";
+
+export async function getSignInEmail() {
+  return (await cookies()).get(SIGN_IN_EMAIL_COOKIE)?.value || "";
+}
+
 export async function portalSignIn(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
@@ -33,12 +39,14 @@ export async function portalSignIn(formData: FormData) {
   const consultationReturnPath = consultationUnresolved
     ? `/account?${returnParams.toString()}`
     : "/account";
-  const redirectToSignInError = (code: "missing" | "credentials" | "profile") => {
+  const redirectToSignInError = async (code: "missing" | "credentials" | "profile") => {
+    // Keep the typed email for the retry without putting it in the URL.
+    if (email) (await cookies()).set(SIGN_IN_EMAIL_COOKIE, email, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/account/signin", maxAge: 300 });
     const params = new URLSearchParams(returnParams);
     params.set("error", code);
     redirect(`/account/signin?${params.toString()}`);
   };
-  if (!email || !password) redirectToSignInError("missing");
+  if (!email || !password) await redirectToSignInError("missing");
   const response = await keystoneClient<any>(`mutation PortalSignIn($email: String!, $password: String!) {
     authenticateUserWithPassword(email: $email, password: $password) {
       ... on UserAuthenticationWithPasswordSuccess { sessionToken item { id } }
@@ -46,7 +54,7 @@ export async function portalSignIn(formData: FormData) {
     }
   }`, { email, password });
   const auth = response.success ? response.data?.authenticateUserWithPassword : null;
-  if (!auth?.sessionToken) redirectToSignInError("credentials");
+  if (!auth?.sessionToken) await redirectToSignInError("credentials");
   const verified = await verifyPortalIdentity(auth, async (sessionToken) => {
     const endpoint = await getGraphQLEndpoint();
     const client = new GraphQLClient(endpoint, {
@@ -57,8 +65,9 @@ export async function portalSignIn(formData: FormData) {
     );
     return result.authenticatedItem;
   });
-  if (!verified) redirectToSignInError("profile");
+  if (!verified) await redirectToSignInError("profile");
   const store = await cookies();
+  store.delete({ name: SIGN_IN_EMAIL_COOKIE, path: "/account/signin" });
   store.set("keystonejs-session", auth.sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
   redirect(consultationReturnPath);
 }
@@ -67,9 +76,10 @@ export async function portalSignUp(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
-  const response = await keystoneClient<{ registerSalonCustomer: boolean }>(`mutation RegisterSalonCustomer($name: String!, $email: String!, $password: String!) {
-    registerSalonCustomer(name: $name, email: $email, password: $password)
-  }`, { name, email, password });
+  const phone = String(formData.get("phone") || "").trim();
+  const response = await keystoneClient<{ registerSalonCustomer: boolean }>(`mutation RegisterSalonCustomer($name: String!, $email: String!, $password: String!, $phone: String) {
+    registerSalonCustomer(name: $name, email: $email, password: $password, phone: $phone)
+  }`, { name, email, password, phone: phone || null });
   if (!response.success || response.data?.registerSalonCustomer !== true) redirect("/account/signup?error=failed");
   await portalSignIn(formData);
 }
@@ -112,6 +122,14 @@ export async function rescheduleOwnedAppointment(formData: FormData) {
     redirect("/account?reschedule=unresolved");
   }
   const result = response.success ? response.data?.scheduleAppointmentSegments : undefined;
+  // A definite rejection is not an unknown outcome: say why instead of "unresolved".
+  const rejection = result && typeof result === "object" && (result as { success?: unknown }).success === false
+    ? String((result as { error?: unknown }).error || "")
+    : null;
+  if (rejection !== null) {
+    revalidatePath("/account");
+    redirect(`/account?reschedule=${/policy|deadline|notice|too late/i.test(rejection) ? "late" : /plan changed/i.test(rejection) ? "changed" : "unavailable"}`);
+  }
   if (!isVerifiedRescheduleResponse(response.success, result, appointmentId)) {
     revalidatePath("/account");
     redirect("/account?reschedule=unresolved");

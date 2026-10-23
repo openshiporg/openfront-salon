@@ -16,6 +16,12 @@ const CANCELLATION_UNRESOLVED =
 const RESCHEDULE_UNRESOLVED =
   "We couldn’t confirm your reschedule request. Check the time below before trying again, or contact the salon.";
 
+const RESCHEDULE_REJECTED: Record<string, string> = {
+  unavailable: "That time isn’t available. Choose another time.",
+  late: "It’s too late to reschedule online. Contact the salon.",
+  changed: "This appointment changed. Reload and choose a time again.",
+};
+
 const CONSULTATION_UNRESOLVED_REPLAYABLE =
   "We couldn’t confirm your consultation form was submitted. Re-enter the same answers and submit again; it won’t be sent twice.";
 
@@ -24,7 +30,7 @@ const CONSULTATION_UNRESOLVED_UNRECOVERABLE =
 
 const UPDATED_MESSAGES: Record<string, string> = {
   cancelled: "Your appointment was cancelled.",
-  rescheduled: "Your reschedule request was sent.",
+  rescheduled: "Your appointment was rescheduled.",
   consultation: "Your consultation form was submitted.",
 };
 
@@ -40,7 +46,7 @@ export function accountPresentation(params: AccountSearchParams) {
   const consultationMessage = consultationUnresolved
     ? consultationAttempt ? CONSULTATION_UNRESOLVED_REPLAYABLE : CONSULTATION_UNRESOLVED_UNRECOVERABLE
     : null;
-  const rescheduleMessage = params.reschedule === "unresolved" ? RESCHEDULE_UNRESOLVED : null;
+  const rescheduleMessage = params.reschedule === "unresolved" ? RESCHEDULE_UNRESOLVED : params.reschedule ? RESCHEDULE_REJECTED[params.reschedule] ?? null : null;
   const cancellationMessage = params.cancellation === "unresolved" ? CANCELLATION_UNRESOLVED : null;
   const updatedMessage = params.updated ? UPDATED_MESSAGES[params.updated] ?? null : null;
   const errorMessage = params.error ? ERROR_MESSAGES[params.error] ?? null : null;

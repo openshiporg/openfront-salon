@@ -47,7 +47,7 @@ export async function ServicesPage() {
         {categories.length === 0 ? (
           <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
             <Search className="mb-4 h-7 w-7 text-[var(--sf-ink-3)]" aria-hidden="true" />
-            <h2 className="sf-display mb-6 text-[var(--sf-text-2xl)]">No services listed yet</h2>
+            <h2 className="sf-display mb-6 text-[length:var(--sf-text-2xl)]">No services listed yet</h2>
             <div className="sf-track"><Link href="/contact" className="sf-btn">Contact the salon</Link></div>
           </div>
         ) : (
@@ -58,11 +58,11 @@ export async function ServicesPage() {
                   <div className="flex items-center gap-4">
                     <span className="sf-swatch !h-9 !w-9" data-swatch={(index % 6) + 1} aria-hidden="true" />
                     <div>
-                      <h2 id={`category-${category.id}`} className="sf-display text-[var(--sf-text-3xl)]">{category.name}</h2>
-                      <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{category.services?.length || 0} {(category.services?.length || 0) === 1 ? "service" : "services"}</p>
+                      <h2 id={`category-${category.id}`} className="sf-display text-[length:var(--sf-text-3xl)]">{category.name}</h2>
+                      <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{category.services?.length || 0} {(category.services?.length || 0) === 1 ? "service" : "services"}</p>
                     </div>
                   </div>
-                  {category.description ? <p className="text-[var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)] md:text-right">{category.description}</p> : null}
+                  {category.description ? <p className="text-[length:var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)] md:text-right">{category.description}</p> : null}
                 </div>
 
                 {category.services && category.services.length > 0 ? (

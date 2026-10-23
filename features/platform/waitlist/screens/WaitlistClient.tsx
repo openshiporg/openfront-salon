@@ -27,7 +27,7 @@ import {
   CalendarPlus,
   RefreshCw,
 } from 'lucide-react'
-import { pillClass, trackClass } from '../../components/pill'
+import { labelize, pillClass, trackClass } from '../../components/pill'
 import {
   getWaitlistQueue,
   joinWaitlist,
@@ -126,11 +126,15 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
   }
 
   const handleConvertToAppointment = (entry: WaitlistQueueEntry) => {
-    const serviceParam = entry.service?.id ? `service=${entry.service.id}` : ''
-    const stylistParam = entry.preferredStylists?.[0]?.id
-      ? `&stylist=${entry.preferredStylists[0].id}`
-      : ''
-    window.location.href = `/book?${serviceParam}${stylistParam}`
+    const params = new URLSearchParams()
+    if (entry.service?.id) params.set('service', entry.service.id)
+    if (entry.preferredStylists?.[0]?.id) params.set('stylist', entry.preferredStylists[0].id)
+    if (entry.client?.id) params.set('client', entry.client.id)
+    else {
+      if (entry.guestName) params.set('name', entry.guestName)
+      if (entry.guestPhone) params.set('phone', entry.guestPhone)
+    }
+    window.location.href = `/dashboard/platform/appointments/new?${params.toString()}`
   }
 
   if (queue.status === 'error') {
@@ -151,11 +155,12 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
   const { entries, total, truncated, services, servicesTruncated, stylists, stylistsTruncated } = queue
 
   const notified = entries.filter((entry) => entry.notifiedAt).length
+  const waiting = Math.max(0, total - notified)
 
   return (
     <div className="grid gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <WaitlistHeader icon={icon} total={total} />
+        <WaitlistHeader icon={icon} total={waiting} />
         <div className="flex items-center gap-2">
           <div className={trackClass}>
             <button type="button" onClick={refresh} disabled={refreshing} aria-label="Refresh waitlist" className={pillClass('quiet')}>
@@ -237,7 +242,7 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
                         <SelectItem value={ANY}>Any available</SelectItem>
                         {stylists.map((stylist) => (
                           <SelectItem key={stylist.id} value={stylist.id}>
-                            {stylist.name}{stylist.tier ? ` (${stylist.tier})` : ''}
+                            {stylist.name}{stylist.tier ? ` (${labelize(stylist.tier)})` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -296,7 +301,7 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
       </div>
 
       <dl className="grid grid-cols-3 overflow-hidden rounded-2xl border bg-border [&>*]:bg-background" style={{ gap: 1 }}>
-        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Waiting</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{total}</dd></div>
+        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Waiting</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{waiting}</dd></div>
         <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Notified</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{notified}</dd></div>
         <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Longest wait</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{entries[0] ? formatTimeAgo(entries[0].createdAt).replace(' ago', '') : '—'}</dd></div>
       </dl>
@@ -337,7 +342,7 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
               <div className={trackClass} role="group" aria-label="Waitlist entry actions">
                 {!entry.notifiedAt ? (
                   <button type="button" onClick={() => handleTransition(entry, 'notify')} className={pillClass('raised', 'sm')}>
-                    <Bell />Notify
+                    <Bell />Mark notified
                   </button>
                 ) : null}
                 <button type="button" onClick={() => handleConvertToAppointment(entry)} className={pillClass('primary', 'sm')}>

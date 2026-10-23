@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { ArrowUpRight, CalendarClock, UsersRound } from 'lucide-react';
 import { getScheduleOperations, PlatformSchedule, PlatformStylistSchedule, setScheduleAvailability } from '../actions/schedules';
+import { labelize } from '../../components/pill';
+import { WeeklyHoursEditor } from './WeeklyHoursEditor';
 import { Avatar, EmptyState, inputClass, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, StatusDot, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 // The salon week starts on Monday; dayOfWeek keeps JavaScript's 0 = Sunday.
@@ -17,9 +19,9 @@ function hhmm(value?: string | null) {
   return `${hours % 12 || 12}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}${suffix}`;
 }
 
-function formatAppointmentTime(value?: string | null) {
+function formatAppointmentTime(value?: string | null, timeZone?: string | null) {
   if (!value) return 'Unscheduled';
-  return new Date(value).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined });
 }
 
 export async function StaffSchedulePage() {
@@ -51,7 +53,8 @@ export async function StaffSchedulePage() {
         <EmptyState icon={UsersRound} title="No active stylists" action={<Track><PillLink href="/dashboard/platform/administration#management-staff">Add staff</PillLink></Track>} />
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border bg-background">
+          <div className="relative overflow-hidden rounded-2xl border bg-background">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-background to-transparent lg:hidden" />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[60rem] border-collapse text-sm">
                 <thead>
@@ -67,6 +70,8 @@ export async function StaffSchedulePage() {
             </div>
           </div>
 
+          <WeeklyHoursEditor stylists={stylists} />
+
           <section aria-label="Next appointments by stylist" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {stylists.filter((stylist) => stylist.appointments.length > 0).map((stylist) => (
               <div key={stylist.id} className="rounded-2xl border bg-background p-4">
@@ -74,8 +79,8 @@ export async function StaffSchedulePage() {
                 <ul className="mt-3 grid gap-2">
                   {stylist.appointments.slice(0, 4).map((appointment) => (
                     <li key={appointment.id} className="text-sm">
-                      <Link href={`/dashboard/platform/appointments/${appointment.id}`} className="font-medium tabular-nums hover:underline">{formatAppointmentTime(appointment.startTime)}</Link>
-                      <span className="block truncate text-xs text-muted-foreground">{appointment.client?.user?.name || 'Unnamed client'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'}</span>
+                      <Link href={`/dashboard/platform/appointments/${appointment.id}`} className="font-medium tabular-nums hover:underline">{formatAppointmentTime(appointment.startTime, appointment.location?.timezone)}</Link>
+                      <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || 'Walk-in'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'}</span>
                     </li>
                   ))}
                 </ul>
@@ -104,7 +109,7 @@ function RosterRow({ stylist }: { stylist: PlatformStylistSchedule }) {
           <Avatar name={name} className="size-8 text-[11px]" />
           <div className="min-w-0">
             <div className="truncate font-semibold">{name}</div>
-            <div className="truncate text-xs capitalize text-muted-foreground">{[stylist.role?.replaceAll('_', ' '), stylist.tier].filter(Boolean).join(' · ') || 'Stylist'}</div>
+            <div className="truncate text-xs text-muted-foreground">{[labelize(stylist.role), labelize(stylist.tier)].filter(Boolean).join(' · ') || 'Stylist'}</div>
           </div>
         </div>
         {specialties.length ? <div className="mt-2 line-clamp-2 max-w-[12rem] text-xs text-muted-foreground">{specialties.join(', ')}</div> : null}

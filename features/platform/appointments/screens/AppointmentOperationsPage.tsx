@@ -19,6 +19,7 @@ import {
   TitleStatus,
   Track,
   usd,
+  labelize,
 } from '../../components/salon-ui';
 
 const statusTabs = [
@@ -76,7 +77,7 @@ export async function AppointmentOperationsPage({ searchParams }: PageProps) {
         icon={CalendarDays}
         title="Appointments"
         status={counts ? <TitleStatus tone={counts.pending > 0 ? 'amber' : 'emerald'}>{counts.pending > 0 ? `${counts.pending} to confirm` : 'All confirmed'}</TitleStatus> : null}
-        actions={<Track><PillLink href="/book" variant="primary"><CalendarPlus />New appointment</PillLink></Track>}
+        actions={<Track><PillLink href="/dashboard/platform/appointments/new" variant="primary"><CalendarPlus />New appointment</PillLink></Track>}
       />
 
       {counts ? (
@@ -166,7 +167,7 @@ function AppointmentRow({ appointment }: { appointment: PlatformAppointment }) {
         <p className="mt-0.5 truncate text-sm text-muted-foreground">{services}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 text-sm"><Avatar name={stylist} className="size-6 text-[10px]" />{stylist}</span>
-          <Chip>{usd(serviceTotal(appointment), { whole: true })}{appointment.payment?.status ? ` · ${appointment.payment.status.replaceAll('_', ' ')}` : ''}</Chip>
+          <Chip>{usd(serviceTotal(appointment), { whole: true })}{appointment.payment?.status ? ` · ${labelize(appointment.payment.status)}` : ''}</Chip>
           {appointment.depositAmount ? <Chip tone={appointment.depositPaid ? 'emerald' : 'amber'}>{appointment.depositPaid ? 'Deposit paid' : `Deposit due ${usd(appointment.depositAmount, { whole: true })}`}</Chip> : null}
           {needsIntake(appointment) ? <Chip tone="violet"><ShieldAlert className="size-3" />Intake / consent</Chip> : null}
           {appointment.client?.totalVisits ? <Chip>{appointment.client.totalVisits} visits</Chip> : <Chip tone="sky">New client</Chip>}

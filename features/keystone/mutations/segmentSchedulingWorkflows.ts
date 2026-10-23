@@ -207,11 +207,16 @@ export async function scheduleAppointmentSegmentsTransaction(context: Context, a
   let ownerPlanLockKeys: string[] = [];
   if (!operator || args.allocations == null) {
     try {
-      const ownerSnapshot = await context.query.Appointment.findOne({
-        where: { id: args.appointmentId },
-        query: "id startTime client { user { id } } stylist { id } resource { id } lineItems { id duration } segments(where: { status: { in: [planned, started] } }) { lineItem { id } definition { id } stableKey sequence parallelGroup type plannedStart durationMinutes practitionerRequired practitioner { id } resource { id } resourceUnits }",
-      });
-      if (ownerSnapshot && (operator || ownerSnapshot.client?.user?.id === context.session!.itemId)) {
+      // Visibility and ownership use the caller's access; the plan itself is read
+      // elevated because clients cannot read resource relations on their segments.
+      const visibleSnapshot = await context.query.Appointment.findOne({ where: { id: args.appointmentId }, query: "id client { user { id } }" });
+      const ownerSnapshot = visibleSnapshot && (operator || visibleSnapshot.client?.user?.id === context.session!.itemId)
+        ? await context.sudo().query.Appointment.findOne({
+          where: { id: args.appointmentId },
+          query: "id startTime client { user { id } } stylist { id } resource { id } lineItems { id duration } segments(where: { status: { in: [planned, started] } }) { lineItem { id } definition { id } stableKey sequence parallelGroup type plannedStart durationMinutes practitionerRequired practitioner { id } resource { id } resourceUnits }",
+        })
+        : null;
+      if (ownerSnapshot) {
         const ownerItems = parseAllocations(allocationsFromAppointment(ownerSnapshot));
         validateSequence(ownerItems);
         ownerPlanSnapshotHash = digest(ownerItems);

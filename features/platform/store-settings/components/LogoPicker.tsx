@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { LOGO_ICONS } from '../lib/icon-registry';
 import { sanitizeStoreLogoSvg } from '@/features/lib/sanitize-store-logo';
-import { normalizeStoreLogoColor } from '@/features/lib/store-logo';
+import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from '@/features/lib/store-logo';
 import { fieldLabelClass, pillClass, trackClass } from '../../components/pill';
 
 // Adapted from Restaurant's LogoPicker: exact Untitled registry and shared allowlist.
 export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: string; initialColor?: string; name?: string }) {
-  const [svg, setSvg] = useState(initialIcon || LOGO_ICONS[0].lightSvg);
+  // An empty stored logo is what the storefront shows as the default mark, so preselect that.
+  const [svg, setSvg] = useState(initialIcon || DEFAULT_STORE_LOGO_ICON);
   const [hue, setHue] = useState(normalizeStoreLogoColor(initialColor));
-  const [custom, setCustom] = useState(Boolean(initialIcon && !LOGO_ICONS.some(icon => icon.lightSvg === initialIcon)));
+  const [custom, setCustom] = useState(Boolean(initialIcon && initialIcon !== DEFAULT_STORE_LOGO_ICON && !LOGO_ICONS.some(icon => icon.lightSvg === initialIcon)));
   const safe = sanitizeStoreLogoSvg(svg);
   const filter = `hue-rotate(${hue}deg)`;
 
@@ -19,14 +20,17 @@ export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Logo & colour</h2>
         <div className={trackClass} role="group" aria-label="Logo source">
-          <button type="button" aria-pressed={!custom} onClick={() => { setCustom(false); if (!LOGO_ICONS.some(icon => icon.lightSvg === svg)) setSvg(LOGO_ICONS[0].lightSvg); }} className={pillClass(custom ? 'quiet' : 'raised', 'sm')}>Library</button>
+          <button type="button" aria-pressed={!custom} onClick={() => { setCustom(false); if (svg !== DEFAULT_STORE_LOGO_ICON && !LOGO_ICONS.some(icon => icon.lightSvg === svg)) setSvg(initialIcon && LOGO_ICONS.some(icon => icon.lightSvg === initialIcon) ? initialIcon : DEFAULT_STORE_LOGO_ICON); }} className={pillClass(custom ? 'quiet' : 'raised', 'sm')}>Library</button>
           <button type="button" aria-pressed={custom} onClick={() => setCustom(true)} className={pillClass(custom ? 'raised' : 'quiet', 'sm')}>Custom SVG</button>
         </div>
       </div>
 
+      <div className="grid gap-2">
+      <span className="text-xs font-medium text-muted-foreground">Preview</span>
       <div className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4">
         <span aria-label="Logo" className="block size-14 shrink-0 [&>svg]:size-full" style={{ filter }} dangerouslySetInnerHTML={{ __html: safe }} />
         <span className="min-w-0 truncate font-serif text-2xl tracking-tight">{name || 'Storefront name'}</span>
+      </div>
       </div>
 
       {custom ? (
@@ -39,7 +43,7 @@ export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: 
         <fieldset>
           <legend className="mb-2 text-xs font-medium text-muted-foreground">Logo library</legend>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(3.25rem,1fr))] gap-2">
-            {LOGO_ICONS.map(icon => {
+            {[{ id: 'default', name: 'Default', lightSvg: DEFAULT_STORE_LOGO_ICON }, ...LOGO_ICONS].map(icon => {
               const selected = icon.lightSvg === svg;
               return (
                 <label key={icon.id} title={icon.name} className={`relative flex aspect-square cursor-pointer items-center justify-center rounded-xl border bg-background p-2 transition-shadow has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-foreground shadow-[0_0_0_1px_currentColor]' : 'hover:bg-muted/50'}`}>

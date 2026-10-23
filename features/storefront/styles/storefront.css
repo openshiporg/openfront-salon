@@ -1,5 +1,8 @@
 @import "./storefront-tokens.css";
 
+/* Component layer: Tailwind utilities on the same element override these. */
+@layer components {
+
 /* ---------- Base ---------- */
 
 .storefront {
@@ -131,6 +134,8 @@
 }
 
 .sf-track-scroll {
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -991,8 +996,13 @@ a:hover .sf-media > img {
 
 .sf-booking-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sf-space-lg);
   align-items: start;
+}
+
+.sf-booking-grid > * {
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
@@ -1223,4 +1233,5 @@ a:hover .sf-media > img {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+}
 }

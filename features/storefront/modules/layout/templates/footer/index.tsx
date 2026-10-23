@@ -30,7 +30,7 @@ export default function Footer({ brand }: { brand: StorefrontBrand }) {
             ) : null}
           </div>
 
-          <div className="grid gap-8 text-[var(--sf-text-sm)] sm:grid-cols-2">
+          <div className="grid gap-8 text-[length:var(--sf-text-sm)] sm:grid-cols-2">
             <div className="grid content-start gap-5">
               {brand.addressLine ? (
                 <div>
@@ -66,10 +66,10 @@ export default function Footer({ brand }: { brand: StorefrontBrand }) {
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-[var(--sf-text-sm)]">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-[length:var(--sf-text-sm)]">
             {LINKS.map((link) => <Link key={link.href} href={link.href}>{link.name}</Link>)}
           </nav>
-          <p className="text-[var(--sf-text-xs)] opacity-60">{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
+          <p className="text-[length:var(--sf-text-xs)] opacity-60">{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
         </div>
       </div>
     </footer>

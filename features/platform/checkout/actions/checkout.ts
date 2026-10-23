@@ -81,7 +81,7 @@ export interface CheckoutAppointment {
     staff?: { id: string; baseCommissionRate?: number | null; user?: { name?: string | null } | null } | null;
     service?: { id: string; name?: string | null; price?: number | null; basePrice?: number | null } | null;
   }[];
-  payment?: { id: string; totalAmount?: number | null; status?: string | null; paymentMethod?: string | null } | null;
+  payment?: { id: string; totalAmount?: number | null; tip?: number | null; tax?: number | null; discount?: number | null; status?: string | null; paymentMethod?: string | null } | null;
   transaction?: { id: string; status?: string | null; paymentStatus?: string | null; paymentMethod?: string | null } | null;
   clientPackages?: CheckoutPackageBenefit[];
   clientMemberships?: CheckoutMembershipBenefit[];
@@ -169,6 +169,8 @@ const CHECKOUT_APPOINTMENT_QUERY = `
     totalVisits
     lifetimeValue
     lastVisit
+    displayName
+    guestEmail
     user { id name email }
   }
   stylist {
@@ -193,7 +195,7 @@ const CHECKOUT_APPOINTMENT_QUERY = `
     staff { id baseCommissionRate user { name } }
     service { id }
   }
-  payment { id totalAmount status paymentMethod }
+  payment { id totalAmount tip tax discount status paymentMethod }
   transaction { id status paymentStatus paymentMethod }
 `;
 
@@ -471,8 +473,9 @@ export async function completeAppointmentCheckout(formData: FormData): Promise<C
     `, {
       appointmentId,
       paymentMethod: normalizePaymentMethod(formData.get('paymentMethod')?.toString()),
-      tipAmount: Number(formData.get('tip') || 0),
-      discountAmount: Number(formData.get('discount') || 0),
+      // The form takes dollars; the workflow stores cents.
+      tipAmount: Math.round(Number(formData.get('tip') || 0) * 100),
+      discountAmount: Math.round(Number(formData.get('discount') || 0) * 100),
       retailItems,
       clientPackageId: formData.get('clientPackageId')?.toString() || null,
       clientMembershipId: formData.get('clientMembershipId')?.toString() || null,

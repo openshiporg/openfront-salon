@@ -58,9 +58,9 @@ export function StylistCard({ stylist, showSpecializations = true, bookHref }: {
         <StylistPortrait stylist={stylist} />
         <h3 className="sf-artist-name group-hover:text-[var(--sf-accent)]">{name}</h3>
       </Link>
-      {tier ? <p className="mt-1 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{tier}</p> : null}
+      {tier ? <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{tier}</p> : null}
       {showSpecializations && specialties.length > 0 ? (
-        <p className="mt-2 line-clamp-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-2)]">{specialties.slice(0, 3).join(" · ")}</p>
+        <p className="mt-2 line-clamp-2 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{specialties.slice(0, 3).join(" · ")}</p>
       ) : null}
       {stylist.schedules ? <div className="mt-3"><WeekStrip schedules={stylist.schedules} /></div> : null}
       <div className="mt-4">

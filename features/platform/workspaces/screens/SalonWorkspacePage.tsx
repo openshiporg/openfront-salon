@@ -4,7 +4,7 @@ import { getSalonManagementWorkspace, getSalonWorkspace, SalonManagementKind, tr
 import { SalonRecordManager } from './SalonRecordManager';
 import { InventoryAdjustmentForm } from './InventoryAdjustmentForm';
 import { InventoryIntentRecovery } from './InventoryIntentRecovery';
-import { EmptyState, inputClass, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, TitleStatus, Track, trackClass, usd, type Tone } from '../../components/salon-ui';
+import { EmptyState, inputClass, labelize, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, TitleStatus, Track, trackClass, usd, type Tone } from '../../components/salon-ui';
 
 const icons: Record<WorkspaceSection, ComponentType<{ className?: string }>> = {
   clients: ContactRound, catalog: Scissors, benefits: Gift, inventory: Boxes,
@@ -17,7 +17,7 @@ const emptyStates: Record<WorkspaceSection, string> = {
 };
 
 const queueTitles: Record<WorkspaceSection, string> = {
-  clients: 'Follow-up', catalog: 'Bookability', benefits: 'Benefits on file', inventory: 'Stock',
+  clients: 'Follow-up', catalog: 'Not bookable', benefits: 'Benefits on file', inventory: 'Stock',
   engagement: 'Demand', administration: 'Readiness', reports: 'Recent payments', integrations: 'Providers & events',
 };
 
@@ -48,14 +48,18 @@ export async function SalonWorkspacePage({ section }: { section: WorkspaceSectio
   ]);
   const Icon = icons[section];
   const locations = section === 'inventory' ? data.records.filter((record) => record.id.startsWith('location:')) : [];
-  const records = section === 'inventory' ? data.records.filter((record) => !record.id.startsWith('location:')) : data.records;
+  // Clients and services are already listed by their record managers; the queue shows only what needs action.
+  const records = section === 'inventory' ? data.records.filter((record) => !record.id.startsWith('location:'))
+    : section === 'catalog' ? data.records.filter((record) => record.status !== 'active' || record.metric === 0)
+    : data.records;
+  const showQueue = section !== 'clients' && !(section === 'catalog' && records.length === 0);
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: data.title }]}>
       <PageHeader
         icon={Icon}
         title={data.title}
-        status={<TitleStatus tone={data.attentionCount > 0 ? 'amber' : 'emerald'}>{data.attentionCount > 0 ? `${data.attentionCount} need attention` : 'All clear'}</TitleStatus>}
+        status={<TitleStatus tone={data.attentionCount > 0 ? 'amber' : 'emerald'}>{data.attentionCount > 0 ? data.attentionLabel || `${data.attentionCount} need attention` : 'All clear'}</TitleStatus>}
         actions={section === 'administration' ? (
           <Track>
             <PillLink href="/dashboard/platform/schedules" variant="quiet"><CalendarClock />Schedules</PillLink>
@@ -74,7 +78,7 @@ export async function SalonWorkspacePage({ section }: { section: WorkspaceSectio
       {section === 'inventory' && <InventoryIntentRecovery key={data.actorId || 'unverified'} actorId={data.actorId || ''} />}
       {section === 'inventory' && locations.length === 0 && <Notice title="No active stock location">Add or activate a location before recording inventory movement.</Notice>}
 
-      {records.length === 0 ? <EmptyState icon={ShieldCheck} title={emptyStates[section]} /> : (
+      {!showQueue ? null : records.length === 0 ? <EmptyState icon={ShieldCheck} title={emptyStates[section]} /> : (
         <section aria-label={`${data.title} queue`} className="min-w-0 overflow-hidden rounded-2xl border bg-background">
           <div className="flex items-center justify-between gap-2 border-b px-4 py-3 md:px-5">
             <h2 className="text-sm font-semibold">{queueTitles[section]}</h2>
@@ -111,7 +115,7 @@ function WorkspaceRow({ record, locations, actorId }: { record: WorkspaceRecord;
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h3 className="min-w-0 truncate text-sm font-semibold">{record.title}</h3>
-          {record.status ? <TitleStatus tone={statusTone(record.status)}>{record.status}</TitleStatus> : null}
+          {record.status ? <TitleStatus tone={statusTone(record.status)}>{labelize(record.status)}</TitleStatus> : null}
         </div>
         {record.subtitle ? <p className="mt-0.5 break-words text-sm text-muted-foreground">{record.subtitle}</p> : null}
         {record.detail || amount || occurredAt ? (

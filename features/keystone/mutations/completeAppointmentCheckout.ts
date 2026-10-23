@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { confirmProviderPayment, createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
+import { assertServiceDayOpen } from "../appointmentTiming";
 import { serializableWorkflow } from "./serializableWorkflow";
 import { recordInventoryMovement } from "./inventoryWorkflows";
 import { currentStockContext, assertCheckoutLocation } from "../inventory/locationAuthority";
@@ -150,8 +151,8 @@ export async function completeAppointmentCheckoutTransaction(
       const appointment = await sudo.query.Appointment.findOne({
         where: { id: args.appointmentId },
         query: `
-          id status depositAmount depositPaid payment { id } transaction { id } location { id name isActive }
-          client { id lifetimeValue totalVisits user { id email } }
+          id status startTime metadata depositAmount depositPaid payment { id } transaction { id } location { id name isActive timezone }
+          client { id lifetimeValue totalVisits guestEmail user { id email } }
           stylist { id baseCommissionRate user { id } }
           lineItems { id serviceTitle serviceImagePath price quantity duration service { id } staff { id baseCommissionRate } }
         `,
@@ -160,6 +161,7 @@ export async function completeAppointmentCheckoutTransaction(
       const checkoutLocationId = stockScope.location.id;
       if (appointment.location?.id !== checkoutLocationId || appointment.location.isActive !== true) throw new Error("Appointment location is unavailable; reconcile its assignment before checkout");
       if (!['confirmed', 'in_progress'].includes(appointment.status || '')) throw new Error("Appointment is not eligible for checkout");
+      assertServiceDayOpen(appointment.startTime, appointment.location?.timezone, "Checkout");
       if (appointment.payment?.id || appointment.transaction?.id) throw new Error("Appointment is already checked out");
       if (!appointment.lineItems.length) throw new Error("Appointment has no payable line items");
       const priorPackageUsage = await sudo.query.ClientPackageUsage.count({ where: { appointment: { id: { equals: appointment.id } } } });
@@ -295,7 +297,7 @@ export async function completeAppointmentCheckoutTransaction(
         query: "id",
       });
       const payment = await sudo.query.Payment.createOne({
-        data: { appointment: { connect: { id: appointment.id } }, session: { connect: { id: session.id } }, subtotal, tax, tip, discount, totalAmount: total, paymentMethod: args.paymentMethod, status: "completed", processedAt: now, processedBy: { connect: { id: context.session!.itemId } }, receiptEmail: appointment.client?.user?.email || "", notes: "Recorded by controlled appointment checkout" },
+        data: { appointment: { connect: { id: appointment.id } }, session: { connect: { id: session.id } }, subtotal, tax, tip, discount, totalAmount: total, paymentMethod: args.paymentMethod, status: "completed", processedAt: now, processedBy: { connect: { id: context.session!.itemId } }, receiptEmail: appointment.client?.user?.email || appointment.client?.guestEmail || "", notes: "Recorded by controlled appointment checkout" },
         query: "id",
       });
       await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { payment: { connect: { id: payment.id } } }, query: "id" });
@@ -352,7 +354,9 @@ export async function completeAppointmentCheckoutTransaction(
       if (appointment.client?.id) {
         await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { lifetimeValue: (appointment.client.lifetimeValue || 0) + taxable, totalVisits: (appointment.client.totalVisits || 0) + 1, lastVisit: now }, query: "id" });
       }
-      await sudo.query.Appointment.updateOne({ where: { id: appointment.id }, data: { status: "completed" }, query: "id" });
+      const appointmentMetadata = appointment.metadata && typeof appointment.metadata === "object" ? appointment.metadata as Record<string, any> : {};
+      const transitionHistory = Array.isArray(appointmentMetadata.transitionHistory) ? appointmentMetadata.transitionHistory.slice(-49) : [];
+      await sudo.query.Appointment.updateOne({ where: { id: appointment.id }, data: { status: "completed", metadata: { ...appointmentMetadata, transitionHistory: [...transitionHistory, { from: appointment.status, to: "completed", reason: "Checkout recorded", actorId: context.session!.itemId, at: now }] } }, query: "id" });
       const segments = await (sudo.query as any).AppointmentSegment.findMany({ where: { appointment: { id: { equals: appointment.id } }, status: { in: ["planned", "started"] } }, take: 200, query: "id" });
       for (const segment of segments) await (sudo.query as any).AppointmentSegment.updateOne({ where: { id: segment.id }, data: { status: "completed" }, query: "id" });
       return { success: true, transactionId: transaction.id, paymentId: payment.id, error: null };

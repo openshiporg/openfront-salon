@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
 
@@ -15,6 +16,7 @@ export interface PlatformSchedule {
   breakEnd?: string | null;
   reason?: string | null;
   revision: number;
+  location?: { id: string } | null;
 }
 
 export interface PlatformStylistSchedule {
@@ -29,6 +31,7 @@ export interface PlatformStylistSchedule {
     email?: string | null;
     phone?: string | null;
   } | null;
+  locations: { id: string; name?: string | null }[];
   specializations: {
     id: string;
     name?: string | null;
@@ -41,7 +44,8 @@ export interface PlatformStylistSchedule {
     startTime?: string | null;
     duration?: number | null;
     status?: string | null;
-    client?: { user?: { name?: string | null } | null } | null;
+    client?: { displayName?: string | null } | null;
+    location?: { timezone?: string | null } | null;
     services: { name?: string | null }[];
   }[];
 }
@@ -65,6 +69,7 @@ const STYLIST_SCHEDULE_QUERY = `
     email
     phone
   }
+  locations { id name }
   specializations {
     id
     name
@@ -83,6 +88,7 @@ const STYLIST_SCHEDULE_QUERY = `
     breakEnd
     reason
     revision
+    location { id }
   }
   appointments(
     where: { status: { in: [pending, confirmed, in_progress] } }
@@ -93,7 +99,8 @@ const STYLIST_SCHEDULE_QUERY = `
     startTime
     duration
     status
-    client { user { name } }
+    client { displayName }
+    location { timezone }
     services { name }
   }
 `;
@@ -183,4 +190,53 @@ export async function setScheduleAvailability(formData: FormData): Promise<void>
 
   revalidatePath('/dashboard/platform/schedules');
   revalidatePath('/dashboard/stylist-schedules');
+}
+
+const UPSERT_SCHEDULE = `
+  mutation UpsertWeeklySchedule($scheduleId: ID, $stylistId: ID!, $locationId: ID!, $dayOfWeek: Int, $startTime: String!, $endTime: String!, $breakStart: String, $breakEnd: String, $isAvailable: Boolean, $reason: String, $idempotencyKey: String, $expectedRevision: Int) {
+    upsertStylistSchedule(scheduleId: $scheduleId, stylistId: $stylistId, locationId: $locationId, type: "recurring", dayOfWeek: $dayOfWeek, startTime: $startTime, endTime: $endTime, breakStart: $breakStart, breakEnd: $breakEnd, isAvailable: $isAvailable, reason: $reason, idempotencyKey: $idempotencyKey, expectedRevision: $expectedRevision) {
+      success
+      error
+    }
+  }
+`;
+
+/** Saves a stylist's recurring week: one block per day, created, edited or switched off. */
+export async function saveWeeklyHours(formData: FormData): Promise<{ success: boolean; error?: string }> {
+  const stylistId = formData.get('stylistId')?.toString() || '';
+  const locationId = formData.get('locationId')?.toString() || '';
+  if (!stylistId || !locationId) return { success: false, error: 'Choose a stylist and location.' };
+  const failures: string[] = [];
+  for (const day of [1, 2, 3, 4, 5, 6, 0]) {
+    const field = (name: string) => formData.get(`day.${day}.${name}`)?.toString().trim() || '';
+    const working = field('working') === 'true';
+    const scheduleId = field('scheduleId');
+    const revision = Number(field('revision'));
+    const startTime = field('start');
+    const endTime = field('end');
+    if (!scheduleId && !working) continue;
+    if (working && (!startTime || !endTime)) { failures.push(`${dayName(day)}: enter start and end`); continue; }
+    const response = await keystoneClient<{ upsertStylistSchedule: { success: boolean; error?: string | null } }>(UPSERT_SCHEDULE, {
+      scheduleId: scheduleId || null,
+      stylistId,
+      locationId,
+      dayOfWeek: day,
+      startTime: startTime || field('previousStart') || '09:00',
+      endTime: endTime || field('previousEnd') || '17:00',
+      breakStart: working ? field('breakStart') || null : field('previousBreakStart') || null,
+      breakEnd: working ? field('breakEnd') || null : field('previousBreakEnd') || null,
+      isAvailable: working,
+      reason: working ? '' : 'Day off',
+      idempotencyKey: scheduleId ? null : `weekly-hours:${stylistId}:${day}:${randomUUID()}`,
+      expectedRevision: scheduleId ? revision : null,
+    });
+    const result = response.success ? response.data.upsertStylistSchedule : null;
+    if (!result?.success) failures.push(`${dayName(day)}: ${result?.error || 'could not be saved'}`);
+  }
+  revalidatePath('/dashboard/platform/schedules');
+  return failures.length ? { success: false, error: failures.join(' · ') } : { success: true };
+}
+
+function dayName(day: number) {
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day];
 }

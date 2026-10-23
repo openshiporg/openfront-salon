@@ -88,7 +88,7 @@ export async function HomePage() {
           <div className="sf-container">
             <div className="sf-section-head">
               <h2 id="home-categories" className="sf-display sf-section-title">Book by <em>category</em></h2>
-              <Link href="/services" className="sf-link text-[var(--sf-text-sm)]">Full menu</Link>
+              <Link href="/services" className="sf-link text-[length:var(--sf-text-sm)]">Full menu</Link>
             </div>
             <div className="sf-category-grid">
               {categories.map((category, index) => {
@@ -129,7 +129,7 @@ export async function HomePage() {
           <div className="sf-container">
             <div className="sf-section-head">
               <h2 id="home-artists" className="sf-display sf-section-title">Choose your <em>stylist</em></h2>
-              <Link href="/team" className="sf-link text-[var(--sf-text-sm)]">All stylists</Link>
+              <Link href="/team" className="sf-link text-[length:var(--sf-text-sm)]">All stylists</Link>
             </div>
             <div className="sf-artist-rail">
               {activeStylists.slice(0, 4).map((stylist) => <StylistCard key={stylist.id} stylist={stylist} />)}
@@ -144,16 +144,16 @@ export async function HomePage() {
             <div className="sf-section-head">
               <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
                 <h2 id="home-reviews" className="sf-display sf-section-title">{averageRating.toFixed(1)} <em>★</em></h2>
-                <p className="pb-2 text-[var(--sf-text-sm)] text-[var(--sf-ink-3)]">{reviews.length} client {reviews.length === 1 ? "review" : "reviews"}</p>
+                <p className="pb-2 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{reviews.length} client {reviews.length === 1 ? "review" : "reviews"}</p>
               </div>
-              <Link href="/reviews" className="sf-link text-[var(--sf-text-sm)]">Read reviews</Link>
+              <Link href="/reviews" className="sf-link text-[length:var(--sf-text-sm)]">Read reviews</Link>
             </div>
             <ul className="grid gap-4 md:grid-cols-3">
               {quotes.map((review) => (
                 <li key={review.id} className="sf-card flex flex-col gap-5 p-[var(--sf-space-md)]">
                   <span className="sf-stars" aria-label={`${review.rating} out of 5 stars`}>{[0, 1, 2, 3, 4].map((index) => <Star key={index} className={index < review.rating ? "fill-current" : "opacity-25"} aria-hidden="true" />)}</span>
                   <blockquote className="sf-quote line-clamp-5 flex-1">&ldquo;{review.comment}&rdquo;</blockquote>
-                  <p className="text-[var(--sf-text-sm)]"><span className="font-semibold">{review.reviewerName || "Client"}</span>{review.service?.name ? <span className="text-[var(--sf-ink-3)]"> · {review.service.name}</span> : null}</p>
+                  <p className="text-[length:var(--sf-text-sm)]"><span className="font-semibold">{review.reviewerName || "Client"}</span>{review.service?.name ? <span className="text-[var(--sf-ink-3)]"> · {review.service.name}</span> : null}</p>
                 </li>
               ))}
             </ul>
@@ -167,13 +167,13 @@ export async function HomePage() {
             <div>
               <h2 id="home-visit" className="sf-display sf-section-title">Visit</h2>
               {brand.addressLine ? (
-                <p className="mt-6 flex gap-3 text-[var(--sf-text-md)] leading-relaxed">
+                <p className="mt-6 flex gap-3 text-[length:var(--sf-text-md)] leading-relaxed">
                   <MapPin className="mt-1 h-5 w-5 shrink-0 text-[var(--sf-accent)]" aria-hidden="true" />
                   <span>{brand.locationName ? <><span className="font-semibold">{brand.locationName}</span><br /></> : null}{brand.addressLine}</span>
                 </p>
               ) : null}
               {brand.phone && brand.phoneHref ? (
-                <p className="mt-3 flex gap-3 text-[var(--sf-text-md)]"><Phone className="mt-1 h-5 w-5 shrink-0 text-[var(--sf-accent)]" aria-hidden="true" /><a href={brand.phoneHref} className="sf-link">{brand.phone}</a></p>
+                <p className="mt-3 flex gap-3 text-[length:var(--sf-text-md)]"><Phone className="mt-1 h-5 w-5 shrink-0 text-[var(--sf-accent)]" aria-hidden="true" /><a href={brand.phoneHref} className="sf-link">{brand.phone}</a></p>
               ) : null}
               <div className="sf-track mt-8">
                 <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
@@ -184,12 +184,12 @@ export async function HomePage() {
               <div className="sf-card p-[var(--sf-space-md)]">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="font-semibold">Hours</h3>
-                  {status ? <span className="sf-status !text-[var(--sf-text-xs)]"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : null}
+                  {status ? <span className="sf-status !text-[length:var(--sf-text-xs)]"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : null}
                 </div>
                 <dl className="divide-y divide-[var(--sf-rule)]">
                   {hours.map((day) => (
-                    <div key={day.key} className={`flex justify-between gap-4 py-2.5 text-[var(--sf-text-sm)] ${day.key === status?.todayKey ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
-                      <dt>{day.day}{day.key === status?.todayKey ? <span className="ml-2 text-[var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
+                    <div key={day.key} className={`flex justify-between gap-4 py-2.5 text-[length:var(--sf-text-sm)] ${day.key === status?.todayKey ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
+                      <dt>{day.day}{day.key === status?.todayKey ? <span className="ml-2 text-[length:var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
                       <dd className="tabular-nums">{day.hours}</dd>
                     </div>
                   ))}

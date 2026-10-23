@@ -25,7 +25,7 @@ export interface PlatformCommission {
     appointment?: {
       id: string;
       startTime?: string | null;
-      client?: { user?: { name?: string | null } | null } | null;
+      client?: { displayName?: string | null } | null;
     } | null;
   } | null;
 }
@@ -62,7 +62,7 @@ const COMMISSION_QUERY = `
     totalAmount
     paymentMethod
     processedAt
-    appointment { id startTime client { user { name } } }
+    appointment { id startTime client { displayName } }
   }
 `;
 

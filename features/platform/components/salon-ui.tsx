@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { PageBreadcrumbs } from '@/features/dashboard/components/PageBreadcrumbs';
 import { pillClass, trackClass } from './pill';
 
-export { pillClass, trackClass, fieldLabelClass, inputClass, textareaClass } from './pill';
+export { pillClass, trackClass, fieldLabelClass, inputClass, textareaClass, labelize } from './pill';
 
 /*
  * Salon platform kit. One visual language for every operator screen:
@@ -73,7 +73,7 @@ export function PlatformPage({ breadcrumbs, children, width = 'wide' }: { breadc
   return (
     <section className="flex min-w-0 flex-col">
       <PageBreadcrumbs items={[{ type: 'link', label: 'Dashboard', href: '/' }, ...breadcrumbs]} />
-      <div className={cn('mx-auto flex w-full min-w-0 flex-col gap-6 px-4 py-6 md:px-6 md:py-8', width === 'wide' ? 'max-w-7xl' : 'max-w-4xl')}>{children}</div>
+      <div className={cn('mx-auto flex w-full min-w-0 flex-col gap-6 px-4 pt-6 pb-24 md:px-6 md:pt-8 md:pb-24', width === 'wide' ? 'max-w-7xl' : 'max-w-4xl')}>{children}</div>
     </section>
   );
 }
@@ -97,14 +97,16 @@ export function PageHeader({ title, status, meta, actions, icon: Icon }: { title
 export function MetricStrip({ items }: { items: Array<{ label: string; value: ReactNode; tone?: Tone; href?: string }> }) {
   return (
     <dl className="grid grid-cols-2 overflow-hidden rounded-2xl border bg-border sm:grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] [&>*]:bg-background" style={{ gap: 1 }}>
-      {items.map((item) => {
+      {items.map((item, index) => {
+        // Two columns on phones: an odd last tile spans the row instead of leaving an empty cell.
+        const span = items.length % 2 === 1 && index === items.length - 1 ? 'col-span-2 sm:col-span-1' : '';
         const body = <>
           <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">{item.tone ? <StatusDot tone={item.tone} /> : null}{item.label}</dt>
           <dd className="mt-1.5 text-xl font-semibold tabular-nums tracking-tight">{item.value}</dd>
         </>;
         return item.href
-          ? <Link key={item.label} href={item.href} className="block p-4 transition-colors hover:bg-muted/40">{body}</Link>
-          : <div key={item.label} className="p-4">{body}</div>;
+          ? <Link key={item.label} href={item.href} className={cn('block p-4 transition-colors hover:bg-muted/40', span)}>{body}</Link>
+          : <div key={item.label} className={cn('p-4', span)}>{body}</div>;
       })}
     </dl>
   );

@@ -85,6 +85,9 @@ const APPOINTMENT_QUERY = `
     totalVisits
     lifetimeValue
     marketingConsent
+    guestName
+    guestEmail
+    guestPhone
     user {
       name
       email

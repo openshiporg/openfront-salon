@@ -48,7 +48,7 @@ const APPOINTMENT_DETAIL_QUERY = `
   id startTime endTime duration status depositAmount depositPaid bookedAt confirmedAt cancelledAt cancellationReason notes clientNotes internalNotes metadata
   location { id name timezone }
   resource { id name type }
-  client { id totalVisits lifetimeValue user { name email phone } }
+  client { id totalVisits lifetimeValue guestName guestEmail guestPhone user { name email phone } }
   stylist { id tier user { name email } }
   services { id name basePrice baseDuration requiresPatchTest requiresConsultation }
   lineItems { id serviceTitle price quantity duration staff { user { name } } service { name } }

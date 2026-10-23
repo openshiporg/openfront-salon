@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getSalonHasRecords } from "../actions/onboarding";
 
 export interface OnboardingStep {
   href: string;
@@ -61,7 +62,7 @@ const InfoCardFooter = ({
     <div
       className={cn(
         "flex justify-between text-xs text-muted-foreground mt-2 overflow-hidden transition-all duration-300 ease-spring",
-        isHovered ? "max-h-[60px] opacity-100" : "max-h-0 opacity-0",
+        "max-h-[60px] opacity-100",
         className
       )}
     >
@@ -87,6 +88,16 @@ export function OnboardingCards({
   const cards = steps.filter(({ href }) => !dismissedSteps.includes(href));
   const cardCount = cards.length;
   const [showCompleted, setShowCompleted] = React.useState(cardCount > 0);
+  // null while unknown; the demo-seed card only applies to an empty salon.
+  const [hasRecords, setHasRecords] = React.useState<boolean | null>(null);
+  const eligible = Boolean(userRole?.canManageOnboarding) && onboardingStatus !== "completed" && onboardingStatus !== "dismissed";
+
+  React.useEffect(() => {
+    if (!eligible) return;
+    let cancelled = false;
+    getSalonHasRecords().then((value) => { if (!cancelled) setHasRecords(value); }).catch(() => { if (!cancelled) setHasRecords(null); });
+    return () => { cancelled = true; };
+  }, [eligible]);
 
   React.useEffect(() => {
     let timeout: NodeJS.Timeout | undefined = undefined;
@@ -101,6 +112,10 @@ export function OnboardingCards({
   }
 
   if (onboardingStatus === "completed" || onboardingStatus === "dismissed") {
+    return null;
+  }
+
+  if (hasRecords !== false) {
     return null;
   }
 
