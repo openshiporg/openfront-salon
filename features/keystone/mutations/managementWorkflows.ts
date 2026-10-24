@@ -11,7 +11,7 @@ const config = {
   location: { list: "Location", permission: permissions.canManageSalon, fields: ["name", "address", "city", "state", "zipCode", "phone", "email", "timezone", "hours", "isActive"] },
   resource: { list: "SalonResource", permission: permissions.canManageResources, fields: ["name", "type", "locationId", "capacity", "isActive"] },
   product: { list: "Product", permission: permissions.canManageInventory, fields: ["name", "sku", "price", "cost", "reorderPoint", "category", "description", "isActive"] },
-  service: { list: "Service", permission: permissions.canManageCatalog, fields: ["name", "description", "price", "baseDuration", "status", "categoryId", "specialistIds", "resourceIds", "depositRequired", "depositAmount", "requiresConsultation", "requiresPatchTest", "imageId"] },
+  service: { list: "Service", permission: permissions.canManageCatalog, fields: ["name", "description", "price", "baseDuration", "status", "categoryId", "specialistIds", "resourceIds", "depositRequired", "depositAmount", "requiresConsultation", "requiresPatchTest", "imageId", "pricingTier"] },
   category: { list: "ServiceCategory", permission: permissions.canManageCatalog, fields: ["name", "slug", "description", "displayOrder", "sortOrder", "isVisible"] },
 } as const;
 type Kind = keyof typeof config;
@@ -186,6 +186,16 @@ export async function saveSalonRecordTransaction(context: Context, args: { kind:
           data.depositAmount = depositAmount;
         }
         if (input.imageId) data.image = await connect("SalonImage", input.imageId);
+        if (input.pricingTier !== undefined) {
+          if (!input.pricingTier || typeof input.pricingTier !== "object" || Array.isArray(input.pricingTier)) throw new Error("Operation input is invalid");
+          const tiers: Record<string, number> = {};
+          for (const [tier, cents] of Object.entries(input.pricingTier as Record<string, unknown>)) {
+            if (!["junior", "senior", "master", "celebrity"].includes(tier)) throw new Error("Operation input is invalid");
+            if (cents === null || cents === "") continue;
+            tiers[tier] = integer(cents);
+          }
+          data.pricingTier = tiers;
+        }
         if (input.resourceIds !== undefined) data.requiredResources = await many("SalonResource", input.resourceIds, (prior?.requiredResources || []).map((resource: any) => resource.id), !prior);
       } else if (kind === "category") {
         const name = text(input.name, true);

@@ -206,3 +206,54 @@ export const transitionWaitlistEntry = graphql.field({
   },
   resolve(_source, args, context: Context) { return transitionWaitlistEntryTransaction(context, args); },
 });
+
+/** A signed-in client asks to be told when a slot opens for a service on a given day. */
+export async function joinWaitlistAsClientTransaction(
+  context: Context,
+  args: { serviceId: string; stylistId?: string | null; localDate: string; notes?: string | null; idempotencyKey: string },
+): Promise<WaitlistResult> {
+  const userId = context.session?.itemId;
+  if (!userId || context.session?.listKey !== "User") return { ...denied, error: "Sign in to join the waitlist" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(args.localDate)) return { ...denied, error: "Choose a date" };
+  if (!args.idempotencyKey?.trim() || args.idempotencyKey.length < 12 || args.idempotencyKey.length > 200) return { ...denied, error: "Idempotency key is invalid" };
+  const notes = args.notes?.trim() || "";
+  if (notes.length > 1_000) return { ...denied, error: "Waitlist note is too long" };
+  const start = new Date(`${args.localDate}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime()) || start.getTime() < Date.now() - 2 * 86_400_000 || start.getTime() > Date.now() + 366 * 86_400_000) return { ...denied, error: "Choose a date within the next year" };
+  try {
+    return await serializableWorkflow(context, "salon-waitlist", [`client-service:${userId}:${args.serviceId}`, `request:${args.idempotencyKey}`], async (tx) => {
+      const sudo = tx.sudo();
+      const [service, stylist] = await Promise.all([
+        sudo.query.Service.findOne({ where: { id: args.serviceId }, query: "id status" }),
+        args.stylistId ? sudo.query.Stylist.findOne({ where: { id: args.stylistId }, query: "id status isActive" }) : Promise.resolve(null),
+      ]);
+      if (!service || service.status !== "active") throw new Error("This service isn't bookable");
+      if (args.stylistId && (!stylist || stylist.status === "inactive" || stylist.isActive === false)) throw new Error("That stylist isn't available");
+      const duplicate = (await sudo.query.WaitlistEntry.findMany({ where: { client: { id: { equals: userId } }, service: { id: { equals: args.serviceId } }, isActive: { equals: true } }, take: 1, query: "id status" }))[0];
+      if (duplicate) return { success: true, waitlistEntryId: duplicate.id, status: duplicate.status, error: null };
+      const weekday = start.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase();
+      const entry = await sudo.query.WaitlistEntry.createOne({
+        data: {
+          client: { connect: { id: userId } }, service: { connect: { id: args.serviceId } },
+          preferredStylists: args.stylistId ? { connect: [{ id: args.stylistId }] } : undefined,
+          preferredDays: [weekday], preferredTimeRange: "", dateRangeStart: start.toISOString(), dateRangeEnd: new Date(start.getTime() + 86_400_000).toISOString(),
+          notes: notes ? `Online request · ${notes}` : "Online request", requestKey: args.idempotencyKey, status: "active", isActive: true,
+        },
+        query: "id status",
+      });
+      return { success: true, waitlistEntryId: entry.id, status: entry.status, error: null };
+    });
+  } catch (error) {
+    return { ...denied, error: error instanceof Error ? error.message : "Waitlist request failed" };
+  }
+}
+
+export const joinWaitlistAsClient = graphql.field({
+  type: resultType,
+  args: {
+    serviceId: graphql.arg({ type: graphql.nonNull(graphql.ID) }), stylistId: graphql.arg({ type: graphql.ID }),
+    localDate: graphql.arg({ type: graphql.nonNull(graphql.String) }), notes: graphql.arg({ type: graphql.String }),
+    idempotencyKey: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+  },
+  resolve(_source, args, context: Context) { return joinWaitlistAsClientTransaction(context, args); },
+});

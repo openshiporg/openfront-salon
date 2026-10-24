@@ -12,10 +12,12 @@ import { runSalonOnboarding } from "./runSalonOnboarding";
 import { completeAppointmentCheckout } from "./completeAppointmentCheckout";
 import { processAppointmentDeposit, transitionAppointment } from "./appointmentWorkflows";
 import { redeemClientPackage } from "./packageWorkflows";
-import { joinWaitlist, transitionWaitlistEntry } from "./waitlistWorkflows";
+import { joinWaitlist, joinWaitlistAsClient, transitionWaitlistEntry } from "./waitlistWorkflows";
 import { setStylistScheduleAvailability, upsertStylistSchedule } from "./scheduleWorkflows";
 import { payoutCommissions, payoutGratuities } from "./commissionWorkflows";
 import { submitAppointmentReview, updateClientCareProfile } from "./clientCareWorkflows";
+import { sellClientBenefit, setClientBenefitStatus } from "./benefitWorkflows";
+import { adjustClientPoints, completeReferral } from "./loyaltyWorkflows";
 import { adjustSalonInventory } from "./inventoryWorkflows";
 import { setSalonResourceAvailability } from "./resourceWorkflows";
 import { scheduleAppointmentSegments, transitionAppointmentSegment } from "./segmentSchedulingWorkflows";
@@ -26,6 +28,7 @@ import { publicStorefrontSettings } from "../extendGraphqlSchema/publicStorefron
 import { upsertSalonStoreSettings } from "./storeSettings";
 import { salonManagementWorkspace, saveSalonRecord } from "./managementWorkflows";
 import { salonLocationStock } from "../extendGraphqlSchema/salonLocationStock";
+import { giftCardBalance, storefrontBenefits } from "../extendGraphqlSchema/storefrontBenefits";
 
 export const extendGraphqlSchema = graphql.extend((base) => ({
   query: {
@@ -42,6 +45,8 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     publicStorefrontSettings,
     salonManagementWorkspace,
     salonLocationStock,
+    storefrontBenefits,
+    giftCardBalance,
   },
   mutation: {
     registerSalonCustomer,
@@ -57,6 +62,7 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     processAppointmentDeposit,
     redeemClientPackage,
     joinWaitlist,
+    joinWaitlistAsClient,
     transitionWaitlistEntry,
     upsertStylistSchedule,
     setStylistScheduleAvailability,
@@ -64,6 +70,10 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     payoutGratuities,
     updateClientCareProfile,
     submitAppointmentReview,
+    sellClientBenefit,
+    setClientBenefitStatus,
+    adjustClientPoints,
+    completeReferral,
     adjustSalonInventory,
     setSalonResourceAvailability,
     scheduleAppointmentSegments,

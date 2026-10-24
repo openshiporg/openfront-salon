@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<string, string> = { pending: "Requested", confirmed: 
 const STATUS_TONE: Record<string, string | undefined> = { pending: "warn", confirmed: "open", in_progress: "accent" };
 const SEGMENT_LABEL: Record<string, string> = { service: "Service", processing: "Processing", finishing: "Finishing", cleanup: "Cleanup" };
 const clock = (value: string, timeZone?: string | null) => new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: timeZone || undefined });
+const dateOnly = (value: string) => new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((cents || 0) / 100);
 
 export function AccountPage({ portal, message, consultationUnresolved = false, consultationAttempt = null }: {
@@ -43,6 +44,7 @@ export function AccountPage({ portal, message, consultationUnresolved = false, c
     ? consultationAttempt ? account.availableForms.filter((template: { id: string }) => template.id === consultationAttempt.templateVersionId) : []
     : account.availableForms;
   const renderTime = Date.now();
+  const benefits = account.benefits as { memberships: any[]; packages: any[]; giftCards: any[]; points: { points: number; tier?: string } | null } | null | undefined;
   return (
     <div className="sf-page-pad !pt-[var(--sf-space-lg)]"><div className="sf-container grid gap-[var(--sf-space-xl)]">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -107,6 +109,23 @@ export function AccountPage({ portal, message, consultationUnresolved = false, c
           </article>;
         }) : <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-xl)] text-center"><p className="sf-display mb-5 text-[length:var(--sf-text-xl)]">No appointments yet</p><div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div></div>}</div>
       </section>
+
+      {benefits && (benefits.memberships.length || benefits.packages.length || benefits.giftCards.length || benefits.points) ? (
+        <section aria-labelledby="account-benefits"><h2 id="account-benefits" className="sf-display mb-5 text-[length:var(--sf-text-2xl)]">Memberships &amp; rewards</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {benefits.points ? <article className="sf-card p-[var(--sf-space-md)]"><p className="sf-eyebrow">Rewards · {String(benefits.points.tier || "bronze").replace(/^./, (c: string) => c.toUpperCase())}</p><p className="sf-display mt-2 text-[length:var(--sf-text-2xl)] tabular-nums">{new Intl.NumberFormat("en-US").format(benefits.points.points || 0)} points</p></article> : null}
+            {benefits.memberships.map((item: any) => (
+              <article key={item.id} className="sf-card p-[var(--sf-space-md)]"><p className="sf-eyebrow">Membership · {item.status === "paused" ? "paused" : item.status}</p><p className="sf-display mt-2 text-[length:var(--sf-text-xl)]">{item.membership?.name}</p><p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{item.membership?.discountPercent ? `${item.membership.discountPercent}% off · ` : ""}{item.status === "active" && item.nextBillingDate ? `renews ${dateOnly(item.nextBillingDate)}` : item.status === "paused" && item.pausedUntil ? `paused until ${dateOnly(item.pausedUntil)}` : `since ${dateOnly(item.startDate)}`}</p></article>
+            ))}
+            {benefits.packages.map((item: any) => (
+              <article key={item.id} className="sf-card p-[var(--sf-space-md)]"><p className="sf-eyebrow">Package · {String(item.status).replace("-", " ")}</p><p className="sf-display mt-2 text-[length:var(--sf-text-xl)]">{item.package?.name}</p><p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{money(Math.max(0, item.totalValue - (item.usedValue || 0)))} of {money(item.totalValue)} left{item.expiresAt ? ` · expires ${dateOnly(item.expiresAt)}` : ""}</p></article>
+            ))}
+            {benefits.giftCards.map((item: any) => (
+              <article key={item.id} className="sf-card p-[var(--sf-space-md)]"><p className="sf-eyebrow">Gift card{item.recipientName ? ` · for ${item.recipientName}` : ""}</p><p className="mt-2 font-mono text-[length:var(--sf-text-md)]">{item.code}</p><p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{money(item.currentBalance)} of {money(item.initialValue)} left{item.expiresAt ? ` · expires ${dateOnly(item.expiresAt)}` : ""}</p></article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {consultationForms.length > 0 || consultationUnresolved ? <section aria-labelledby="account-consultations"><h2 id="account-consultations" className="sf-display mb-5 text-[length:var(--sf-text-2xl)]">Consultation forms</h2>
         {consultationUnresolved && consultationForms.length === 0 ? <p role="status" className="sf-note">The original consultation form version is not available to retry here. Contact the salon before starting another submission.</p> : null}

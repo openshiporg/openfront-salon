@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
-import { CalendarClock, CreditCard, FileText, Package, ReceiptText, Scissors, UserRound, WalletCards } from 'lucide-react';
+import { CalendarClock, CreditCard, FileText, Layers, Package, ReceiptText, Scissors, UserRound, WalletCards } from 'lucide-react';
+import { ActionForm } from '../../components/ActionForm';
+import { recordDeposit, transitionSegment } from '../actions/appointmentWork';
 import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
 import { lifecycleGates } from '../lib/lifecycleGates';
@@ -24,6 +26,8 @@ import {
 } from '../../components/salon-ui';
 
 interface PageProps { params: Promise<{ id: string }> }
+
+const segmentTone: Record<string, 'zinc' | 'blue' | 'emerald' | 'amber'> = { planned: 'zinc', started: 'blue', completed: 'emerald', skipped: 'amber' };
 
 function stamp(value?: string | null, timeZone?: string | null) {
   return value ? new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined }) : 'Not recorded';
@@ -90,6 +94,44 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           </Panel>
 
           {canReschedule ? <Panel title="Reschedule" icon={CalendarClock}><AppointmentRescheduleForm id={appointment.id} startTime={appointment.startTime!} timeZone={appointment.location?.timezone} slot={{ stylistId: appointment.stylist?.id, locationId: appointment.location?.id, serviceId: appointment.services[0]?.id, duration: appointment.duration }} /></Panel> : null}
+
+          {appointment.segments.length > 1 || (appointment.segments.length && status === 'in_progress') ? (
+            <Panel title="Steps" icon={Layers} padded={false}>
+              <ul className="divide-y">
+                {appointment.segments.map((segment) => (
+                  <li key={segment.id} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center md:px-5">
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="font-medium">{labelize(segment.type)} · {segment.durationMinutes} min</span><TitleStatus tone={segmentTone[segment.status] || 'zinc'}>{labelize(segment.status)}</TitleStatus></span>
+                      <span className="block truncate text-xs text-muted-foreground">{stamp(segment.plannedStart, appointment.location?.timezone)} · {[segment.lineItem?.serviceTitle, segment.practitioner?.user?.name, segment.resource?.name].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    {capabilities.appointments && status === 'in_progress' && (segment.status === 'planned' || segment.status === 'started') ? (
+                      <div className="flex flex-wrap gap-2">
+                        <ActionForm action={transitionSegment} submitLabel={segment.status === 'planned' ? 'Start' : 'Complete'} className="contents">
+                          <input type="hidden" name="appointmentId" value={appointment.id} /><input type="hidden" name="segmentId" value={segment.id} /><input type="hidden" name="status" value={segment.status === 'planned' ? 'started' : 'completed'} />
+                        </ActionForm>
+                        <ActionForm action={transitionSegment} submitLabel="Skip" variant="raised" confirm="Confirm skip" className="contents">
+                          <input type="hidden" name="appointmentId" value={appointment.id} /><input type="hidden" name="segmentId" value={segment.id} /><input type="hidden" name="status" value="skipped" />
+                        </ActionForm>
+                      </div>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ) : null}
+
+          {capabilities.payments && Number(appointment.depositAmount || 0) > 0 ? (
+            <Panel title="Deposit" icon={CreditCard}>
+              {appointment.depositPaid ? <p className="text-sm"><TitleStatus tone="emerald">Paid</TitleStatus> <span className="ml-2 tabular-nums">{usd(appointment.depositAmount)}</span> · applied at checkout</p>
+                : !['pending', 'confirmed'].includes(status) ? <p className="text-sm text-muted-foreground">Deposit of {usd(appointment.depositAmount)} not collected.</p> : (
+                <ActionForm action={recordDeposit} submitLabel={`Record ${usd(appointment.depositAmount)} deposit`} pendingLabel="Recording…" className="flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="appointmentId" value={appointment.id} />
+                  <input type="hidden" name="idempotencyKey" value={`desk-deposit:${appointment.id}`} />
+                  <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Paid by<select name="paymentMethod" required defaultValue="" className="h-9 rounded-xl border bg-background px-3 text-sm text-foreground"><option value="" disabled>Choose tender</option><option value="credit_card">Card · external terminal</option><option value="cash">Cash</option></select></label>
+                </ActionForm>
+              )}
+            </Panel>
+          ) : null}
 
           <Panel title="Payment" icon={WalletCards}>
             {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} integrations={capabilities.integrations} />}

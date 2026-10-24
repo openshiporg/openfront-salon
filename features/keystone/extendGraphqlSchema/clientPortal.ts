@@ -6,7 +6,7 @@ export const clientPortal = graphql.field({
   type: graphql.JSON,
   async resolve(_source, _args, context: Context) {
     const userId = context.session?.itemId;
-    if (!userId || context.session?.listKey !== 'User') return { authenticated: false, client: null, appointments: [], availableForms: [] };
+    if (!userId || context.session?.listKey !== 'User') return { authenticated: false, client: null, appointments: [], availableForms: [], benefits: null };
 
     // Session-aware list APIs enforce owner filters. Sudo is used only for the
     // public form-version catalog after client authority is established.
@@ -23,7 +23,14 @@ export const clientPortal = graphql.field({
       `,
     });
     const clients = await context.query.Client.findMany({ where: { user: { id: { equals: userId } } }, take: 1, query: "id totalVisits lifetimeValue user { name email }" });
-    if (!clients[0]) return { authenticated: false, client: null, appointments: [], availableForms: [] };
+    // Benefits, points and gift cards are read with the client's own session; owner filters apply.
+    const [memberships, packages, points, giftCards] = await Promise.all([
+      context.query.ClientMembership.findMany({ where: { client: { id: { equals: userId } } }, orderBy: { startDate: "desc" }, take: 20, query: "id status startDate nextBillingDate pausedUntil membership { name discountPercent }" }),
+      context.query.ClientPackage.findMany({ where: { client: { id: { equals: userId } } }, orderBy: { purchasedAt: "desc" }, take: 20, query: "id status purchasedAt expiresAt totalValue usedValue package { name }" }),
+      context.query.ClientPoints.findMany({ where: { client: { id: { equals: userId } } }, take: 1, query: "points tier" }),
+      context.query.GiftCard.findMany({ where: { purchasedBy: { id: { equals: userId } } }, orderBy: { createdAt: "desc" }, take: 20, query: "id code initialValue currentBalance recipientName expiresAt isActive" }),
+    ]);
+    if (!clients[0]) return { authenticated: false, client: null, appointments: [], availableForms: [], benefits: null };
     // Ownership was proven by the normal Appointment query above. Read only
     // display names for those exact linked practitioners; User privacy stays locked.
     const practitionerIds = [...new Set(appointments.flatMap((appointment: any) => [appointment.stylist?.id, ...(appointment.segments || []).map((segment: any) => segment.practitioner?.id)]).filter(Boolean))] as string[];
@@ -70,6 +77,7 @@ export const clientPortal = graphql.field({
         } : null,
       })),
       availableForms,
+      benefits: { memberships, packages, points: points[0] || null, giftCards } as any,
     };
   },
 });

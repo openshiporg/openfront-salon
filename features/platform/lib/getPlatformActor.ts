@@ -17,7 +17,7 @@ export async function getPlatformActor() {
           role {
             canAccessDashboard canManageSalon canManageAppointments canManageClients canManageCatalog
             canManageSchedules canManageOwnSchedule canManageResources canManageInventory canManagePayments
-            canManageCommissions canViewReports canManageIntegrations canManageOnboarding
+            canManageCommissions canViewReports canManageIntegrations canManageOnboarding canIssueRefunds canManageCareRecords
           }
         }
       }

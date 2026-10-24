@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
-import { Armchair, Banknote, Boxes, Building2, CalendarClock, CalendarDays, ChartNoAxesCombined, ContactRound, Gift, LayoutGrid, ListOrdered, Megaphone, MessageSquareQuote, PlugZap, ReceiptText, Scissors, Store, UsersRound } from 'lucide-react'
+import { Armchair, Award, Banknote, Boxes, Building2, CalendarClock, CalendarDays, ChartNoAxesCombined, ClipboardCheck, ContactRound, Gift, LayoutGrid, ListOrdered, Megaphone, MessageSquareQuote, PlugZap, ReceiptText, Scissors, Store, UsersRound } from 'lucide-react'
 
-export type PlatformPermission = 'canManageSalon' | 'canManageAppointments' | 'canManageClients' | 'canManageCatalog' | 'canManageSchedules' | 'canManageOwnSchedule' | 'canManageResources' | 'canManageInventory' | 'canManagePayments' | 'canManageCommissions' | 'canViewReports' | 'canManageIntegrations' | 'canManageOnboarding'
+export type PlatformPermission = 'canManageSalon' | 'canIssueRefunds' | 'canManageCareRecords' | 'canManageAppointments' | 'canManageClients' | 'canManageCatalog' | 'canManageSchedules' | 'canManageOwnSchedule' | 'canManageResources' | 'canManageInventory' | 'canManagePayments' | 'canManageCommissions' | 'canViewReports' | 'canManageIntegrations' | 'canManageOnboarding'
 
 export interface PlatformNavItem {
   title: string
@@ -22,13 +22,17 @@ export interface PlatformNavGroup {
 export const platformNavItems: PlatformNavItem[] = [
   { title: 'Appointments', href: '/platform/appointments', color: 'purple', description: 'Manage bookings, client arrivals, and appointment status.', icon: CalendarDays, group: 'standalone' },
   { title: 'Checkout', href: '/platform/checkout', color: 'emerald', description: 'Complete salon tickets, service charges, and retail sales.', icon: ReceiptText, group: 'standalone' },
+  { title: 'Sales & refunds', href: '/platform/sales', color: 'green', description: 'Find a sale, refund or void it, and correct commission or tips.', icon: ReceiptText, group: 'standalone' },
   { title: 'Storefront settings', href: '/platform/store-settings', color: 'slate', description: 'Publish storefront identity, theme, and primary location.', icon: Store, group: 'standalone' },
   { title: 'Clients', href: '/platform/clients', color: 'rose', description: 'Prioritize client relationships, visit history, and follow-up.', icon: ContactRound, group: 'relationships' },
   { title: 'Waitlist & communications', href: '/platform/engagement', color: 'orange', description: 'Work demand, slot offers, and delivery exceptions.', icon: Megaphone, group: 'relationships' },
+  { title: 'Consultations', href: '/platform/consultations', color: 'indigo', description: 'Publish consent forms and review signed consultations before service.', icon: ClipboardCheck, group: 'relationships' },
+  { title: 'Loyalty', href: '/platform/loyalty', color: 'violet', description: 'Run the points program, redeem points and reward referrals.', icon: Award, group: 'relationships' },
   { title: 'Reviews', href: '/platform/reviews', color: 'amber', description: 'Publish or hide client reviews of their visits.', icon: MessageSquareQuote, group: 'relationships' },
   { title: 'Walk-in waitlist', href: '/platform/waitlist', color: 'yellow', description: 'Add walk-ins and seat them as chairs open.', icon: ListOrdered, group: 'relationships' },
   { title: 'Services & catalog', href: '/platform/catalog', color: 'violet', description: 'Review bookability, pricing, duration, and resource coverage.', icon: Scissors, group: 'catalog' },
-  { title: 'Memberships & benefits', href: '/platform/benefits', color: 'pink', description: 'Monitor memberships, packages, and gift-card value.', icon: Gift, group: 'catalog' },
+  { title: 'Memberships & packages', href: '/platform/benefits', color: 'pink', description: 'Sell packages, enrol members and manage plans.', icon: Gift, group: 'catalog' },
+  { title: 'Gift cards', href: '/platform/gift-cards', color: 'fuchsia', description: 'Sell gift cards at the desk, redeem value and see balances.', icon: Gift, group: 'catalog' },
   { title: 'Retail inventory', href: '/platform/inventory', color: 'lime', description: 'Replenish low stock and record controlled inventory movement.', icon: Boxes, group: 'catalog' },
   { title: 'Staff schedules', href: '/platform/schedules', color: 'blue', description: 'Coordinate stylist availability and shift coverage.', icon: CalendarClock, group: 'operations' },
   { title: 'Resources', href: '/platform/resources', color: 'teal', description: 'Manage chairs, rooms, equipment, and bookable resources.', icon: Armchair, group: 'operations' },

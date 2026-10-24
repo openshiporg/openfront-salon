@@ -3,6 +3,7 @@ import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { confirmProviderPayment, createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { assertServiceDayOpen } from "../appointmentTiming";
+import { activeLoyaltyProgram, pointsForSpend, postPoints } from "../loyalty";
 import { serializableWorkflow } from "./serializableWorkflow";
 import { recordInventoryMovement } from "./inventoryWorkflows";
 import { currentStockContext, assertCheckoutLocation } from "../inventory/locationAuthority";
@@ -353,6 +354,12 @@ export async function completeAppointmentCheckoutTransaction(
         }, query: "id" });
       }
       if (appointment.client?.id) {
+        // Loyalty accrues on the paid, taxable spend once per checkout key.
+        if (appointment.client.user?.id) {
+          const program = await activeLoyaltyProgram(sudo);
+          const earned = pointsForSpend(program, taxable);
+          if (earned > 0) await postPoints(sudo, appointment.client.user.id, earned, { reason: "Visit", source: "checkout", reference: `checkout:${args.idempotencyKey}`, actorId: context.session!.itemId });
+        }
         await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { lifetimeValue: (appointment.client.lifetimeValue || 0) + taxable, totalVisits: (appointment.client.totalVisits || 0) + 1, lastVisit: now, ...(!appointment.client.homeLocation?.id && appointment.location?.id ? { homeLocation: { connect: { id: appointment.location.id } } } : {}) }, query: "id" });
       }
       const appointmentMetadata = appointment.metadata && typeof appointment.metadata === "object" ? appointment.metadata as Record<string, any> : {};

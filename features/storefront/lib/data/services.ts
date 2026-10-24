@@ -48,8 +48,12 @@ export interface ServiceCategory {
   services: Service[]
 }
 
+/** Stored prices are cents; the storefront formats dollars. Price-by-level uses the same unit. */
 function toStorefrontService(service: Service): Service {
-  return { ...service, basePrice: service.basePrice / 100 }
+  const pricingTier = service.pricingTier && typeof service.pricingTier === "object"
+    ? Object.fromEntries(Object.entries(service.pricingTier).filter(([, cents]) => typeof cents === "number").map(([tier, cents]) => [tier, (cents as number) / 100]))
+    : service.pricingTier
+  return { ...service, basePrice: service.basePrice / 100, pricingTier }
 }
 
 const SERVICE_FIELDS = gql`

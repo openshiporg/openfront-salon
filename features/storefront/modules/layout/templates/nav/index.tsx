@@ -21,6 +21,7 @@ const navigation = [
 ]
 
 const secondary = [
+  { name: "Memberships", href: "/memberships" },
   { name: "Gift cards", href: "/gift-cards" },
   { name: "My appointments", href: "/account" },
 ]

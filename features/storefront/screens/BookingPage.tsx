@@ -14,6 +14,7 @@ import type { BookingContextRead, BookingSelectionRead } from "../lib/data/booki
 import { serviceTags } from "../components/ServiceCard"
 import { StylistPortrait, stylistTitle, tierLabels } from "../components/StylistCard"
 import { TimeSlotPicker } from "../components/TimeSlotPicker"
+import { joinWaitlistForDay } from "../lib/data/waitlist"
 import { BookingStepIndicator } from "../components/BookingStepIndicator"
 import { formatMenuPrice } from "../lib/format-price"
 
@@ -87,6 +88,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   const bookingContext = bookingContextRead?.status === "available" ? bookingContextRead.data : null
   const [locationId, setLocationId] = useState("")
   const [policyAccepted, setPolicyAccepted] = useState(false)
+  const [waitlist, setWaitlist] = useState<{ status: "idle" | "sending" | "joined" } | { status: "error"; message: string }>({ status: "idle" })
   const [requestKey, setRequestKey] = useState<string | null>(null)
   const [requestKeyUnavailable, setRequestKeyUnavailable] = useState(false)
   useEffect(() => {
@@ -235,6 +237,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   }
 
   function handleDateSelect(date: Date | undefined) {
+    setWaitlist({ status: "idle" })
     setSelectedDate(date)
     setSelectedTime(null)
     setAvailableSlots([])
@@ -484,6 +487,21 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                       availableSlots={availableSlots}
                       loadingSlots={loadingSlots}
                     />
+                    {selectedDate && !loadingSlots && availableSlots.length === 0 && selectedService ? (
+                      <div className="sf-card-quiet mt-[var(--sf-space-md)] flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-[length:var(--sf-text-sm)]">{waitlist.status === "joined" ? "You're on the waitlist for this day." : "No open times this day."}</p>
+                        {waitlist.status === "joined" ? null : bookingContext?.client ? (
+                          <div className="sf-track self-start">
+                            <button type="button" disabled={waitlist.status === "sending"} onClick={async () => {
+                              setWaitlist({ status: "sending" })
+                              const result = await joinWaitlistForDay({ serviceId: selectedService, stylistId: selectedStylist, localDate: localDateKey(selectedDate) })
+                              setWaitlist(result.status === "joined" ? { status: "joined" } : { status: "error", message: result.message })
+                            }} className="sf-btn">{waitlist.status === "sending" ? "Joining…" : "Join the waitlist"}</button>
+                          </div>
+                        ) : <div className="sf-track self-start"><Link href="/account/signin" className="sf-btn">Sign in to join the waitlist</Link></div>}
+                      </div>
+                    ) : null}
+                    {waitlist.status === "error" ? <p role="alert" className="sf-alert mt-2">{waitlist.message}</p> : null}
                     <div className="mt-[var(--sf-space-md)] flex justify-end">
                       <div className="sf-track">
                         <button type="button" onClick={handleDateTimeConfirm} disabled={!selectedDate || !selectedTime} className="sf-btn sf-btn-primary">

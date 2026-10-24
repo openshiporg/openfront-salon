@@ -81,7 +81,7 @@ export function SalonRecordManager({ kind, data }: { kind: SalonManagementKind; 
                       {kind === 'resource' && <span>Capacity {record.capacity}</span>}
                     </div>
                   </div>
-                  <div className={trackClass}>{kind === 'client' && <a href={`/dashboard/platform/clients/${record.id}`} className={pillClass('quiet', 'sm')}>Profile</a>}<button type="button" onClick={() => { setEditing(activeEdit ? null : record.id); setAdding(false); }} className={pillClass(activeEdit ? 'quiet' : 'raised', 'sm')} aria-expanded={activeEdit}>
+                  <div className={trackClass}>{kind === 'client' && <a href={`/dashboard/platform/clients/${record.id}`} className={pillClass('quiet', 'sm')}>Profile</a>}{kind === 'service' && <a href={`/dashboard/platform/catalog/${record.id}`} className={pillClass('quiet', 'sm')}>Open</a>}{kind === 'staff' && <a href={`/dashboard/platform/staff/${record.id}`} className={pillClass('quiet', 'sm')}>Profile</a>}<button type="button" onClick={() => { setEditing(activeEdit ? null : record.id); setAdding(false); }} className={pillClass(activeEdit ? 'quiet' : 'raised', 'sm')} aria-expanded={activeEdit}>
                     {activeEdit ? <X aria-hidden="true" className="h-4 w-4" /> : <Pencil aria-hidden="true" className="h-4 w-4" />}{activeEdit ? 'Cancel' : 'Edit'}
                   </button></div>
                 </div>

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Gift } from 'lucide-react';
 import { PageIntro } from '../components/ui/PageIntro';
 import { storefrontTitle } from '../lib/data/brand';
+import { GiftCardBalance } from '../components/GiftCardBalance';
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await storefrontTitle('Gift Cards') };
@@ -25,6 +26,10 @@ export async function GiftCardsPage() {
           <Link href="/book" className="sf-btn sf-btn-quiet">Book an appointment</Link>
         </div>
       </div>
+    </section>
+    <section aria-labelledby="gift-balance" className="sf-card mt-[var(--sf-space-lg)] max-w-2xl p-[var(--sf-space-md)] md:p-[var(--sf-space-lg)]">
+      <h2 id="gift-balance" className="sf-display mb-4 text-[length:var(--sf-text-xl)]">Check a balance</h2>
+      <GiftCardBalance />
     </section>
   </div></div>;
 }

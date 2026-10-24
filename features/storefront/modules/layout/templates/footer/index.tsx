@@ -8,6 +8,7 @@ const LINKS = [
   { name: "Stylists", href: "/team" },
   { name: "Gallery", href: "/gallery" },
   { name: "Reviews", href: "/reviews" },
+  { name: "Memberships", href: "/memberships" },
   { name: "Gift cards", href: "/gift-cards" },
   { name: "Visit & hours", href: "/contact" },
   { name: "My appointments", href: "/account" },

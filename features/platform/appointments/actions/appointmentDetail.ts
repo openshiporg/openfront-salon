@@ -25,6 +25,7 @@ export type AppointmentDetail = {
   stylist?: { id: string; tier?: string | null; user?: { name?: string | null; email?: string | null } | null } | null;
   services: { id: string; name?: string | null; basePrice?: number | null; baseDuration?: number | null; requiresPatchTest?: boolean | null; requiresConsultation?: boolean | null }[];
   lineItems: { id: string; serviceTitle?: string | null; price?: number | null; quantity?: number | null; duration?: number | null; staff?: { user?: { name?: string | null } | null } | null; service?: { name?: string | null } | null }[];
+  segments: { id: string; type: string; sequence: number; plannedStart: string; plannedEnd: string; durationMinutes: number; status: string; practitioner?: { user?: { name?: string | null } | null } | null; resource?: { name?: string | null } | null; lineItem?: { serviceTitle?: string | null } | null }[];
 };
 
 type PaymentBoundary = {
@@ -61,6 +62,7 @@ const APPOINTMENT_DETAIL_QUERY = `
   stylist { id tier user { name email } }
   services { id name basePrice baseDuration requiresPatchTest requiresConsultation }
   lineItems { id serviceTitle price quantity duration staff { user { name } } service { name } }
+  segments(where: { status: { notIn: [superseded] } }, orderBy: [{ plannedStart: asc }, { sequence: asc }]) { id type sequence plannedStart plannedEnd durationMinutes status practitioner { user { name } } resource { name } lineItem { serviceTitle } }
 `;
 
 async function getBoundary<T>(query: string, variables: Record<string, unknown>, fallback: T): Promise<T> {

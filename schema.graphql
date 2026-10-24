@@ -7662,6 +7662,7 @@ type Mutation {
   processAppointmentDeposit(appointmentId: ID!, paymentMethod: String!, providerCode: String, idempotencyKey: String!): ProcessAppointmentDepositResult
   redeemClientPackage(clientPackageId: ID!, appointmentId: ID!, serviceId: ID!, valueUsed: Int!, idempotencyKey: String!): RedeemClientPackageResult
   joinWaitlist(clientId: ID, guestName: String, guestPhone: String, serviceId: ID!, preferredStylistIds: [ID!], preferredDays: JSON, preferredTimeRange: String, dateRangeStart: String, dateRangeEnd: String, notes: String, idempotencyKey: String!): WaitlistWorkflowResult
+  joinWaitlistAsClient(serviceId: ID!, stylistId: ID, localDate: String!, notes: String, idempotencyKey: String!): WaitlistWorkflowResult
   transitionWaitlistEntry(waitlistEntryId: ID!, action: String!, appointmentId: ID, reason: String): WaitlistWorkflowResult
   upsertStylistSchedule(scheduleId: ID, stylistId: ID!, locationId: ID!, type: String!, dayOfWeek: Int, localDate: String, startTime: String!, endTime: String!, breakStart: String, breakEnd: String, isAvailable: Boolean, reason: String, effectiveFrom: String, effectiveTo: String, idempotencyKey: String, expectedRevision: Int): StylistScheduleWorkflowResult
   setStylistScheduleAvailability(scheduleId: ID!, isAvailable: Boolean!, reason: String, expectedRevision: Int!): StylistScheduleWorkflowResult
@@ -7669,6 +7670,10 @@ type Mutation {
   payoutGratuities(stylistId: ID!, reference: String): CommissionPayoutResult
   updateClientCareProfile(clientId: ID!, allergies: String, skinSensitivities: String, hairType: String, hairTexture: String, notes: String, preferredStylistId: ID): ClientCareWorkflowResult
   submitAppointmentReview(appointmentId: ID!, rating: Int!, comment: String): ClientCareWorkflowResult
+  sellClientBenefit(kind: String!, planId: ID!, clientUserId: ID!, paymentMethod: String!, idempotencyKey: String!): ClientBenefitResult
+  setClientBenefitStatus(kind: String!, id: ID!, status: String!, pausedUntil: String): ClientBenefitResult
+  adjustClientPoints(userId: ID!, points: Int!, reason: String!): LoyaltyWorkflowResult
+  completeReferral(referralId: ID!): LoyaltyWorkflowResult
   adjustSalonInventory(productId: ID!, locationId: ID!, delta: Int!, reason: String!, idempotencyKey: String!): SalonInventoryResult
   setSalonResourceAvailability(resourceId: ID!, isActive: Boolean!, expectedRevision: Int!): SalonResourceWorkflowResult
   scheduleAppointmentSegments(appointmentId: ID!, startTime: String!, allocations: JSON, reason: String!, idempotencyKey: String!): SegmentScheduleResult
@@ -7788,6 +7793,18 @@ type CommissionPayoutResult {
 
 type ClientCareWorkflowResult {
   success: Boolean!
+  error: String
+}
+
+type ClientBenefitResult {
+  success: Boolean!
+  recordId: ID
+  error: String
+}
+
+type LoyaltyWorkflowResult {
+  success: Boolean!
+  balance: Int
   error: String
 }
 
@@ -8072,6 +8089,8 @@ type Query {
   publicStorefrontSettings: PublicSalonStorefrontSettings!
   salonManagementWorkspace(kind: String!): JSON
   salonLocationStock(appointmentId: ID, locationId: ID, skip: Int, take: Int, search: String): JSON
+  storefrontBenefits: JSON
+  giftCardBalance(code: String!): JSON
 }
 
 type AvailabilityResult {
