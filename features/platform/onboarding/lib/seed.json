@@ -27,9 +27,9 @@
       "key": "cutting-station-1",
       "name": "Cutting Station 1",
       "type": "station",
-      "capacity": 1,
+      "capacity": 2,
       "isActive": true,
-      "notes": "Primary styling chair for cuts and blowouts."
+      "notes": "Two styling chairs for cuts and blowouts."
     },
     {
       "key": "color-bar-1",

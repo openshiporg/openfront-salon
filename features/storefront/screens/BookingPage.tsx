@@ -12,7 +12,7 @@ import { getAvailableTimeSlots, type BookingSlot } from "../lib/data/availabilit
 import { clearBookingRequestKey, getOrCreateBookingRequestKey } from "../lib/data/bookingSubmitOutcome"
 import type { BookingContextRead, BookingSelectionRead } from "../lib/data/bookingSelectionRead"
 import { serviceTags } from "../components/ServiceCard"
-import { StylistPortrait, tierLabels } from "../components/StylistCard"
+import { StylistPortrait, stylistTitle, tierLabels } from "../components/StylistCard"
 import { TimeSlotPicker } from "../components/TimeSlotPicker"
 import { BookingStepIndicator } from "../components/BookingStepIndicator"
 import { formatMenuPrice } from "../lib/format-price"
@@ -462,7 +462,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                             <StylistPortrait stylist={styl} className="h-20 w-16 shrink-0" />
                             <span className="min-w-0 flex-1">
                               <span className="sf-display block truncate text-[length:var(--sf-text-lg)]">{styl.user?.name || "Stylist"}</span>
-                              {styl.tier ? <span className="block text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[styl.tier] || styl.tier}</span> : null}
+                              <span className="block text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{stylistTitle(styl.tier, styl.role)}</span>
                             </span>
                             <ChevronRight className="h-5 w-5 shrink-0 text-[var(--sf-ink-3)]" aria-hidden="true" />
                           </button>
@@ -513,6 +513,9 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                       </label>
                     </div>
 
+                    {selectedTime && bookingContext?.policy && new Date(selectedTime).getTime() - Date.now() < Math.min(bookingContext.policy.cancellationNoticeMinutes, bookingContext.policy.rescheduleNoticeMinutes) * 60_000 ? (
+                      <p role="status" className="sf-note !text-[length:var(--sf-text-sm)]">This time is inside the notice window, so it can't be cancelled or rescheduled online. Contact the salon to change it.</p>
+                    ) : null}
                     <label className="sf-card-quiet flex items-start gap-3 p-4 text-[length:var(--sf-text-sm)]">
                       <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--sf-ink)]" />
                       <span>I agree to the booking policy: cancel at least {formatNotice(bookingContext?.policy.cancellationNoticeMinutes)} and reschedule at least {formatNotice(bookingContext?.policy.rescheduleNoticeMinutes)} before my appointment.</span>

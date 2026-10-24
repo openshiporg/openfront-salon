@@ -330,8 +330,9 @@ export async function completeAppointmentCheckoutTransaction(
           const amount = index === recipients.length - 1 ? tip - allocated : Math.floor(tip * weight / Math.max(1, totalWeight));
           allocated += amount;
           await domain.GratuityLedgerEntry.createOne({ data: { payment: { connect: { id: payment.id } }, practitioner: { connect: { id: stylistId } }, type: "allocation",
-            amountDelta: amount, payoutStatus: "payable", reason: "Controlled checkout gratuity allocation", actor: { connect: { id: context.session!.itemId } },
-            postedAt: now, idempotencyKey: `${args.idempotencyKey}:tip:${stylistId}`, evidence: { allocationBasis: "service_line_value", totalTip: tip, weight, totalWeight } }, query: "id" });
+            // Cash tips are handed to the stylist at the chair; only terminal (card) tips are owed through payroll.
+            amountDelta: amount, payoutStatus: args.paymentMethod === "cash" ? "paid" : "payable", reason: "Controlled checkout gratuity allocation", actor: { connect: { id: context.session!.itemId } },
+            postedAt: now, idempotencyKey: `${args.idempotencyKey}:tip:${stylistId}`, evidence: { allocationBasis: "service_line_value", totalTip: tip, weight, totalWeight, tender: args.paymentMethod === "cash" ? "cash" : "card", ...(args.paymentMethod === "cash" ? { paidOutAt: now, payoutReference: "Cash tip handed over at checkout" } : {}) } }, query: "id" });
         }
         if (allocated !== tip) throw new Error("Tip allocation failed cents conservation");
       }

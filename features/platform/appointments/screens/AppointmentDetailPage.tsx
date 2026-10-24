@@ -12,6 +12,7 @@ import {
   Avatar,
   Chip,
   Fact,
+  Notice,
   PageHeader,
   Panel,
   PillLink,
@@ -38,7 +39,9 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   const { id } = await params;
   const data = await getAppointmentDetail(id);
   if (!data.appointment) notFound();
-  const { appointment, paymentBoundary, commissions, inventory, capabilities } = data;
+  const { appointment, paymentBoundary, commissions, inventory, care, capabilities } = data;
+  const careAlerts = [care?.allergies ? `Allergies: ${care.allergies}` : '', care?.skinSensitivities ? `Sensitivities: ${care.skinSensitivities}` : ''].filter(Boolean);
+  const needsPatchTest = appointment.services.some((service) => service.requiresPatchTest);
   const contact = appointmentContact(appointment);
   const hasCheckout = Boolean(paymentBoundary?.payments.length || paymentBoundary?.sessions.length || paymentBoundary?.transactions.length);
   const status = appointment.status || '';
@@ -56,6 +59,12 @@ export async function AppointmentDetailPage({ params }: PageProps) {
         </>}
         actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
       />
+
+      {careAlerts.length || needsPatchTest ? (
+        <Notice tone="rose" title={careAlerts.length ? 'Care alert' : 'Patch test required'}>
+          {[...careAlerts, needsPatchTest ? 'This service requires a patch test' : ''].filter(Boolean).join(' · ')}
+        </Notice>
+      ) : null}
 
       {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" gates={lifecycleGates(appointment.startTime, appointment.location?.timezone)} /> : null}
 
@@ -104,6 +113,17 @@ export async function AppointmentDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-3"><Avatar name={contact.name} /><div className="min-w-0"><div className="truncate font-medium">{contact.name}</div><div className="truncate text-sm text-muted-foreground">{contact.email || 'No email recorded'}</div></div></div>
             {contact.phone ? <a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`} className="mt-3 block text-sm font-medium underline-offset-4 hover:underline">{contact.phone}</a> : null}
             <dl className="mt-4 grid grid-cols-2 gap-3"><Fact label="Visits">{String(appointment.client?.totalVisits || 0)}</Fact><Fact label="Lifetime value">{usd(appointment.client?.lifetimeValue)}</Fact></dl>
+            {care ? (
+              <dl className="mt-4 grid gap-3 border-t pt-4">
+                <Fact label="Allergies">{care.allergies || 'None recorded'}</Fact>
+                <Fact label="Skin sensitivities">{care.skinSensitivities || 'None recorded'}</Fact>
+                <Fact label="Hair">{[labelize(care.hairType), labelize(care.hairTexture)].filter(Boolean).join(' · ') || '—'}</Fact>
+                {care.colorFormulas[0] ? (
+                  <div className="min-w-0"><dt className="text-xs text-muted-foreground">Last formula</dt><dd className="mt-0.5 text-sm"><span className="font-medium">{care.colorFormulas[0].formulaName}</span>{care.colorFormulas[0].processingTime ? ` · ${care.colorFormulas[0].processingTime} min` : ''}{care.colorFormulas[0].products ? <span className="block whitespace-pre-line text-muted-foreground">{care.colorFormulas[0].products}{care.colorFormulas[0].measurements ? ` · ${care.colorFormulas[0].measurements}` : ''}</span> : null}</dd></div>
+                ) : null}
+              </dl>
+            ) : null}
+            {appointment.client?.id ? <a href={`/dashboard/platform/clients/${appointment.client.id}`} className="mt-4 block text-sm font-medium underline-offset-4 hover:underline">Client profile</a> : null}
           </Panel>
           <Panel title="Stylist & station" icon={Scissors}>
             <div className="flex items-center gap-3"><Avatar name={appointment.stylist?.user?.name} /><div className="min-w-0"><div className="truncate font-medium">{appointment.stylist?.user?.name || 'No stylist assigned'}</div><div className="truncate text-sm text-muted-foreground">{appointment.stylist?.tier ? `${labelize(appointment.stylist.tier)} tier` : 'No tier recorded'}{appointment.resource?.name ? ` · ${appointment.resource.name}` : ''}</div></div></div>

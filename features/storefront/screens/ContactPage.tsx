@@ -3,7 +3,8 @@ import Link from "next/link"
 import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react"
 import { PageIntro } from "../components/ui/PageIntro"
 import { getStorefrontBrand, storefrontTitle } from "../lib/data/brand"
-import { openStatus, publishedHours } from "../lib/hours"
+import { bookableHours, openStatus, publishedHours } from "../lib/hours"
+import { getAllStylists } from "../lib/data/stylists"
 
 export async function generateContactMetadata(): Promise<Metadata> {
   const brand = await getStorefrontBrand()
@@ -14,8 +15,9 @@ export async function generateContactMetadata(): Promise<Metadata> {
 }
 
 export async function ContactPage() {
-  const brand = await getStorefrontBrand()
+  const [brand, stylists] = await Promise.all([getStorefrontBrand(), getAllStylists().catch(() => [])])
   const hours = publishedHours(brand.hours)
+  const bookable = stylists.length ? bookableHours(stylists) : null
   const status = openStatus(brand.hours, brand.timezone)
   const mapsHref = brand.addressLine ? `https://maps.google.com/?q=${encodeURIComponent(brand.addressLine)}` : null
 
@@ -73,7 +75,7 @@ export async function ContactPage() {
                     return (
                       <div key={schedule.key} className={`flex justify-between gap-4 py-3 text-[length:var(--sf-text-md)] ${isToday ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
                         <dt>{schedule.day}{isToday ? <span className="ml-2 text-[length:var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
-                        <dd className={`tabular-nums ${schedule.closed ? "text-[var(--sf-ink-3)]" : ""}`}>{schedule.hours}</dd>
+                        <dd className={`text-right tabular-nums ${schedule.closed ? "text-[var(--sf-ink-3)]" : ""}`}>{schedule.hours}{bookable && !schedule.closed && bookable[schedule.key] !== schedule.hours ? <span className="block text-[length:var(--sf-text-xs)] font-normal text-[var(--sf-ink-3)]">{bookable[schedule.key] === "No appointments" ? "No appointments" : `Appointments ${bookable[schedule.key]}`}</span> : null}</dd>
                       </div>
                     )
                   })}

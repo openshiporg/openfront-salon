@@ -8,7 +8,7 @@ import { ServiceMenuRow } from "../components/ServiceCard"
 import { StylistCard } from "../components/StylistCard"
 import { getStorefrontBrand, storefrontDescription, storefrontTitle } from "../lib/data/brand"
 import { formatMenuPrice } from "../lib/format-price"
-import { openStatus, publishedHours } from "../lib/hours"
+import { bookableHours, openStatus, publishedHours } from "../lib/hours"
 
 const PHOTOS = {
   interior: "/images/salon/interior.webp",
@@ -36,6 +36,7 @@ export async function HomePage() {
   const averageRating = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : null
   const status = openStatus(brand.hours, brand.timezone)
   const hours = publishedHours(brand.hours)
+  const bookable = stylists.length ? bookableHours(stylists, "short") : null
   const quotes = reviews.filter((review) => review.comment).slice(0, 3)
 
   return (
@@ -190,7 +191,7 @@ export async function HomePage() {
                   {hours.map((day) => (
                     <div key={day.key} className={`flex justify-between gap-4 py-2.5 text-[length:var(--sf-text-sm)] ${day.key === status?.todayKey ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
                       <dt>{day.day}{day.key === status?.todayKey ? <span className="ml-2 text-[length:var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
-                      <dd className="tabular-nums">{day.hours}</dd>
+                      <dd className="text-right tabular-nums">{day.hours}{bookable && !day.closed && bookable[day.key] === "No appointments" ? <span className="block text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">No appointments</span> : null}</dd>
                     </div>
                   ))}
                 </dl>

@@ -8,6 +8,7 @@ import { isQualifiedStylistSelection, resolveBookingSelectionRead, type BookingS
 export interface Stylist {
   id: string
   tier: "junior" | "senior" | "master" | "celebrity" | null
+  role?: string | null
   bio: string | null
   commissionRate?: number
   certifications?: string | null
@@ -50,6 +51,7 @@ const STYLIST_FRAGMENT = gql`
       name
     }
     tier
+    role
     bio
     isActive
     photo {

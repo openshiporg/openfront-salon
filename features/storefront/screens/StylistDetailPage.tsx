@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { stylistTitle } from "../components/StylistCard"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
@@ -13,7 +14,8 @@ interface StylistDetailPageProps {
 
 export async function generateMetadata({ params }: StylistDetailPageProps): Promise<Metadata> {
   const stylist = await getStylistById((await params).id)
-  return { title: await storefrontTitle(stylist?.user?.name || "Stylist"), description: stylist?.bio || undefined }
+  if (!stylist) return { title: await storefrontTitle("Page not found"), description: "Page not found" }
+  return { title: await storefrontTitle(stylist.user?.name || "Stylist"), description: stylist.bio || undefined }
 }
 
 export async function StylistDetailPage({ params }: StylistDetailPageProps) {
@@ -26,7 +28,7 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
 
   const name = stylist.user?.name || "Stylist"
   const firstName = name.split(" ")[0]
-  const tierName = getTierDisplayName(stylist.tier || "junior")
+  const tierName = stylistTitle(stylist.tier, stylist.role)
   const specialties = stylist.specializations || []
 
   return (

@@ -92,3 +92,20 @@ export function openStatus(hours: LocationHours | null, timezone?: string | null
   }
   return { open: false, label: "Closed", todayKey: WEEK[todayIndex] }
 }
+
+type RosterStylist = { isActive?: boolean | null; schedules?: { dayOfWeek: number | null; startTime?: string | null; endTime?: string | null; isAvailable: boolean | null }[] | null }
+
+/** When anyone can actually be booked, per weekday: earliest start to latest end across the active roster. */
+export function bookableHours(stylists: RosterStylist[], style: "long" | "short" = "long"): Record<(typeof WEEK)[number], string> {
+  const result = {} as Record<(typeof WEEK)[number], string>
+  WEEK.forEach((key, index) => {
+    const dayOfWeek = (index + 1) % 7
+    const blocks = stylists.filter((stylist) => stylist.isActive !== false).flatMap((stylist) => stylist.schedules || [])
+      .filter((block) => block.isAvailable && block.dayOfWeek === dayOfWeek && block.startTime && block.endTime)
+    if (!blocks.length) { result[key] = "No appointments"; return }
+    const start = blocks.map((block) => block.startTime!).sort()[0]
+    const end = blocks.map((block) => block.endTime!).sort().at(-1)!
+    result[key] = `${formatClock(start, style)} – ${formatClock(end, style)}`
+  })
+  return result
+}

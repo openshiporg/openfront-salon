@@ -32,6 +32,7 @@ export interface Service {
   specialists: {
     id: string
     tier: string | null
+    role?: string | null
     bio: string | null
     user: {
       name: string
@@ -76,6 +77,7 @@ const SERVICE_FIELDS = gql`
     specialists(take: 10) {
       id
       tier
+      role
       bio
       user {
         name

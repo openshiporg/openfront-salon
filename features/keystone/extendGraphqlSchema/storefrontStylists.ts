@@ -72,6 +72,7 @@ const StorefrontStylist = graphql.object<{
   id: string
   user: { id: string; name: string } | null
   tier: string | null
+  role: string | null
   bio: string | null
   isActive: boolean | null
   photo: { image: { url: string } | null; imagePath: string | null; altText: string | null } | null
@@ -89,6 +90,7 @@ const StorefrontStylist = graphql.object<{
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     user: graphql.field({ type: StorefrontStylistUser }),
     tier: graphql.field({ type: graphql.String }),
+    role: graphql.field({ type: graphql.String }),
     bio: graphql.field({ type: graphql.String }),
     isActive: graphql.field({ type: graphql.Boolean }),
     photo: graphql.field({ type: StorefrontStylistPhoto }),
@@ -105,6 +107,7 @@ const STYLIST_SELECTION = `
   id
   user { id name }
   tier
+  role
   bio
   isActive
   photo { visibility image { url } imagePath altText }

@@ -77,7 +77,7 @@ function buildWhere(status?: string | null) {
 
 type Ledger = {
   commissions: Array<{ isPaid?: boolean | null; commissionAmount?: number | null; saleAmount?: number | null; stylist?: { id: string; user?: { name?: string | null } | null } | null }>;
-  tips: Array<{ amountDelta?: number | null; payoutStatus?: string | null; practitioner?: { id: string; user?: { name?: string | null } | null } | null }>;
+  tips: Array<{ amountDelta?: number | null; payoutStatus?: string | null; payment?: { paymentMethod?: string | null } | null; practitioner?: { id: string; user?: { name?: string | null } | null } | null }>;
 };
 
 /** Per-stylist payout from the whole ledger, so totals never depend on the selected tab. */
@@ -122,7 +122,7 @@ export async function getCommissionOperations(status?: string | null): Promise<C
           ${COMMISSION_QUERY}
         }
         ledger: commissions(take: 5000) { isPaid commissionAmount saleAmount stylist { id user { name } } }
-        tips: gratuityLedgerEntries(where: { type: { equals: allocation } }, take: 5000) { amountDelta payoutStatus practitioner { id user { name } } }
+        tips: gratuityLedgerEntries(where: { type: { equals: allocation } }, take: 5000) { amountDelta payoutStatus payment { paymentMethod } practitioner { id user { name } } }
         unpaidCount: commissionsCount(where: { isPaid: { equals: false } })
         paidCount: commissionsCount(where: { isPaid: { equals: true } })
         totalCount: commissionsCount
@@ -141,7 +141,8 @@ export async function getCommissionOperations(status?: string | null): Promise<C
     };
   }
 
-  const ledger = { commissions: response.data.ledger || [], tips: response.data.tips || [] };
+  // Cash tips go to the stylist at the chair, so only terminal (card) tips belong to payroll.
+  const ledger = { commissions: response.data.ledger || [], tips: (response.data.tips || []).filter((tip) => tip.payment?.paymentMethod !== 'cash') };
   const summaries = summarize(ledger);
   const totals = summaries.reduce(
     (acc, summary) => {

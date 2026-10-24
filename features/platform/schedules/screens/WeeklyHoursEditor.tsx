@@ -101,10 +101,10 @@ function DayRow({ day, schedule }: { day: { index: number; label: string }; sche
       <input type="hidden" name={name('previousEnd')} value={schedule?.endTime || ''} />
       <input type="hidden" name={name('previousBreakStart')} value={schedule?.breakStart || ''} />
       <input type="hidden" name={name('previousBreakEnd')} value={schedule?.breakEnd || ''} />
-      <input aria-label={`${day.label} start`} type="time" step={900} name={name('start')} defaultValue={schedule?.startTime || '09:00'} disabled={!working} required={working} className={time} />
-      <input aria-label={`${day.label} end`} type="time" step={900} name={name('end')} defaultValue={schedule?.endTime || '17:00'} disabled={!working} required={working} className={time} />
-      <input aria-label={`${day.label} break start`} type="time" step={900} name={name('breakStart')} defaultValue={schedule?.breakStart || ''} disabled={!working} className={time} />
-      <input aria-label={`${day.label} break end`} type="time" step={900} name={name('breakEnd')} defaultValue={schedule?.breakEnd || ''} disabled={!working} className={time} />
+      <label className="grid min-w-0 gap-1 text-[11px] font-medium text-muted-foreground"><span className="md:sr-only">Start</span><input aria-label={`${day.label} start`} type="time" step={900} name={name('start')} defaultValue={schedule?.startTime || '09:00'} disabled={!working} required={working} className={time} /></label>
+      <label className="grid min-w-0 gap-1 text-[11px] font-medium text-muted-foreground"><span className="md:sr-only">End</span><input aria-label={`${day.label} end`} type="time" step={900} name={name('end')} defaultValue={schedule?.endTime || '17:00'} disabled={!working} required={working} className={time} /></label>
+      <label className="grid min-w-0 gap-1 text-[11px] font-medium text-muted-foreground"><span className="md:sr-only">Break start</span><input aria-label={`${day.label} break start`} type="time" step={900} name={name('breakStart')} defaultValue={schedule?.breakStart || ''} disabled={!working} className={time} /></label>
+      <label className="grid min-w-0 gap-1 text-[11px] font-medium text-muted-foreground"><span className="md:sr-only">Break end</span><input aria-label={`${day.label} break end`} type="time" step={900} name={name('breakEnd')} defaultValue={schedule?.breakEnd || ''} disabled={!working} className={time} /></label>
     </div>
   );
 }

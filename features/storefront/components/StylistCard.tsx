@@ -5,10 +5,26 @@ export interface StylistCardData {
   id: string
   user: { name: string } | null
   tier: string | null
+  role?: string | null
   bio: string | null
   photo: { image: { url: string } | null; imagePath?: string | null; altText: string | null } | null
   specializations?: { name: string }[]
   schedules?: { dayOfWeek: number | null; isAvailable: boolean }[]
+}
+
+const roleLabels: Record<string, string> = {
+  stylist: "stylist", colorist: "colorist", nail_tech: "nail tech", esthetician: "esthetician",
+  massage_therapist: "massage therapist", manager: "manager", receptionist: "receptionist",
+}
+const tierPrefix: Record<string, string> = { junior: "", senior: "Senior", master: "Master", director: "Creative director", celebrity: "Celebrity" }
+
+/** "Senior esthetician", "Master stylist", "Nail tech": tier first, then the provider's role. */
+export function stylistTitle(tier?: string | null, role?: string | null) {
+  const roleText = roleLabels[role || "stylist"] || String(role || "stylist").replaceAll("_", " ")
+  if (tier === "director") return tierPrefix.director
+  const prefix = tier ? tierPrefix[tier] ?? "" : ""
+  const text = prefix ? `${prefix} ${roleText}` : roleText
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 export const tierLabels: Record<string, string> = {
@@ -49,7 +65,7 @@ export function StylistPortrait({ stylist, className = "" }: { stylist: StylistC
 export function StylistCard({ stylist, showSpecializations = true, bookHref }: { stylist: StylistCardData; showSpecializations?: boolean; bookHref?: string }) {
   const name = stylist.user?.name || "Stylist"
   const firstName = name.split(" ")[0]
-  const tier = stylist.tier ? tierLabels[stylist.tier] ?? stylist.tier : null
+  const tier = stylistTitle(stylist.tier, stylist.role)
   const specialties = (stylist.specializations || []).map((service) => service.name).filter(Boolean)
 
   return (

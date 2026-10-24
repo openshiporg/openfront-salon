@@ -280,13 +280,13 @@ export async function computeStylistAvailability({
     if (instant <= Date.now() || instant > Date.now() + 366 * 86400_000) continue;
     if (!withinLocationHours(hours, requestedWeekday, slotStart, serviceEnd)) continue;
     const instantEnd = instant + (serviceDuration + BOOKING_BUFFER_MINUTES) * 60_000;
-    const reservedEnd = serviceEnd + BOOKING_BUFFER_MINUTES;
     const breakStart = schedule.breakStart ? timeToMinutes(schedule.breakStart) : null;
     const breakEnd = schedule.breakEnd ? timeToMinutes(schedule.breakEnd) : null;
-    const duringBreak = breakStart !== null && breakEnd !== null && overlap(slotStart, reservedEnd, breakStart, breakEnd);
+    // The turnover buffer separates bookings; a service may end right as a break or time off starts.
+    const duringBreak = breakStart !== null && breakEnd !== null && overlap(slotStart, serviceEnd, breakStart, breakEnd);
     const blockedSchedule = blocks.find((block) => {
       const range = interval(block);
-      return overlap(slotStart, reservedEnd, range.start, range.end);
+      return overlap(slotStart, serviceEnd, range.start, range.end);
     });
     const appointmentConflict = appointments.some((appointment: any) => {
       if (appointment.segments?.length) return false;

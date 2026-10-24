@@ -167,7 +167,7 @@ export async function payoutGratuitiesTransaction(context: Context, stylistId: s
     return await serializableWorkflow(context, "salon-gratuity-payout", [`gratuity-payout:${id}`], async (transactionContext) => {
       const sudo = transactionContext.sudo();
       const entries = await sudo.query.GratuityLedgerEntry.findMany({
-        where: { practitioner: { id: { equals: id } }, type: { equals: "allocation" }, payoutStatus: { equals: "payable" } },
+        where: { practitioner: { id: { equals: id } }, type: { equals: "allocation" }, payoutStatus: { equals: "payable" }, NOT: { payment: { paymentMethod: { equals: "cash" } } } },
         take: 500,
         query: "id amountDelta evidence",
       });

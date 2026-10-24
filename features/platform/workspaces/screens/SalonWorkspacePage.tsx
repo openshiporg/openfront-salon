@@ -85,6 +85,8 @@ export async function SalonWorkspacePage({ section, searchParams }: { section: W
           : <MetricStrip items={data.metrics.slice(0, 6).map((metric) => ({ label: metric.label, value: formatMetric(metric.value, metric.format) }))} />
       ) : null}
 
+      {section === 'reports' ? (data.breakdowns || []).filter((table) => table.rows.length > 0).map((table) => <BreakdownTable key={table.title} table={table} />) : null}
+
       {management.map(({ kind, data: managed }) => <SalonRecordManager key={kind} kind={kind} data={managed} />)}
       {section === 'inventory' && <InventoryIntentRecovery key={data.actorId || 'unverified'} actorId={data.actorId || ''} />}
       {section === 'inventory' && locations.length === 0 && <Notice title="No active stock location">Add or activate a location before recording inventory movement.</Notice>}
@@ -101,6 +103,24 @@ export async function SalonWorkspacePage({ section, searchParams }: { section: W
         </section>
       )}
     </PlatformPage>
+  );
+}
+
+function BreakdownTable({ table }: { table: { title: string; columns: string[]; rows: Array<{ label: string; cells: number[] }> } }) {
+  const totals = table.columns.map((_, index) => table.rows.reduce((sum, row) => sum + (row.cells[index] || 0), 0));
+  return (
+    <section aria-label={table.title} className="min-w-0 overflow-hidden rounded-2xl border bg-background">
+      <h2 className="border-b px-4 py-3 text-sm font-semibold md:px-5">{table.title}</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[32rem] text-sm">
+          <thead><tr className="border-b text-left text-xs text-muted-foreground"><th className="px-4 py-2.5 font-medium md:px-5" />{table.columns.map((column) => <th key={column} className="px-3 py-2.5 text-right font-medium">{column}</th>)}</tr></thead>
+          <tbody className="divide-y">
+            {table.rows.map((row) => <tr key={row.label}><th scope="row" className="px-4 py-3 text-left font-medium md:px-5">{row.label}</th>{row.cells.map((cell, index) => <td key={index} className="px-3 py-3 text-right tabular-nums">{usd(cell)}</td>)}</tr>)}
+            <tr className="bg-muted/30 font-semibold"><th scope="row" className="px-4 py-3 text-left md:px-5">Total</th>{totals.map((cell, index) => <td key={index} className="px-3 py-3 text-right tabular-nums">{usd(cell)}</td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

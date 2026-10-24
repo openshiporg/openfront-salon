@@ -9,7 +9,8 @@ import type { MovementReceipt } from '@/features/keystone/inventory/movementRece
 export type SalonManagementKind = 'client' | 'staff' | 'location' | 'resource' | 'product' | 'service' | 'category';
 export interface SalonManagementOption { id: string; name: string; isActive?: boolean | null; status?: string | null; user?: { name?: string | null } | null }
 export interface SalonManagementRecord {
-  id: string; name?: string | null; isActive?: boolean | null; status?: string | null;
+  id: string; bio?: string | null; depositRequired?: boolean | null; depositAmount?: number | null; requiresConsultation?: boolean | null; requiresPatchTest?: boolean | null;
+  photo?: { id: string; imagePath?: string | null; image?: { url?: string | null } | null } | null; image?: { id: string; imagePath?: string | null; image?: { url?: string | null } | null } | null; name?: string | null; isActive?: boolean | null; status?: string | null;
   address?: string | null; city?: string | null; state?: string | null; zipCode?: string | null; phone?: string | null; email?: string | null;
   slug?: string | null; sku?: string | null; type?: string | null; capacity?: number | null; price?: number | null; basePrice?: number | null;
   cost?: number | null; reorderPoint?: number | null; description?: string | null; category?: string | { id: string; name?: string | null } | null;
@@ -32,14 +33,15 @@ const workspaceSections = ['clients', 'catalog', 'benefits', 'inventory', 'engag
 export type WorkspaceSection = typeof workspaceSections[number];
 export interface WorkspaceMetric { label: string; value: number; format: 'money' | 'count' | string }
 export interface WorkspaceRecord { id: string; title: string; subtitle?: string | null; status?: string | null; detail?: string | null; amount?: number | null; metric?: number | null; occurredAt?: string | null; href?: string | null; action?: string | null }
-export interface WorkspaceData { actorId?: string | null; section: WorkspaceSection; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: WorkspaceMetric[]; records: WorkspaceRecord[] }
+export interface WorkspaceData { actorId?: string | null; section: WorkspaceSection; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: WorkspaceMetric[]; records: WorkspaceRecord[]; breakdowns?: WorkspaceBreakdown[] | null }
+export interface WorkspaceBreakdown { title: string; columns: string[]; rows: Array<{ label: string; cells: number[] }> }
 
 export async function getSalonWorkspace(section: WorkspaceSection, range?: string): Promise<WorkspaceData> {
   if (!workspaceSections.includes(section)) throw new Error('Unsupported salon workspace');
   const response = await keystoneClient<{ salonOperationsWorkspace: WorkspaceData }>(`
     query SalonOperationsWorkspace($section: String!, $range: String) {
       salonOperationsWorkspace(section: $section, range: $range) {
-        actorId section title description attentionCount attentionLabel
+        actorId section title description attentionCount attentionLabel breakdowns
         metrics { label value format }
         records { id title subtitle status detail amount metric occurredAt href action }
       }
@@ -111,6 +113,16 @@ function formInteger(formData: FormData, key: string, fallback = 0) {
   return value === null || value === '' ? fallback : Number(value);
 }
 
+/** Uploads a storefront (public) image; null when no file was chosen, false when the upload failed. */
+async function uploadPublicImage(file: FormDataEntryValue | null, altText: string): Promise<string | null | false> {
+  if (!file || typeof file === 'string' || file.size === 0) return null;
+  if (file.size > 8_000_000 || !/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) return false;
+  const response = await keystoneClient<{ createSalonImage: { id: string } | null }>(`
+    mutation UploadSalonImage($data: SalonImageCreateInput!) { createSalonImage(data: $data) { id } }
+  `, { data: { image: { upload: file }, altText: altText.slice(0, 200), visibility: 'public' } });
+  return response.success && response.data.createSalonImage?.id ? response.data.createSalonImage.id : false;
+}
+
 export async function saveSalonRecordFromWorkspace(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const kind = formText(formData, 'kind') as SalonManagementKind;
   const id = formText(formData, 'recordId') || null;
@@ -121,7 +133,10 @@ export async function saveSalonRecordFromWorkspace(formData: FormData): Promise<
   const setBoolean = (key: string) => { if (formData.has(`${key}Present`)) input[key] = formBoolean(formData, key); };
   switch (kind) {
     case 'client': setText('name', 'email', 'phone'); input.homeLocationId = formText(formData, 'homeLocationId') || null; break;
-    case 'staff': setText('name', 'email', 'phone', 'tier', 'role', 'status'); input.locationIds = formData.getAll('locationIds').map(String); input.serviceIds = formData.getAll('serviceIds').map(String); { const rate = formData.get('baseCommissionRate'); if (rate !== null && rate !== '') input.baseCommissionRate = Number(rate); } break;
+    case 'staff': setText('name', 'email', 'phone', 'tier', 'role', 'status'); input.locationIds = formData.getAll('locationIds').map(String); input.serviceIds = formData.getAll('serviceIds').map(String); { const rate = formData.get('baseCommissionRate'); if (rate !== null && rate !== '') input.baseCommissionRate = Number(rate); }
+      if (formData.has('bio')) input.bio = formText(formData, 'bio');
+      { const photoId = await uploadPublicImage(formData.get('photo'), formText(formData, 'name')); if (photoId === false) return { success: false, error: 'The photo could not be uploaded. Use a PNG, JPG or WebP under 8 MB.' }; if (photoId) input.photoId = photoId; }
+      break;
     case 'location': {
       setText('name', 'address', 'city', 'state', 'zipCode', 'phone', 'email', 'timezone');
       input.hours = Object.fromEntries(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
@@ -132,7 +147,15 @@ export async function saveSalonRecordFromWorkspace(formData: FormData): Promise<
     }
     case 'resource': setText('name', 'type'); setInteger('capacity'); input.locationId = formText(formData, 'locationId'); setBoolean('isActive'); break;
     case 'product': setText('name', 'sku', 'category', 'description'); setInteger('price', 'cost', 'reorderPoint'); setBoolean('isActive'); break;
-    case 'service': setText('name', 'description', 'status'); setInteger('price', 'baseDuration'); input.categoryId = formText(formData, 'categoryId') || null; input.specialistIds = formData.getAll('specialistIds').map(String); input.resourceIds = formData.getAll('resourceIds').map(String); break;
+    case 'service': setText('name', 'description', 'status'); setInteger('price', 'baseDuration'); input.categoryId = formText(formData, 'categoryId') || null; input.specialistIds = formData.getAll('specialistIds').map(String); input.resourceIds = formData.getAll('resourceIds').map(String);
+      if (formData.has('flagsPresent')) {
+        input.depositRequired = formBoolean(formData, 'depositRequired');
+        input.depositAmount = formInteger(formData, 'depositAmount');
+        input.requiresConsultation = formBoolean(formData, 'requiresConsultation');
+        input.requiresPatchTest = formBoolean(formData, 'requiresPatchTest');
+      }
+      { const imageId = await uploadPublicImage(formData.get('image'), formText(formData, 'name')); if (imageId === false) return { success: false, error: 'The image could not be uploaded. Use a PNG, JPG or WebP under 8 MB.' }; if (imageId) input.imageId = imageId; }
+      break;
     case 'category': setText('name', 'slug', 'description'); setInteger('displayOrder'); setBoolean('isVisible'); break;
     default: return { success: false, error: 'Unsupported salon record type.' };
   }

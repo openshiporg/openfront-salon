@@ -8,7 +8,8 @@ const sections = ["clients", "catalog", "benefits", "inventory", "engagement", "
 type Section = typeof sections[number];
 type Metric = { label: string; value: number; format: string };
 type RecordItem = { id: string; title: string; subtitle: string | null; status: string | null; detail: string | null; amount: number | null; metric: number | null; occurredAt: string | null; href: string | null; action: string | null };
-type Result = { actorId?: string | null; section: string; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: Metric[]; records: RecordItem[] };
+type Breakdown = { title: string; columns: string[]; rows: Array<{ label: string; cells: number[] }> };
+type Result = { actorId?: string | null; section: string; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: Metric[]; records: RecordItem[]; breakdowns?: Breakdown[] };
 
 const definitions: Record<Section, Pick<Result, "title" | "description">> = {
   clients: { title: "Clients", description: "Client relationships, visit history, and follow-up." },
@@ -32,7 +33,7 @@ const recordType = graphql.object<RecordItem>()({ name: "SalonWorkspaceRecord", 
 const resultType = graphql.object<Result>()({ name: "SalonOperationsWorkspace", fields: {
   actorId: graphql.field({ type: graphql.ID }),
   section: graphql.field({ type: graphql.nonNull(graphql.String) }), title: graphql.field({ type: graphql.nonNull(graphql.String) }), description: graphql.field({ type: graphql.nonNull(graphql.String) }),
-  attentionCount: graphql.field({ type: graphql.nonNull(graphql.Int) }), attentionLabel: graphql.field({ type: graphql.String }), metrics: graphql.field({ type: graphql.nonNull(graphql.list(graphql.nonNull(metricType))) }), records: graphql.field({ type: graphql.nonNull(graphql.list(graphql.nonNull(recordType))) }),
+  attentionCount: graphql.field({ type: graphql.nonNull(graphql.Int) }), attentionLabel: graphql.field({ type: graphql.String }), breakdowns: graphql.field({ type: graphql.JSON }), metrics: graphql.field({ type: graphql.nonNull(graphql.list(graphql.nonNull(metricType))) }), records: graphql.field({ type: graphql.nonNull(graphql.list(graphql.nonNull(recordType))) }),
 } });
 
 const usd = (cents: unknown) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(cents || 0) / 100);
@@ -137,7 +138,7 @@ async function reports(sudo: ReturnType<Context["sudo"]>, range: ReportRange = "
   const since = await rangeStart(sudo, range);
   const inRange = (field: string) => since ? { [field]: { gte: since } } : {};
   const [payments, completed, cancelled, unpaidCommissions] = await Promise.all([
-    sudo.query.Payment.findMany({ take: 5000, where: { status: { in: ["completed", "partially_refunded", "refunded"] }, ...inRange("processedAt") }, orderBy: { processedAt: "desc" }, query: "id totalAmount tip refundedAmount status paymentMethod processedAt appointment { id location { name } }" }),
+    sudo.query.Payment.findMany({ take: 5000, where: { status: { in: ["completed", "partially_refunded", "refunded"] }, ...inRange("processedAt") }, orderBy: { processedAt: "desc" }, query: "id subtotal tax tip discount totalAmount refundedAmount status paymentMethod processedAt appointment { id location { name } transaction { metadata lineItems { itemType unitPrice quantity discount staff { id user { name } } } } }" }),
     sudo.query.Appointment.count({ where: { status: { equals: "completed" }, ...inRange("startTime") } }), sudo.query.Appointment.count({ where: { status: { in: ["cancelled", "no_show"] }, ...inRange("startTime") } }),
     sudo.query.Commission.findMany({ take: 500, where: { isPaid: { equals: false } }, query: "id commissionAmount" }),
   ]);
@@ -145,7 +146,32 @@ async function reports(sudo: ReturnType<Context["sudo"]>, range: ReportRange = "
   const refunds = payments.reduce((sum: number, row: any) => sum + Number(row.refundedAmount || 0), 0);
   const records = payments.slice(0, 50).map((row: any) => ({ id: row.id, title: `${String(row.paymentMethod || "payment").replace(/_/g, " ").replace(/^./, (c: string) => c.toUpperCase())} payment`, subtitle: row.appointment?.location?.name || "Location not recorded", status: row.status, detail: `${usd(row.tip)} tip · ${usd(row.refundedAmount)} refunded`, amount: Number(row.totalAmount || 0) - Number(row.refundedAmount || 0), metric: null, occurredAt: date(row.processedAt), href: null, action: null }));
   const tips = payments.reduce((sum: number, row: any) => sum + Number(row.tip || 0), 0);
-  return { metrics: [money("Net payments (incl. tax and tips)", gross - refunds), money("Tips", tips), money("Refunds", refunds), money("Unpaid commissions", unpaidCommissions.reduce((sum: number, x: any) => sum + Number(x.commissionAmount || 0), 0)), count("Completed appointments", completed), count("Cancelled or no-show", cancelled)], records, attentionCount: unpaidCommissions.length, attentionLabel: unpaidCommissions.length ? `${unpaidCommissions.length} unpaid ${unpaidCommissions.length === 1 ? "commission" : "commissions"}` : null };
+  // End-of-day close-out: takings by tender, and services, retail and tips by stylist.
+  const byMethod = new Map<string, number[]>();
+  const byStylist = new Map<string, number[]>();
+  for (const row of payments as any[]) {
+    const lines = row.appointment?.transaction?.lineItems || [];
+    const lineNet = (line: any) => Number(line.unitPrice || 0) * Number(line.quantity || 0) - Number(line.discount || 0);
+    const service = lines.filter((line: any) => line.itemType !== "product").reduce((sum: number, line: any) => sum + lineNet(line), 0);
+    const retail = lines.filter((line: any) => line.itemType === "product").reduce((sum: number, line: any) => sum + lineNet(line), 0);
+    const method = humanize(row.paymentMethod || "other");
+    const m = byMethod.get(method) || [0, 0, 0, 0, 0, 0];
+    m[0] += service; m[1] += retail; m[2] += Number(row.tax || 0); m[3] += Number(row.tip || 0); m[4] += Number(row.refundedAmount || 0); m[5] += Number(row.totalAmount || 0) - Number(row.refundedAmount || 0);
+    byMethod.set(method, m);
+    const serviceLines = lines.filter((line: any) => line.itemType !== "product");
+    const weight = serviceLines.reduce((sum: number, line: any) => sum + lineNet(line), 0);
+    for (const line of lines) {
+      const name = line.staff?.user?.name || "Unassigned";
+      const st = byStylist.get(name) || [0, 0, 0];
+      if (line.itemType === "product") st[1] += lineNet(line); else { st[0] += lineNet(line); st[2] += weight ? Math.round(Number(row.tip || 0) * lineNet(line) / weight) : 0; }
+      byStylist.set(name, st);
+    }
+  }
+  const breakdowns: Breakdown[] = [
+    { title: "By payment method", columns: ["Services", "Retail", "Tax", "Tips", "Refunded", "Net"], rows: [...byMethod.entries()].map(([label, cells]) => ({ label, cells })) },
+    { title: "By stylist", columns: ["Services", "Retail", "Tips"], rows: [...byStylist.entries()].sort((a, b) => b[1][0] - a[1][0]).map(([label, cells]) => ({ label, cells })) },
+  ];
+  return { breakdowns, metrics: [money("Net payments (incl. tax and tips)", gross - refunds), money("Tips", tips), money("Refunds", refunds), money("Unpaid commissions", unpaidCommissions.reduce((sum: number, x: any) => sum + Number(x.commissionAmount || 0), 0)), count("Completed appointments", completed), count("Cancelled or no-show", cancelled)], records, attentionCount: unpaidCommissions.length, attentionLabel: unpaidCommissions.length ? `${unpaidCommissions.length} unpaid ${unpaidCommissions.length === 1 ? "commission" : "commissions"}` : null };
 }
 
 async function integrations(sudo: ReturnType<Context["sudo"]>) {

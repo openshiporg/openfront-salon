@@ -24,6 +24,11 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
   const now = Date.now();
   const upcoming = client.appointments.filter((item) => item.startTime && new Date(item.startTime).getTime() >= now && ['pending', 'confirmed', 'in_progress'].includes(item.status || '')).reverse();
   const history = client.appointments.filter((item) => !upcoming.includes(item));
+  // Visit stats come from completed appointments, so they always agree with the history below.
+  const completed = client.appointments.filter((item) => item.status === 'completed' && item.startTime).map((item) => item.startTime!).sort();
+  const visits = client.appointments.length < 50 ? completed.length : Math.max(completed.length, client.totalVisits || 0);
+  const firstVisit = completed[0] || client.firstVisit;
+  const lastVisit = completed[completed.length - 1] || client.lastVisit;
   const careVisible = notes !== null;
   const bookHref = `/dashboard/platform/appointments/new?client=${client.id}${client.preferredStylist?.id ? `&stylist=${client.preferredStylist.id}` : ''}`;
 
@@ -38,9 +43,9 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
       />
 
       <MetricStrip items={[
-        { label: 'Visits', value: client.totalVisits || 0 },
+        { label: 'Visits', value: visits },
         { label: 'Lifetime value', value: usd(client.lifetimeValue || 0) },
-        { label: 'Last visit', value: day(client.lastVisit, tz) },
+        { label: 'Last visit', value: day(lastVisit, tz) },
         { label: 'Upcoming', value: upcoming.length, tone: upcoming.length ? 'blue' : undefined },
       ]} />
 
@@ -103,7 +108,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
             <dl className="grid gap-3">
               <Fact label="Preferred stylist">{client.preferredStylist?.user?.name || '—'}</Fact>
               <Fact label="Home location">{client.homeLocation?.name || '—'}</Fact>
-              <Fact label="First visit">{day(client.firstVisit, tz)}</Fact>
+              <Fact label="First visit">{day(firstVisit, tz)}</Fact>
               <Fact label="Marketing">{client.marketingConsent ? 'Opted in' : 'Not opted in'}</Fact>
               {careVisible ? (
                 <>

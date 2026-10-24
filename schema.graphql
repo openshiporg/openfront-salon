@@ -8123,6 +8123,7 @@ type StorefrontStylist {
   id: ID!
   user: StorefrontStylistUser
   tier: String
+  role: String
   bio: String
   isActive: Boolean
   photo: StorefrontStylistPhoto
@@ -8165,6 +8166,7 @@ type SalonOperationsWorkspace {
   description: String!
   attentionCount: Int!
   attentionLabel: String
+  breakdowns: JSON
   metrics: [SalonWorkspaceMetric!]!
   records: [SalonWorkspaceRecord!]!
 }

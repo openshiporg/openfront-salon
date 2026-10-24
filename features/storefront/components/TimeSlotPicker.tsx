@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { addDays, isBefore, isSameDay, startOfDay } from "date-fns"
 import { CalendarDays, Clock } from "lucide-react"
@@ -32,10 +32,14 @@ export function TimeSlotPicker({
   availableSlots,
   loadingSlots = false,
 }: TimeSlotPickerProps) {
-  const today = startOfDay(new Date())
+  // "Today" depends on the browser clock, so the strip is built after mount; the server render
+  // (UTC) would otherwise label a different day and break hydration.
+  const [todayTime, setTodayTime] = useState<number | null>(null)
+  useEffect(() => { setTodayTime(startOfDay(new Date()).getTime()) }, [])
+  const today = new Date(todayTime ?? 0)
   const maxDate = addDays(today, 90)
   const [showCalendar, setShowCalendar] = useState(false)
-  const strip = useMemo(() => Array.from({ length: STRIP_DAYS }, (_, index) => addDays(today, index)), [today.getTime()])
+  const strip = useMemo(() => todayTime === null ? [] : Array.from({ length: STRIP_DAYS }, (_, index) => addDays(new Date(todayTime), index)), [todayTime])
   const disabledDates = (date: Date) => isBefore(date, today) || date > maxDate
   const outsideStrip = selectedDate && !strip.some((day) => isSameDay(day, selectedDate))
 
@@ -63,7 +67,8 @@ export function TimeSlotPicker({
           </div>
         </div>
         <div className="sf-track sf-track-scroll !flex !rounded-[var(--sf-radius-md)]">
-          <div className="sf-date-strip">
+          <div className="sf-date-strip" aria-busy={todayTime === null}>
+            {todayTime === null ? Array.from({ length: 7 }, (_, index) => <span key={index} aria-hidden="true" className="sf-date opacity-40"><small>&nbsp;</small><strong>&nbsp;</strong><small>&nbsp;</small></span>) : null}
             {strip.map((day) => {
               const selected = Boolean(selectedDate && isSameDay(day, selectedDate))
               return (

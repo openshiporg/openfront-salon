@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Armchair, Banknote, Boxes, Building2, CalendarClock, CalendarDays, ChartNoAxesCombined, ContactRound, Gift, LayoutGrid, ListOrdered, Megaphone, PlugZap, ReceiptText, Scissors, Store, UsersRound } from 'lucide-react'
+import { Armchair, Banknote, Boxes, Building2, CalendarClock, CalendarDays, ChartNoAxesCombined, ContactRound, Gift, LayoutGrid, ListOrdered, Megaphone, MessageSquareQuote, PlugZap, ReceiptText, Scissors, Store, UsersRound } from 'lucide-react'
 
 export type PlatformPermission = 'canManageSalon' | 'canManageAppointments' | 'canManageClients' | 'canManageCatalog' | 'canManageSchedules' | 'canManageOwnSchedule' | 'canManageResources' | 'canManageInventory' | 'canManagePayments' | 'canManageCommissions' | 'canViewReports' | 'canManageIntegrations' | 'canManageOnboarding'
 
@@ -25,6 +25,7 @@ export const platformNavItems: PlatformNavItem[] = [
   { title: 'Storefront settings', href: '/platform/store-settings', color: 'slate', description: 'Publish storefront identity, theme, and primary location.', icon: Store, group: 'standalone' },
   { title: 'Clients', href: '/platform/clients', color: 'rose', description: 'Prioritize client relationships, visit history, and follow-up.', icon: ContactRound, group: 'relationships' },
   { title: 'Waitlist & communications', href: '/platform/engagement', color: 'orange', description: 'Work demand, slot offers, and delivery exceptions.', icon: Megaphone, group: 'relationships' },
+  { title: 'Reviews', href: '/platform/reviews', color: 'amber', description: 'Publish or hide client reviews of their visits.', icon: MessageSquareQuote, group: 'relationships' },
   { title: 'Walk-in waitlist', href: '/platform/waitlist', color: 'yellow', description: 'Add walk-ins and seat them as chairs open.', icon: ListOrdered, group: 'relationships' },
   { title: 'Services & catalog', href: '/platform/catalog', color: 'violet', description: 'Review bookability, pricing, duration, and resource coverage.', icon: Scissors, group: 'catalog' },
   { title: 'Memberships & benefits', href: '/platform/benefits', color: 'pink', description: 'Monitor memberships, packages, and gift-card value.', icon: Gift, group: 'catalog' },

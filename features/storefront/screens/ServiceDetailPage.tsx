@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Clock3, ShieldCheck } from "lucide-react"
 import { getServiceById } from "../lib/data/services"
-import { StylistPortrait, tierLabels } from "../components/StylistCard"
+import { StylistPortrait, stylistTitle, tierLabels } from "../components/StylistCard"
 import { serviceTags } from "../components/ServiceCard"
 import { getStorefrontImageSrc } from "../lib/images"
 import { formatMenuPrice } from "../lib/format-price"
@@ -85,7 +85,7 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       <StylistPortrait stylist={stylist} className="h-20 w-16 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <Link href={`/team/${stylist.id}`} className="sf-display block truncate text-[length:var(--sf-text-lg)] hover:text-[var(--sf-accent)]">{stylist.user?.name || "Stylist"}</Link>
-                        {stylist.tier ? <p className="text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{tierLabels[stylist.tier] || stylist.tier}</p> : null}
+                        <p className="text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{stylistTitle(stylist.tier, stylist.role)}</p>
                         <div className="sf-track mt-2">
                           <Link href={`/book?service=${service.id}&stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book</Link>
                         </div>

@@ -36,8 +36,17 @@ type PaymentBoundary = {
 type CommissionBoundary = { id: string; saleAmount?: number | null; commissionAmount?: number | null; commissionRate?: number | null; isPaid?: boolean | null; paidAt?: string | null; stylist?: { user?: { name?: string | null } | null } | null; service?: { name?: string | null } | null }[];
 type InventoryBoundary = { id: string; type?: string | null; delta?: number | null; balanceBefore?: number | null; balanceAfter?: number | null; reason?: string | null; product?: { name?: string | null; sku?: string | null } | null }[];
 
+export type CareBoundary = {
+  allergies?: string | null;
+  skinSensitivities?: string | null;
+  hairType?: string | null;
+  hairTexture?: string | null;
+  colorFormulas: { id: string; formulaName?: string | null; products?: string | null; measurements?: string | null; processingTime?: number | null; createdAt?: string | null }[];
+};
+
 export type AppointmentDetailData = {
   appointment: AppointmentDetail | null;
+  care?: CareBoundary | null;
   paymentBoundary?: PaymentBoundary;
   commissions?: CommissionBoundary;
   inventory?: InventoryBoundary;
@@ -77,7 +86,9 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
   const appointment = appointmentResponse.success ? appointmentResponse.data.appointment : null;
   if (!appointment) return { appointment: null, capabilities };
 
-  const [paymentBoundary, commissions, inventory] = await Promise.all([
+  // Care fields need care-record access; without it the visit still loads, just without them.
+  const clientId = appointment.client?.id;
+  const [paymentBoundary, commissions, inventory, care] = await Promise.all([
     capabilities.payments
       ? getBoundary<{ payments: PaymentBoundary['payments']; paymentSessions: PaymentBoundary['sessions']; salonTransactions: PaymentBoundary['transactions'] }>(`
           query AppointmentPaymentBoundary($id: ID!) {
@@ -93,7 +104,10 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
     capabilities.inventory
       ? getBoundary<{ inventoryMovements: InventoryBoundary }>(`query AppointmentInventory($id: ID!) { inventoryMovements(where: { appointment: { id: { equals: $id } } }, take: 100, orderBy: { createdAt: desc }) { id type delta balanceBefore balanceAfter reason product { name sku } } }`, { id }, { inventoryMovements: [] }).then((data) => data.inventoryMovements)
       : undefined,
+    clientId
+      ? getBoundary<{ client: CareBoundary | null }>(`query AppointmentCare($id: ID!) { client(where: { id: $id }) { allergies skinSensitivities hairType hairTexture colorFormulas(orderBy: { createdAt: desc }, take: 1) { id formulaName products measurements processingTime createdAt } } }`, { id: clientId }, { client: null }).then((data) => data.client)
+      : null,
   ]);
 
-  return { appointment, paymentBoundary, commissions, inventory, capabilities };
+  return { appointment, paymentBoundary, commissions, inventory, care, capabilities };
 }
