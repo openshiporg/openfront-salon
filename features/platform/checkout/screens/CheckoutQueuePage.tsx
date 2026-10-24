@@ -67,6 +67,31 @@ export async function CheckoutQueuePage() {
   );
 }
 
+/** The recorded ticket after payment: every service and retail line, then the totals that were charged. */
+function PaidTicket({ appointment }: { appointment: CheckoutAppointment }) {
+  const payment = appointment.payment!;
+  const lines = appointment.transaction?.lineItems || [];
+  return (
+    <>
+      <ul className="divide-y">
+        {lines.map((line) => (
+          <li key={line.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 px-3 py-3 text-sm">
+            <span className="min-w-0"><span className="block truncate font-medium">{line.service?.name || line.product?.name || labelize(line.itemType) || 'Item'}</span><span className="block truncate text-xs text-muted-foreground">{[line.product ? 'Retail' : line.staff?.user?.name, (line.quantity || 1) > 1 ? `× ${line.quantity}` : ''].filter(Boolean).join(' · ')}</span></span>
+            <span className="tabular-nums">{usd((line.unitPrice || 0) * (line.quantity || 1))}</span>
+          </li>
+        ))}
+      </ul>
+      <dl className="grid gap-1.5 border-t bg-muted/30 px-3 py-3 text-sm">
+        <Row label="Subtotal" value={usd(payment.subtotal || 0)} />
+        {payment.discount ? <Row label="Discount" value={`−${usd(payment.discount)}`} /> : null}
+        <Row label="Tax" value={usd(payment.tax || 0)} />
+        {payment.tip ? <Row label="Tip" value={usd(payment.tip)} /> : null}
+        <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Paid</dt><dd className="text-lg font-semibold tabular-nums">{usd(payment.totalAmount)}</dd></div>
+      </dl>
+    </>
+  );
+}
+
 /** One salon ticket: services and staff on the left, payment capture on the right. */
 export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '' }: { appointment: CheckoutAppointment; retailPage?: number; retailSearch?: string }) {
   const totals = calculateCheckoutTotals(appointment);
@@ -90,6 +115,7 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
 
         <div className="mt-4 rounded-xl border">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b px-3 py-2 text-xs font-medium text-muted-foreground"><span>Ticket</span><span>Amount</span></div>
+          {alreadyCheckedOut && appointment.payment ? <PaidTicket appointment={appointment} /> : <>
           <ul className="divide-y">
             {totals.lineItems.map((item) => (
               <li key={`${item.id}-${item.serviceId}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 px-3 py-3 text-sm">
@@ -113,6 +139,7 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
               <div className="mt-1 flex items-baseline justify-between gap-3 border-t pt-2"><dt className="font-semibold">Estimated due</dt><dd className="text-lg font-semibold tabular-nums">{usd(totals.totalDue)}</dd></div>
             )}
           </dl>
+          </>}
         </div>
         <div className="mt-4">
           <Track><PillLink href={`/dashboard/platform/appointments/${appointment.id}`} size="sm" variant="quiet">Open appointment<ArrowUpRight /></PillLink></Track>

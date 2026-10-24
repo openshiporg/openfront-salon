@@ -25,6 +25,8 @@ export interface PlatformCommission {
     appointment?: {
       id: string;
       startTime?: string | null;
+      metadata?: unknown;
+      location?: { timezone?: string | null } | null;
       client?: { displayName?: string | null } | null;
     } | null;
   } | null;
@@ -37,13 +39,14 @@ export interface StylistCommissionSummary {
   unpaidAmount: number;
   paidAmount: number;
   grossSales: number;
+  tipsOwed: number;
 }
 
 export interface CommissionOperationsData {
   commissions: PlatformCommission[];
   summaries: StylistCommissionSummary[];
   counts: { unpaid: number; paid: number; total: number };
-  totals: { unpaidAmount: number; paidAmount: number; grossSales: number };
+  totals: { unpaidAmount: number; paidAmount: number; grossSales: number; tipsOwed: number; tipsPaid: number };
 }
 
 const COMMISSION_QUERY = `
@@ -62,7 +65,7 @@ const COMMISSION_QUERY = `
     totalAmount
     paymentMethod
     processedAt
-    appointment { id startTime client { displayName } }
+    appointment { id startTime metadata location { timezone } client { displayName } }
   }
 `;
 
@@ -72,38 +75,43 @@ function buildWhere(status?: string | null) {
   return { isPaid: { equals: false } };
 }
 
-function summarize(commissions: PlatformCommission[]): StylistCommissionSummary[] {
+type Ledger = {
+  commissions: Array<{ isPaid?: boolean | null; commissionAmount?: number | null; saleAmount?: number | null; stylist?: { id: string; user?: { name?: string | null } | null } | null }>;
+  tips: Array<{ amountDelta?: number | null; payoutStatus?: string | null; practitioner?: { id: string; user?: { name?: string | null } | null } | null }>;
+};
+
+/** Per-stylist payout from the whole ledger, so totals never depend on the selected tab. */
+function summarize({ commissions, tips }: Ledger): StylistCommissionSummary[] {
   const summaries = new Map<string, StylistCommissionSummary>();
+  const entry = (id: string | undefined, name: string | null | undefined) => {
+    const stylistId = id || 'unassigned';
+    const current = summaries.get(stylistId) || { stylistId, stylistName: name || 'Unassigned', unpaidCount: 0, unpaidAmount: 0, paidAmount: 0, grossSales: 0, tipsOwed: 0 };
+    summaries.set(stylistId, current);
+    return current;
+  };
 
   for (const commission of commissions) {
-    const stylistId = commission.stylist?.id || 'unassigned';
-    const stylistName = commission.stylist?.user?.name || 'Unassigned';
-    const current = summaries.get(stylistId) || {
-      stylistId,
-      stylistName,
-      unpaidCount: 0,
-      unpaidAmount: 0,
-      paidAmount: 0,
-      grossSales: 0,
-    };
-
+    const current = entry(commission.stylist?.id, commission.stylist?.user?.name);
     current.grossSales += commission.saleAmount || 0;
-    if (commission.isPaid) {
-      current.paidAmount += commission.commissionAmount || 0;
-    } else {
+    if (commission.isPaid) current.paidAmount += commission.commissionAmount || 0;
+    else {
       current.unpaidCount += 1;
       current.unpaidAmount += commission.commissionAmount || 0;
     }
-
-    summaries.set(stylistId, current);
+  }
+  for (const tip of tips) {
+    if (tip.payoutStatus !== 'payable') continue;
+    entry(tip.practitioner?.id, tip.practitioner?.user?.name).tipsOwed += tip.amountDelta || 0;
   }
 
-  return [...summaries.values()].sort((a, b) => b.unpaidAmount - a.unpaidAmount);
+  return [...summaries.values()].sort((a, b) => (b.unpaidAmount + b.tipsOwed) - (a.unpaidAmount + a.tipsOwed));
 }
 
 export async function getCommissionOperations(status?: string | null): Promise<CommissionOperationsData> {
   const response = await keystoneClient<{
     commissions: PlatformCommission[];
+    ledger: Ledger['commissions'];
+    tips: Ledger['tips'];
     unpaidCount: number;
     paidCount: number;
     totalCount: number;
@@ -113,6 +121,8 @@ export async function getCommissionOperations(status?: string | null): Promise<C
         commissions(where: $where, orderBy: { createdAt: desc }, take: 200) {
           ${COMMISSION_QUERY}
         }
+        ledger: commissions(take: 5000) { isPaid commissionAmount saleAmount stylist { id user { name } } }
+        tips: gratuityLedgerEntries(where: { type: { equals: allocation } }, take: 5000) { amountDelta payoutStatus practitioner { id user { name } } }
         unpaidCount: commissionsCount(where: { isPaid: { equals: false } })
         paidCount: commissionsCount(where: { isPaid: { equals: true } })
         totalCount: commissionsCount
@@ -127,24 +137,26 @@ export async function getCommissionOperations(status?: string | null): Promise<C
       commissions: [],
       summaries: [],
       counts: { unpaid: 0, paid: 0, total: 0 },
-      totals: { unpaidAmount: 0, paidAmount: 0, grossSales: 0 },
+      totals: { unpaidAmount: 0, paidAmount: 0, grossSales: 0, tipsOwed: 0, tipsPaid: 0 },
     };
   }
 
-  const commissions = response.data.commissions || [];
-  const totals = commissions.reduce(
-    (acc, commission) => {
-      acc.grossSales += commission.saleAmount || 0;
-      if (commission.isPaid) acc.paidAmount += commission.commissionAmount || 0;
-      else acc.unpaidAmount += commission.commissionAmount || 0;
+  const ledger = { commissions: response.data.ledger || [], tips: response.data.tips || [] };
+  const summaries = summarize(ledger);
+  const totals = summaries.reduce(
+    (acc, summary) => {
+      acc.unpaidAmount += summary.unpaidAmount;
+      acc.paidAmount += summary.paidAmount;
+      acc.grossSales += summary.grossSales;
+      acc.tipsOwed += summary.tipsOwed;
       return acc;
     },
-    { unpaidAmount: 0, paidAmount: 0, grossSales: 0 }
+    { unpaidAmount: 0, paidAmount: 0, grossSales: 0, tipsOwed: 0, tipsPaid: ledger.tips.filter((tip) => tip.payoutStatus === 'paid').reduce((sum, tip) => sum + (tip.amountDelta || 0), 0) }
   );
 
   return {
-    commissions,
-    summaries: summarize(commissions),
+    commissions: response.data.commissions || [],
+    summaries,
     counts: {
       unpaid: response.data.unpaidCount || 0,
       paid: response.data.paidCount || 0,
@@ -154,13 +166,13 @@ export async function getCommissionOperations(status?: string | null): Promise<C
   };
 }
 
-async function runCommissionPayout(commissionIds: string[]) {
+async function runCommissionPayout(commissionIds: string[], reference?: string) {
   const response = await keystoneClient<{
     payoutCommissions: { success: boolean; payoutCount: number; totalAmount: number; error?: string | null };
   }>(
     `
-      mutation PayoutCommissions($commissionIds: [ID!]!) {
-        payoutCommissions(commissionIds: $commissionIds) {
+      mutation PayoutCommissions($commissionIds: [ID!]!, $reference: String) {
+        payoutCommissions(commissionIds: $commissionIds, reference: $reference) {
           success
           payoutCount
           totalAmount
@@ -168,7 +180,7 @@ async function runCommissionPayout(commissionIds: string[]) {
         }
       }
     `,
-    { commissionIds },
+    { commissionIds, reference: reference || null },
   );
 
   if (!response.success || !response.data.payoutCommissions.success) {
@@ -190,7 +202,7 @@ export async function markCommissionPaid(formData: FormData): Promise<void> {
     console.error('Missing commission id.');
     return;
   }
-  await runCommissionPayout([id]);
+  await runCommissionPayout([id], formData.get('reference')?.toString());
 }
 
 export async function markStylistCommissionsPaid(formData: FormData): Promise<void> {
@@ -214,6 +226,20 @@ export async function markStylistCommissionsPaid(formData: FormData): Promise<vo
     return;
   }
 
+  const reference = formData.get('reference')?.toString();
   const commissionIds = (response.data.commissions || []).map((commission) => commission.id);
-  if (commissionIds.length > 0) await runCommissionPayout(commissionIds);
+  if (commissionIds.length > 0) await runCommissionPayout(commissionIds, reference);
+
+  const tips = await keystoneClient<{ payoutGratuities: { success: boolean; error?: string | null } }>(
+    `
+      mutation PayoutGratuities($stylistId: ID!, $reference: String) {
+        payoutGratuities(stylistId: $stylistId, reference: $reference) { success error }
+      }
+    `,
+    { stylistId, reference: reference || null },
+  );
+  if (!tips.success || !tips.data.payoutGratuities.success) {
+    console.error('Failed to pay out tips:', tips.success ? tips.data.payoutGratuities.error : tips.error);
+  }
+  revalidatePath('/dashboard/platform/commissions');
 }

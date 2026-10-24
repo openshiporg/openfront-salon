@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { LOGO_ICONS } from '../lib/icon-registry';
 import { sanitizeStoreLogoSvg } from '@/features/lib/sanitize-store-logo';
-import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from '@/features/lib/store-logo';
+import { DEFAULT_STORE_LOGO_ACCENT_SVG, DEFAULT_STORE_LOGO_ICON, isDefaultStoreLogo, normalizeStoreLogoColor, storeLogoAccent } from '@/features/lib/store-logo';
 import { fieldLabelClass, pillClass, trackClass } from '../../components/pill';
 
 // Adapted from Restaurant's LogoPicker: exact Untitled registry and shared allowlist.
@@ -14,6 +14,9 @@ export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: 
   const [custom, setCustom] = useState(Boolean(initialIcon && initialIcon !== DEFAULT_STORE_LOGO_ICON && !LOGO_ICONS.some(icon => icon.lightSvg === initialIcon)));
   const safe = sanitizeStoreLogoSvg(svg);
   const filter = `hue-rotate(${hue}deg)`;
+  // Matches StoreBrand: the default mark renders in the accent derived from the colour, library marks are hue-rotated.
+  const markStyle = (icon: string) => isDefaultStoreLogo(icon) ? { color: storeLogoAccent(hue) } : { filter };
+  const markSvg = (icon: string) => isDefaultStoreLogo(icon) ? DEFAULT_STORE_LOGO_ACCENT_SVG : sanitizeStoreLogoSvg(icon);
 
   return (
     <section className="grid gap-5 rounded-2xl border bg-background p-4 md:p-5">
@@ -28,7 +31,7 @@ export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: 
       <div className="grid gap-2">
       <span className="text-xs font-medium text-muted-foreground">Preview</span>
       <div className="flex items-center gap-4 rounded-xl border bg-muted/30 p-4">
-        <span aria-label="Logo" className="block size-14 shrink-0 [&>svg]:size-full" style={{ filter }} dangerouslySetInnerHTML={{ __html: safe }} />
+        <span aria-label="Logo" className="block size-14 shrink-0 [&>svg]:size-full" style={markStyle(svg)} dangerouslySetInnerHTML={{ __html: safe ? markSvg(svg) : '' }} />
         <span className="min-w-0 truncate font-serif text-2xl tracking-tight">{name || 'Storefront name'}</span>
       </div>
       </div>
@@ -48,7 +51,7 @@ export function LogoPicker({ initialIcon, initialColor, name }: { initialIcon?: 
               return (
                 <label key={icon.id} title={icon.name} className={`relative flex aspect-square cursor-pointer items-center justify-center rounded-xl border bg-background p-2 transition-shadow has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${selected ? 'border-foreground shadow-[0_0_0_1px_currentColor]' : 'hover:bg-muted/50'}`}>
                   <input type="radio" name="logo-library" value={icon.id} checked={selected} onChange={() => setSvg(icon.lightSvg)} className="sr-only" aria-label={icon.name} />
-                  <span aria-hidden="true" className="block size-full [&>svg]:size-full" style={{ filter }} dangerouslySetInnerHTML={{ __html: sanitizeStoreLogoSvg(icon.lightSvg) }} />
+                  <span aria-hidden="true" className="block size-full [&>svg]:size-full" style={markStyle(icon.lightSvg)} dangerouslySetInnerHTML={{ __html: markSvg(icon.lightSvg) }} />
                 </label>
               );
             })}

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Ban, Check, LogIn, UserX, X } from 'lucide-react';
 import { cancelAppointmentFromQueue, transitionAppointmentStatus } from '../actions/appointments';
 import { inputClass, pillClass, trackClass } from '../../components/pill';
+import type { LifecycleGates } from '../lib/lifecycleGates';
+import type { AppointmentTransitionFeedback } from '../lib/appointmentTransitionFeedback';
 
 type Feedback = { kind: 'success' | 'failure'; text: string } | null;
 
@@ -18,10 +20,13 @@ export function AppointmentActions({
   status,
   size = 'md',
   cancellationReason,
+  gates = { checkIn: null, noShow: null },
 }: {
   id: string;
   status?: string | null;
   size?: 'sm' | 'md';
+  /** Server-computed reasons a lifecycle action is not open yet. */
+  gates?: LifecycleGates;
   /** Fixed reason (detail page). When omitted, the operator types one. */
   cancellationReason?: string;
 }) {
@@ -34,7 +39,7 @@ export function AppointmentActions({
 
   if (status === 'cancelled' || status === 'completed' || status === 'no_show') return null;
 
-  async function run(key: string, label: string, perform: () => Promise<{ status: 'success' | 'failure' }>) {
+  async function run(key: string, label: string, perform: () => Promise<AppointmentTransitionFeedback>) {
     setBusy(key);
     setFeedback(null);
     try {
@@ -43,6 +48,8 @@ export function AppointmentActions({
         setFeedback({ kind: 'success', text: label });
         setCancelling(false);
         startRefresh(() => router.refresh());
+      } else if (result.status === 'rejected') {
+        setFeedback({ kind: 'failure', text: result.message });
       } else {
         setFeedback({ kind: 'failure', text: 'Update not confirmed. Refresh, then retry if the status is unchanged.' });
       }
@@ -78,25 +85,28 @@ export function AppointmentActions({
           </button>
         )}
         {status === 'confirmed' && (
-          <button type="button" disabled={pending} onClick={() => transition('in_progress', 'Client checked in.')} className={pillClass('primary', size)}>
+          <button type="button" disabled={pending || Boolean(gates.checkIn)} title={gates.checkIn || undefined} onClick={() => transition('in_progress', 'Client checked in.')} className={pillClass('primary', size)}>
             <LogIn />{busy === 'in_progress' ? 'Checking in…' : 'Check in'}
           </button>
         )}
         {(status === 'pending' || status === 'confirmed') && (
-          <button type="button" disabled={pending} onClick={() => transition('no_show', 'Marked as no-show.')} className={pillClass('raised', size)}>
+          <button type="button" disabled={pending || Boolean(gates.noShow)} title={gates.noShow || undefined} onClick={() => transition('no_show', 'Marked as no-show.')} className={pillClass('raised', size)}>
             <UserX />{busy === 'no_show' ? 'Saving…' : 'No-show'}
           </button>
         )}
-        <button
-          type="button"
-          disabled={pending}
-          aria-expanded={cancellationReason ? undefined : cancelling}
-          onClick={() => (cancellationReason ? void cancel() : setCancelling((value) => !value))}
-          className={pillClass(cancelling ? 'quiet' : 'danger', size)}
-        >
-          {cancelling ? <X /> : <Ban />}{busy === 'cancelled' ? 'Cancelling…' : cancelling ? 'Keep' : 'Cancel'}
-        </button>
+        {status !== 'in_progress' && (
+          <button
+            type="button"
+            disabled={pending}
+            aria-expanded={cancellationReason ? undefined : cancelling}
+            onClick={() => (cancellationReason ? void cancel() : setCancelling((value) => !value))}
+            className={pillClass(cancelling ? 'quiet' : 'danger', size)}
+          >
+            {cancelling ? <X /> : <Ban />}{busy === 'cancelled' ? 'Cancelling…' : cancelling ? 'Keep' : 'Cancel'}
+          </button>
+        )}
       </div>
+      {status === 'confirmed' && gates.checkIn && size === 'md' ? <p className="text-xs text-muted-foreground">{gates.checkIn}</p> : null}
 
       {cancelling && !cancellationReason ? (
         <div className="flex w-full min-w-0 max-w-sm items-center gap-2">

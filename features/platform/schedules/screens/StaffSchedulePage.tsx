@@ -3,6 +3,8 @@ import { ArrowUpRight, CalendarClock, UsersRound } from 'lucide-react';
 import { getScheduleOperations, PlatformSchedule, PlatformStylistSchedule, setScheduleAvailability } from '../actions/schedules';
 import { labelize } from '../../components/pill';
 import { WeeklyHoursEditor } from './WeeklyHoursEditor';
+import { TimeOffEditor } from './TimeOffEditor';
+import { appointmentContact } from '../../lib/appointmentContact';
 import { Avatar, EmptyState, inputClass, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, StatusDot, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 // The salon week starts on Monday; dayOfWeek keeps JavaScript's 0 = Sunday.
@@ -24,8 +26,15 @@ function formatAppointmentTime(value?: string | null, timeZone?: string | null) 
   return new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined });
 }
 
+/** "Master stylist", "Senior nail tech": tier first, then role. */
+function roleLabel(role?: string | null, tier?: string | null) {
+  const roleText = labelize(role || 'stylist').toLowerCase();
+  return tier ? `${labelize(tier)} ${roleText}` : labelize(roleText);
+}
+
 export async function StaffSchedulePage() {
-  const { stylists, scheduleCount, inactiveScheduleCount, activeProviderCount } = await getScheduleOperations();
+  const { stylists, timeOff, scheduleCount, inactiveScheduleCount, activeProviderCount } = await getScheduleOperations();
+  const clashes = timeOff.reduce((sum, entry) => sum + entry.clashes.length, 0);
   const providersWithoutSchedules = stylists.filter((stylist) => stylist.schedules.length === 0).length;
 
   return (
@@ -41,7 +50,8 @@ export async function StaffSchedulePage() {
         items={[
           { label: 'Active stylists', value: activeProviderCount },
           { label: 'Weekly blocks', value: scheduleCount, tone: 'emerald' },
-          { label: 'Blocked', value: inactiveScheduleCount, tone: inactiveScheduleCount > 0 ? 'rose' : undefined },
+          { label: 'Blocked weekly', value: inactiveScheduleCount, tone: inactiveScheduleCount > 0 ? 'rose' : undefined },
+          { label: 'Time-off clashes', value: clashes, tone: clashes > 0 ? 'rose' : undefined },
         ]}
       />
 
@@ -71,6 +81,7 @@ export async function StaffSchedulePage() {
           </div>
 
           <WeeklyHoursEditor stylists={stylists} />
+          <TimeOffEditor stylists={stylists} entries={timeOff} />
 
           <section aria-label="Next appointments by stylist" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {stylists.filter((stylist) => stylist.appointments.length > 0).map((stylist) => (
@@ -80,7 +91,7 @@ export async function StaffSchedulePage() {
                   {stylist.appointments.slice(0, 4).map((appointment) => (
                     <li key={appointment.id} className="text-sm">
                       <Link href={`/dashboard/platform/appointments/${appointment.id}`} className="font-medium tabular-nums hover:underline">{formatAppointmentTime(appointment.startTime, appointment.location?.timezone)}</Link>
-                      <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || 'Walk-in'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || appointmentContact({ metadata: appointment.metadata }).name} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'}</span>
                     </li>
                   ))}
                 </ul>
@@ -109,7 +120,7 @@ function RosterRow({ stylist }: { stylist: PlatformStylistSchedule }) {
           <Avatar name={name} className="size-8 text-[11px]" />
           <div className="min-w-0">
             <div className="truncate font-semibold">{name}</div>
-            <div className="truncate text-xs text-muted-foreground">{[labelize(stylist.role), labelize(stylist.tier)].filter(Boolean).join(' · ') || 'Stylist'}</div>
+            <div className="truncate text-xs text-muted-foreground">{roleLabel(stylist.role, stylist.tier)}</div>
           </div>
         </div>
         {specialties.length ? <div className="mt-2 line-clamp-2 max-w-[12rem] text-xs text-muted-foreground">{specialties.join(', ')}</div> : null}
@@ -144,13 +155,13 @@ function ShiftBlock({ schedule }: { schedule: PlatformSchedule }) {
         </form>
       ) : (
         <details className="group mt-1.5">
-          <summary className={`${trackClass} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}><span className={pillClass('quiet', 'sm')}>Block</span></summary>
+          <summary className={`${trackClass} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}><span className={pillClass('quiet', 'sm')}>Block weekly</span></summary>
           <form action={setScheduleAvailability} className="mt-1.5 grid gap-1.5">
             <input type="hidden" name="id" value={schedule.id} />
             <input type="hidden" name="revision" value={schedule.revision} />
             <input type="hidden" name="isAvailable" value="false" />
             <input name="reason" placeholder="Reason" aria-label="Block reason" className={`${inputClass} h-8 rounded-lg px-2 text-xs`} />
-            <div className={trackClass}><button type="submit" className={pillClass('danger', 'sm')}>Block shift</button></div>
+            <div className={trackClass}><button type="submit" className={pillClass('danger', 'sm')}>Block every week</button></div>
           </form>
         </details>
       )}

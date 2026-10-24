@@ -129,7 +129,9 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
     const params = new URLSearchParams()
     if (entry.service?.id) params.set('service', entry.service.id)
     if (entry.preferredStylists?.[0]?.id) params.set('stylist', entry.preferredStylists[0].id)
-    if (entry.client?.id) params.set('client', entry.client.id)
+    params.set('waitlist', entry.id)
+    // A waitlist client is a User; the booking page resolves it to the Client record.
+    if (entry.client?.id) params.set('user', entry.client.id)
     else {
       if (entry.guestName) params.set('name', entry.guestName)
       if (entry.guestPhone) params.set('phone', entry.guestPhone)
@@ -156,6 +158,7 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
 
   const notified = entries.filter((entry) => entry.notifiedAt).length
   const waiting = Math.max(0, total - notified)
+  const longestWaiting = entries.find((entry) => entry.status !== 'notified')
 
   return (
     <div className="grid gap-6">
@@ -303,7 +306,7 @@ export function WaitlistClient({ initialQueue, icon }: { initialQueue: WaitlistQ
       <dl className="grid grid-cols-3 overflow-hidden rounded-2xl border bg-border [&>*]:bg-background" style={{ gap: 1 }}>
         <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Waiting</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{waiting}</dd></div>
         <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Notified</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{notified}</dd></div>
-        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Longest wait</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{entries[0] ? formatTimeAgo(entries[0].createdAt).replace(' ago', '') : '—'}</dd></div>
+        <div className="p-4"><dt className="text-xs font-medium text-muted-foreground">Longest wait</dt><dd className="mt-1.5 text-xl font-semibold tabular-nums">{longestWaiting ? formatTimeAgo(longestWaiting.createdAt).replace(' ago', '') : '—'}</dd></div>
       </dl>
 
       {actionError && !addDialogOpen && (

@@ -15,7 +15,8 @@ interface ServiceDetailPageProps {
 
 export async function generateMetadata({ params }: ServiceDetailPageProps): Promise<Metadata> {
   const service = await getServiceById((await params).id)
-  return { title: await storefrontTitle(service?.name || "Service"), description: service?.description || undefined }
+  if (!service) return { title: await storefrontTitle("Page not found"), description: "Page not found" }
+  return { title: await storefrontTitle(service.name), description: service.description || undefined }
 }
 
 export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {

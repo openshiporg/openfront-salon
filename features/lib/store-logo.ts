@@ -11,3 +11,14 @@ export function normalizeStoreLogoColor(value: unknown): string {
 export function storeLogoHue(value: unknown): number {
   return Math.round(Number(normalizeStoreLogoColor(value))) % 360;
 }
+
+/** The default mark is drawn in the storefront accent (see storefront-tokens.css), never its stock blue. */
+export const DEFAULT_STORE_LOGO_ACCENT_SVG = DEFAULT_STORE_LOGO_ICON.replace('fill="#155eef"', 'fill="currentColor"');
+
+export function isDefaultStoreLogo(value: unknown) {
+  return !value || value === DEFAULT_STORE_LOGO_ICON;
+}
+
+export function storeLogoAccent(value: unknown) {
+  return `oklch(55% 0.13 ${storeLogoHue(value)})`;
+}

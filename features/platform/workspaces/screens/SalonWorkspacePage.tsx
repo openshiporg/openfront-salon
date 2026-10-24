@@ -4,7 +4,8 @@ import { getSalonManagementWorkspace, getSalonWorkspace, SalonManagementKind, tr
 import { SalonRecordManager } from './SalonRecordManager';
 import { InventoryAdjustmentForm } from './InventoryAdjustmentForm';
 import { InventoryIntentRecovery } from './InventoryIntentRecovery';
-import { EmptyState, inputClass, labelize, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, TitleStatus, Track, trackClass, usd, type Tone } from '../../components/salon-ui';
+import { formatInZone, getSalonTimezone } from '../../lib/salonTimezone';
+import { EmptyState, inputClass, labelize, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, TitleStatus, Track, trackClass, usd, type Tone } from '../../components/salon-ui';
 
 const icons: Record<WorkspaceSection, ComponentType<{ className?: string }>> = {
   clients: ContactRound, catalog: Scissors, benefits: Gift, inventory: Boxes,
@@ -24,9 +25,8 @@ const queueTitles: Record<WorkspaceSection, string> = {
 function formatMetric(value: number, format: string) {
   return format === 'money' ? usd(value) : new Intl.NumberFormat('en-US').format(value);
 }
-function formatDate(value?: string | null) {
-  if (!value) return null;
-  return new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+function formatDate(value: string | null | undefined, timeZone?: string) {
+  return formatInZone(value, timeZone, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 /** Maps free-form record statuses onto a dot colour. */
@@ -38,13 +38,20 @@ function statusTone(status?: string | null): Tone {
   return 'zinc';
 }
 
-export async function SalonWorkspacePage({ section }: { section: WorkspaceSection }) {
+const reportRanges = [
+  { value: 'today', label: 'Today' }, { value: 'week', label: '7 days' }, { value: 'month', label: '30 days' }, { value: 'all', label: 'All time' },
+];
+
+export async function SalonWorkspacePage({ section, searchParams }: { section: WorkspaceSection; searchParams?: Promise<{ range?: string }> }) {
+  const requested = section === 'reports' ? (await searchParams)?.range : undefined;
+  const range = reportRanges.some((item) => item.value === requested) ? requested! : 'all';
   const kinds: Partial<Record<WorkspaceSection, SalonManagementKind[]>> = {
     clients: ['client'], catalog: ['category', 'service'], inventory: ['product'], administration: ['location', 'staff', 'resource'],
   };
-  const [data, management] = await Promise.all([
-    getSalonWorkspace(section),
+  const [data, management, timeZone] = await Promise.all([
+    getSalonWorkspace(section, section === 'reports' ? range : undefined),
     Promise.all((kinds[section] || []).map(async (kind) => ({ kind, data: await getSalonManagementWorkspace(kind) }))),
+    getSalonTimezone(),
   ]);
   const Icon = icons[section];
   const locations = section === 'inventory' ? data.records.filter((record) => record.id.startsWith('location:')) : [];
@@ -68,6 +75,10 @@ export async function SalonWorkspacePage({ section }: { section: WorkspaceSectio
         ) : null}
       />
 
+      {section === 'reports' ? (
+        <SegmentTabs label="Report period" active={range} tabs={reportRanges.map((item) => ({ value: item.value, label: item.label, href: item.value === 'all' ? '/dashboard/platform/reports' : `/dashboard/platform/reports?range=${item.value}` }))} />
+      ) : null}
+
       {data.metrics.length > 0 ? (
         section === 'reports'
           ? <ReportTable metrics={data.metrics} />
@@ -85,7 +96,7 @@ export async function SalonWorkspacePage({ section }: { section: WorkspaceSectio
             <span className="text-xs tabular-nums text-muted-foreground">{records.length}</span>
           </div>
           <ul className="divide-y">
-            {records.map((record) => <WorkspaceRow key={record.id} record={record} locations={locations} actorId={data.actorId || ''} />)}
+            {records.map((record) => <WorkspaceRow key={record.id} record={record} locations={locations} actorId={data.actorId || ''} timeZone={timeZone} />)}
           </ul>
         </section>
       )}
@@ -104,9 +115,9 @@ function ReportTable({ metrics }: { metrics: { label: string; value: number; for
   );
 }
 
-function WorkspaceRow({ record, locations, actorId }: { record: WorkspaceRecord; locations: WorkspaceRecord[]; actorId: string }) {
+function WorkspaceRow({ record, locations, actorId, timeZone }: { record: WorkspaceRecord; locations: WorkspaceRecord[]; actorId: string; timeZone?: string }) {
   const amount = record.amount === null || record.amount === undefined ? null : usd(record.amount);
-  const occurredAt = formatDate(record.occurredAt);
+  const occurredAt = formatDate(record.occurredAt, timeZone);
   const isProduct = record.id.startsWith('product:');
   const isWaitlist = record.action === 'notify_waitlist' || record.action === 'remove_waitlist';
 

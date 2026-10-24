@@ -3,7 +3,7 @@ import { getStaffBookingData } from '../actions/staffBooking';
 import { ErrorState, PageHeader, PlatformPage } from '../../components/salon-ui';
 import { StaffBookingForm } from './StaffBookingForm';
 
-type SearchParams = { service?: string; stylist?: string; client?: string; name?: string; phone?: string; email?: string };
+type SearchParams = { service?: string; stylist?: string; client?: string; user?: string; name?: string; phone?: string; email?: string; waitlist?: string };
 
 export async function StaffBookingPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const [data, params] = await Promise.all([getStaffBookingData(), searchParams ? searchParams : Promise.resolve({} as SearchParams)]);
@@ -16,7 +16,8 @@ export async function StaffBookingPage({ searchParams }: { searchParams?: Promis
           initial={{
             serviceId: params.service || '',
             stylistId: params.stylist || '',
-            clientId: params.client || '',
+            clientId: params.client || data.clients.find((client) => params.user && client.userId === params.user)?.id || '',
+            waitlistEntryId: params.waitlist || '',
             name: params.name || '',
             phone: params.phone || '',
             email: params.email || '',

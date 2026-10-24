@@ -32,10 +32,12 @@ const UPDATED_MESSAGES: Record<string, string> = {
   cancelled: "Your appointment was cancelled.",
   rescheduled: "Your appointment was rescheduled.",
   consultation: "Your consultation form was submitted.",
+  review: "Thanks. Your review shows once the salon approves it.",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
   time: "Choose a new date and time.",
+  review: "Your review couldn’t be saved. Choose a rating and try again.",
 };
 
 /** Maps account route search params to the portal banner and consultation retry state. */

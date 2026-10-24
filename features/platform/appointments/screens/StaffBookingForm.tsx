@@ -6,16 +6,15 @@ import { CalendarPlus, Search } from 'lucide-react';
 import { TimeSlotPicker } from '@/features/storefront/components/TimeSlotPicker';
 import { getStylistsForService, type Stylist } from '@/features/storefront/lib/data/stylists';
 import { getAvailableTimeSlots, type BookingSlot } from '@/features/storefront/lib/data/availability';
-import { createAppointment } from '@/features/storefront/lib/data/appointments';
 import { fieldLabelClass, inputClass, pillClass, textareaClass, trackClass } from '../../components/pill';
-import type { StaffBookingData } from '../actions/staffBooking';
+import { bookForClient, type StaffBookingData } from '../actions/staffBooking';
 import '@/features/storefront/styles/storefront.css';
 
 function localDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-type Initial = { serviceId: string; stylistId: string; clientId: string; name: string; phone: string; email: string };
+type Initial = { serviceId: string; stylistId: string; clientId: string; name: string; phone: string; email: string; waitlistEntryId: string };
 
 /** Front-desk booking: pick or create the client, then service, stylist and an open slot. */
 export function StaffBookingForm({ data, initial }: { data: StaffBookingData; initial: Initial }) {
@@ -36,6 +35,7 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookedId, setBookedId] = useState<string | null>(null);
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
   const [requestKey, setRequestKey] = useState('');
 
   useEffect(() => { setRequestKey(`staff-booking:${crypto.randomUUID()}`); }, []);
@@ -78,26 +78,33 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
     return () => { cancelled = true; };
   }, [date, serviceId, stylistId, locationId, service?.baseDuration]);
 
-  const who = mode === 'existing' ? client : contact.name.trim() && contact.email.trim() ? contact : null;
+  const who = mode === 'existing' ? client : contact.name.trim() && (contact.email.trim() || contact.phone.trim()) ? contact : null;
   const ready = Boolean(who && serviceId && stylistId && locationId && time && requestKey);
+  const missing = !who ? (mode === 'existing' ? 'Choose a client' : !contact.name.trim() ? 'Add the client name' : 'Add a phone number or email')
+    : !serviceId ? 'Choose a service' : !stylistId ? 'Choose a stylist' : !locationId ? 'Choose a location' : !time ? 'Choose a time' : null;
 
   async function submit() {
     if (!ready || !who) return;
     setSubmitting(true);
     setError(null);
     try {
-      const result = await createAppointment({
+      const result = await bookForClient({
+        clientId: mode === 'existing' ? client?.id : undefined,
         locationId,
         requestKey,
         startTime: time!,
         stylistId,
-        serviceIds: [serviceId],
-        clientName: who.name,
-        clientEmail: who.email,
-        clientPhone: who.phone || undefined,
+        serviceId,
+        clientName: who.name.trim(),
+        clientEmail: who.email.trim(),
+        clientPhone: who.phone.trim() || undefined,
         clientNotes: notes || undefined,
+        waitlistEntryId: initial.waitlistEntryId || undefined,
       });
-      if (result.status === 'accepted') setBookedId(result.appointmentId);
+      if (result.status === 'accepted') {
+        setBookedId(result.appointmentId);
+        setWaitlistError(result.waitlistError || null);
+      }
       else if (result.status === 'rejected') setError(result.error);
       else setError('The booking could not be confirmed. Check Appointments before trying again.');
     } catch {
@@ -112,6 +119,7 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
       <section role="status" className="grid gap-4 rounded-2xl border bg-background p-5">
         <h2 className="text-base font-semibold">Booked {who?.name}</h2>
         <p className="text-sm text-muted-foreground">{service?.name} · {slots.find((slot) => slot.startTime === time)?.label} · {date?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+        {waitlistError ? <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Waitlist entry still open: {waitlistError}</p> : null}
         <div className={`${trackClass} justify-self-start`}>
           <Link href={`/dashboard/platform/appointments/${bookedId}`} className={pillClass('primary')}>Open appointment</Link>
           <Link href="/dashboard/platform/appointments/new" className={pillClass('quiet')}>Book another</Link>
@@ -152,7 +160,7 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
         ) : (
           <div className="grid gap-3 sm:grid-cols-3">
             <label className={fieldLabelClass}>Name<input required value={contact.name} onChange={(event) => setContact({ ...contact, name: event.target.value })} maxLength={120} autoComplete="off" className={inputClass} /></label>
-            <label className={fieldLabelClass}>Email<input required type="email" value={contact.email} onChange={(event) => setContact({ ...contact, email: event.target.value })} maxLength={254} autoComplete="off" className={inputClass} /></label>
+            <label className={fieldLabelClass}>Email<input type="email" value={contact.email} onChange={(event) => setContact({ ...contact, email: event.target.value })} maxLength={254} autoComplete="off" className={inputClass} /></label>
             <label className={fieldLabelClass}>Phone<input type="tel" value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} maxLength={40} autoComplete="off" className={inputClass} /></label>
           </div>
         )}
@@ -194,8 +202,11 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
       <label className={fieldLabelClass}>Notes<textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={2000} className={textareaClass} /></label>
 
       {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
-      <div className={`${trackClass} justify-self-start`}>
-        <button type="submit" disabled={!ready || submitting} className={pillClass('primary')}><CalendarPlus />{submitting ? 'Booking…' : 'Book appointment'}</button>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className={trackClass}>
+          <button type="submit" disabled={!ready || submitting} aria-describedby={missing ? 'booking-missing' : undefined} className={pillClass('primary')}><CalendarPlus />{submitting ? 'Booking…' : 'Book appointment'}</button>
+        </div>
+        {missing ? <span id="booking-missing" className="text-xs text-muted-foreground">{missing}</span> : null}
       </div>
     </form>
   );

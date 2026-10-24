@@ -137,6 +137,17 @@ export async function rescheduleOwnedAppointment(formData: FormData) {
   revalidatePath("/account"); redirect("/account?updated=rescheduled");
 }
 
+export async function reviewOwnedAppointment(formData: FormData) {
+  const appointmentId = String(formData.get("appointmentId") || "");
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment") || "");
+  const response = await keystoneClient<{ submitAppointmentReview?: { success: boolean; error?: string | null } }>(`mutation PortalReview($appointmentId: ID!, $rating: Int!, $comment: String) {
+    submitAppointmentReview(appointmentId: $appointmentId, rating: $rating, comment: $comment) { success error }
+  }`, { appointmentId, rating: Number.isInteger(rating) ? rating : 0, comment });
+  revalidatePath("/account");
+  redirect(response.success && response.data?.submitAppointmentReview?.success ? "/account?updated=review" : "/account?error=review");
+}
+
 export async function submitOwnedConsultation(formData: FormData) {
   const questionIds = String(formData.get("questionIds") || "").split(",").filter(Boolean); const answers: Record<string, unknown> = {};
   for (const id of questionIds) answers[id] = String(formData.get(`answer:${id}`) || "");

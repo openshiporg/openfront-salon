@@ -145,7 +145,7 @@ export async function transitionWaitlistEntryTransaction(
         return { success: true, waitlistEntryId: entry.id, status: entry.status, error: null };
       }
       const valid: Record<string, string[]> = {
-        active: ["notified", "removed"], notified: ["active", "converted", "removed"], removed: ["active"], converted: [],
+        active: ["notified", "converted", "removed"], notified: ["active", "converted", "removed"], removed: ["active"], converted: [],
       };
       if (!(valid[entry.status || "active"] || []).includes(target)) throw new Error(`Cannot transition waitlist entry from ${entry.status || "active"} to ${target}`);
       if (target === "converted") {
@@ -153,7 +153,8 @@ export async function transitionWaitlistEntryTransaction(
           where: { id: args.appointmentId! },
           query: "id client { user { id } } services { id }",
         });
-        if (!appointment || appointment.client?.user?.id !== entry.client?.id || !appointment.services.some((service: any) => service.id === entry.service?.id)) {
+        // A walk-in entry has no account; its booking may create one, so only an account entry must match identity.
+        if (!appointment || (entry.client?.id && appointment.client?.user?.id !== entry.client.id) || !appointment.services.some((service: any) => service.id === entry.service?.id)) {
           throw new Error("Converted appointment does not match the waitlist entry");
         }
       }

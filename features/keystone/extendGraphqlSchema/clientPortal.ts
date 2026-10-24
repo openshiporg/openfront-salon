@@ -36,12 +36,17 @@ export const clientPortal = graphql.field({
       where: { effectiveFrom: { lte: now }, OR: [{ effectiveUntil: { equals: null } }, { effectiveUntil: { gt: now } }] }, take: 100,
       query: "id version titleSnapshot purposeSnapshot questions questionsHash documentHash effectiveFrom effectiveUntil template { id } supersededBy { id }",
     });
+    // Reviews are moderated, so the client's own unapproved review is read by the proven appointment ids.
+    const appointmentIds = appointments.map((appointment: any) => appointment.id);
+    const reviews = appointmentIds.length ? await context.sudo().query.Review.findMany({ where: { appointment: { id: { in: appointmentIds } } }, take: 200, query: "rating isApproved appointment { id }" }) : [];
+    const reviewByAppointment = new Map(reviews.map((review: any) => [review.appointment?.id, { rating: review.rating, isApproved: review.isApproved }]));
     const availableForms = versions.filter((version: any) => !version.supersededBy?.id && activeTemplates.some(template => template.id === version.template?.id));
     return {
       authenticated: true,
       client: clients[0] || null,
       appointments: appointments.map((appointment: any) => ({
         ...appointment,
+        review: reviewByAppointment.get(appointment.id) || null,
         stylist: appointment.stylist ? { id: appointment.stylist.id, user: { name: names.get(appointment.stylist.id) || null } } : null,
         segments: (appointment.segments || []).map((segment: any) => ({ ...segment, practitioner: segment.practitioner ? { id: segment.practitioner.id, user: { name: names.get(segment.practitioner.id) || null } } : null })),
         // Only policy snapshot and transition evidence are client-safe.

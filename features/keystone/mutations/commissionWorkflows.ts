@@ -71,9 +71,14 @@ export function classifiedCommissionPayoutError(error: unknown, recovered: Commi
   return opaqueCommissionLifecycleError(error) && recovered ? recovered : { ...denied, error: originalCommissionPayoutError(error) };
 }
 
+function payoutReference(value?: string | null) {
+  return typeof value === "string" ? value.trim().slice(0, 200) : "";
+}
+
 export async function payoutCommissionsTransaction(
   context: Context,
   commissionIds: readonly string[],
+  reference?: string | null,
 ): Promise<CommissionPayoutResult> {
   if (!permissions.canManageCommissions({ session: context.session as any })) {
     return { ...denied, error: "You must be an authorized salon operator" };
@@ -94,7 +99,7 @@ export async function payoutCommissionsTransaction(
         const commissions = await sudo.query.Commission.findMany({
           where: { id: { in: ids } },
           take: 200,
-          query: "id isPaid paidAt commissionAmount stylist { id }",
+          query: "id isPaid paidAt commissionAmount notes stylist { id }",
         });
         if (commissions.length !== ids.length) throw new Error("One or more commissions were not found");
 
@@ -102,12 +107,13 @@ export async function payoutCommissionsTransaction(
         if (stylistIds.size !== 1) throw new Error("A payout batch must belong to one stylist");
 
         const paidAt = new Date().toISOString();
+        const ref = payoutReference(reference);
         let payoutCount = 0;
         for (const commission of commissions) {
           if (commission.isPaid) continue;
           await sudo.query.Commission.updateOne({
             where: { id: commission.id },
-            data: { isPaid: true, paidAt },
+            data: { isPaid: true, paidAt, ...(ref ? { notes: [commission.notes, `Payout reference: ${ref}`].filter(Boolean).join("\n") } : {}) },
             query: "id",
           });
           payoutCount += 1;
@@ -143,8 +149,52 @@ export const payoutCommissions = graphql.field({
   type: resultType,
   args: {
     commissionIds: graphql.arg({ type: graphql.nonNull(graphql.list(graphql.nonNull(graphql.ID))) }),
+    reference: graphql.arg({ type: graphql.String }),
   },
   resolve(_source, args, context: Context) {
-    return payoutCommissionsTransaction(context, args.commissionIds);
+    return payoutCommissionsTransaction(context, args.commissionIds, args.reference);
+  },
+});
+
+/** Marks a stylist's payable card-tip allocations as paid out with wages. */
+export async function payoutGratuitiesTransaction(context: Context, stylistId: string, reference?: string | null): Promise<CommissionPayoutResult> {
+  if (!permissions.canManageCommissions({ session: context.session as any })) {
+    return { ...denied, error: "You must be an authorized salon operator" };
+  }
+  const id = stylistId.trim();
+  if (!id) return { ...denied, error: "Choose a stylist" };
+  try {
+    return await serializableWorkflow(context, "salon-gratuity-payout", [`gratuity-payout:${id}`], async (transactionContext) => {
+      const sudo = transactionContext.sudo();
+      const entries = await sudo.query.GratuityLedgerEntry.findMany({
+        where: { practitioner: { id: { equals: id } }, type: { equals: "allocation" }, payoutStatus: { equals: "payable" } },
+        take: 500,
+        query: "id amountDelta evidence",
+      });
+      const ref = payoutReference(reference);
+      const paidAt = new Date().toISOString();
+      for (const entry of entries) {
+        const evidence = entry.evidence && typeof entry.evidence === "object" ? entry.evidence : {};
+        await sudo.query.GratuityLedgerEntry.updateOne({
+          where: { id: entry.id },
+          data: { payoutStatus: "paid", evidence: { ...evidence, paidOutAt: paidAt, ...(ref ? { payoutReference: ref } : {}) } },
+          query: "id",
+        });
+      }
+      return { success: true, payoutCount: entries.length, totalAmount: entries.reduce((sum: number, entry: any) => sum + Number(entry.amountDelta || 0), 0), error: null };
+    });
+  } catch (error) {
+    return { ...denied, error: originalCommissionPayoutError(error) };
+  }
+}
+
+export const payoutGratuities = graphql.field({
+  type: resultType,
+  args: {
+    stylistId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
+    reference: graphql.arg({ type: graphql.String }),
+  },
+  resolve(_source, args, context: Context) {
+    return payoutGratuitiesTransaction(context, args.stylistId, args.reference);
   },
 });

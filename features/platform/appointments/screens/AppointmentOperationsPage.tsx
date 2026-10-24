@@ -3,6 +3,7 @@ import { ArrowUpRight, CalendarDays, CalendarPlus, ReceiptText, ShieldAlert } fr
 import { appointmentContact } from '../../lib/appointmentContact';
 import { RetryAppointmentQueueButton } from './RetryAppointmentQueueButton';
 import { AppointmentActions } from './AppointmentActions';
+import { lifecycleGates } from '../lib/lifecycleGates';
 import { getAppointmentOperations, PlatformAppointment } from '../actions/appointments';
 import {
   appointmentLabel,
@@ -170,7 +171,7 @@ function AppointmentRow({ appointment }: { appointment: PlatformAppointment }) {
           <Chip>{usd(serviceTotal(appointment), { whole: true })}{appointment.payment?.status ? ` · ${labelize(appointment.payment.status)}` : ''}</Chip>
           {appointment.depositAmount ? <Chip tone={appointment.depositPaid ? 'emerald' : 'amber'}>{appointment.depositPaid ? 'Deposit paid' : `Deposit due ${usd(appointment.depositAmount, { whole: true })}`}</Chip> : null}
           {needsIntake(appointment) ? <Chip tone="violet"><ShieldAlert className="size-3" />Intake / consent</Chip> : null}
-          {appointment.client?.totalVisits ? <Chip>{appointment.client.totalVisits} visits</Chip> : <Chip tone="sky">New client</Chip>}
+          {appointment.client?.totalVisits ? <Chip>{appointment.client.totalVisits} {appointment.client.totalVisits === 1 ? 'visit' : 'visits'}</Chip> : <Chip tone="sky">New client</Chip>}
         </div>
         {appointment.clientNotes || appointment.internalNotes ? (
           <div className="mt-3 grid gap-1 text-sm">
@@ -181,10 +182,10 @@ function AppointmentRow({ appointment }: { appointment: PlatformAppointment }) {
       </div>
 
       <div className="grid min-w-0 justify-items-start gap-2 md:justify-items-end">
-        <AppointmentActions id={appointment.id} status={appointment.status} size="sm" />
+        <AppointmentActions id={appointment.id} status={appointment.status} size="sm" gates={lifecycleGates(appointment.startTime, timezone)} />
         <Track>
           <PillLink href={`/dashboard/platform/appointments/${appointment.id}`} size="sm" variant="quiet">Open<ArrowUpRight /></PillLink>
-          <PillLink href={`/dashboard/platform/checkout/${appointment.id}`} size="sm" variant="quiet"><ReceiptText />Checkout</PillLink>
+          {closed ? null : <PillLink href={`/dashboard/platform/checkout/${appointment.id}`} size="sm" variant="quiet"><ReceiptText />Checkout</PillLink>}
         </Track>
       </div>
     </li>

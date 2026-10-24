@@ -3,18 +3,19 @@ import { notFound } from 'next/navigation';
 import { CalendarPlus, ContactRound, FlaskConical, NotebookPen, Scissors } from 'lucide-react';
 import { getClientProfile } from '../actions/clientProfile';
 import { appointmentLabel, appointmentTone, Avatar, EmptyState, Fact, MetricStrip, PageHeader, Panel, PillLink, PlatformPage, TitleStatus, Track, labelize, usd } from '../../components/salon-ui';
-import { ClientNoteForm, ColorFormulaForm } from './ClientCareForms';
+import { CareProfileForm, ClientNoteForm, ColorFormulaForm } from './ClientCareForms';
+import { getSalonTimezone } from '../../lib/salonTimezone';
 
 function when(value?: string | null, timeZone?: string | null) {
   return value ? new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined }) : '—';
 }
-function day(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+function day(value?: string | null, timeZone?: string | null) {
+  return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: timeZone || undefined }) : '—';
 }
 
 export async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { client, notes, stylists } = await getClientProfile(id);
+  const [{ client, notes, stylists }, tz] = await Promise.all([getClientProfile(id), getSalonTimezone()]);
   if (!client) notFound();
 
   const name = client.displayName || client.user?.name || 'Client';
@@ -39,7 +40,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
       <MetricStrip items={[
         { label: 'Visits', value: client.totalVisits || 0 },
         { label: 'Lifetime value', value: usd(client.lifetimeValue || 0) },
-        { label: 'Last visit', value: day(client.lastVisit) },
+        { label: 'Last visit', value: day(client.lastVisit, tz) },
         { label: 'Upcoming', value: upcoming.length, tone: upcoming.length ? 'blue' : undefined },
       ]} />
 
@@ -61,7 +62,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
                         <li key={formula.id} className="rounded-xl border p-3">
                           <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <h3 className="text-sm font-semibold">{formula.formulaName || 'Formula'}</h3>
-                            <span className="text-xs text-muted-foreground">{day(formula.createdAt)}{formula.stylist?.user?.name ? ` · ${formula.stylist.user.name}` : ''}{formula.processingTime ? ` · ${formula.processingTime} min` : ''}</span>
+                            <span className="text-xs text-muted-foreground">{day(formula.createdAt, tz)}{formula.stylist?.user?.name ? ` · ${formula.stylist.user.name}` : ''}{formula.processingTime ? ` · ${formula.processingTime} min` : ''}</span>
                           </div>
                           <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                             {formula.products ? <Fact label="Products"><span className="whitespace-pre-line">{formula.products}</span></Fact> : null}
@@ -86,7 +87,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
                       {notes.map((note) => (
                         <li key={note.id} className="p-3 text-sm">
                           <p className="whitespace-pre-line">{note.content}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{day(note.createdAt)}{note.author?.name ? ` · ${note.author.name}` : ''}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{day(note.createdAt, tz)}{note.author?.name ? ` · ${note.author.name}` : ''}</p>
                         </li>
                       ))}
                     </ul>
@@ -102,7 +103,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
             <dl className="grid gap-3">
               <Fact label="Preferred stylist">{client.preferredStylist?.user?.name || '—'}</Fact>
               <Fact label="Home location">{client.homeLocation?.name || '—'}</Fact>
-              <Fact label="First visit">{day(client.firstVisit)}</Fact>
+              <Fact label="First visit">{day(client.firstVisit, tz)}</Fact>
               <Fact label="Marketing">{client.marketingConsent ? 'Opted in' : 'Not opted in'}</Fact>
               {careVisible ? (
                 <>
@@ -113,6 +114,9 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
                 </>
               ) : null}
             </dl>
+          </Panel>
+          <Panel title="Edit profile">
+            <CareProfileForm clientId={client.id} careVisible={careVisible} stylists={stylists} profile={{ allergies: client.allergies, skinSensitivities: client.skinSensitivities, hairType: client.hairType, hairTexture: client.hairTexture, notes: client.notes, preferredStylistId: client.preferredStylist?.id }} />
           </Panel>
           <Link href="/dashboard/platform/clients" className="text-sm font-medium underline-offset-4 hover:underline">All clients</Link>
         </aside>

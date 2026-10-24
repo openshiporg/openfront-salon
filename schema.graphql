@@ -7650,7 +7650,7 @@ type Mutation {
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   registerSalonCustomer(name: String!, email: String!, password: String!, phone: String): Boolean!
-  bookAppointment(serviceIds: [ID!]!, stylistId: ID!, locationId: ID, startTime: String!, clientName: String!, clientEmail: String!, clientPhone: String, clientNotes: String, policyAccepted: Boolean, policyVersion: String, requestKey: String): BookAppointmentResult
+  bookAppointment(serviceIds: [ID!]!, stylistId: ID!, locationId: ID, startTime: String!, clientName: String!, clientEmail: String!, clientPhone: String, clientNotes: String, clientId: ID, policyAccepted: Boolean, policyVersion: String, requestKey: String): BookAppointmentResult
   processPayment(appointmentId: ID!, paymentMethod: String!, providerCode: String, idempotencyKey: String!, tipAmount: Int, discountAmount: Int): ProcessPaymentResult
   confirmPayment(paymentSessionId: ID!): ConfirmPaymentResult
   refundPayment(paymentSessionId: ID!, amount: Int, reason: String, idempotencyKey: String): RefundPaymentResult
@@ -7665,7 +7665,10 @@ type Mutation {
   transitionWaitlistEntry(waitlistEntryId: ID!, action: String!, appointmentId: ID, reason: String): WaitlistWorkflowResult
   upsertStylistSchedule(scheduleId: ID, stylistId: ID!, locationId: ID!, type: String!, dayOfWeek: Int, localDate: String, startTime: String!, endTime: String!, breakStart: String, breakEnd: String, isAvailable: Boolean, reason: String, effectiveFrom: String, effectiveTo: String, idempotencyKey: String, expectedRevision: Int): StylistScheduleWorkflowResult
   setStylistScheduleAvailability(scheduleId: ID!, isAvailable: Boolean!, reason: String, expectedRevision: Int!): StylistScheduleWorkflowResult
-  payoutCommissions(commissionIds: [ID!]!): CommissionPayoutResult
+  payoutCommissions(commissionIds: [ID!]!, reference: String): CommissionPayoutResult
+  payoutGratuities(stylistId: ID!, reference: String): CommissionPayoutResult
+  updateClientCareProfile(clientId: ID!, allergies: String, skinSensitivities: String, hairType: String, hairTexture: String, notes: String, preferredStylistId: ID): ClientCareWorkflowResult
+  submitAppointmentReview(appointmentId: ID!, rating: Int!, comment: String): ClientCareWorkflowResult
   adjustSalonInventory(productId: ID!, locationId: ID!, delta: Int!, reason: String!, idempotencyKey: String!): SalonInventoryResult
   setSalonResourceAvailability(resourceId: ID!, isActive: Boolean!, expectedRevision: Int!): SalonResourceWorkflowResult
   scheduleAppointmentSegments(appointmentId: ID!, startTime: String!, allocations: JSON, reason: String!, idempotencyKey: String!): SegmentScheduleResult
@@ -7780,6 +7783,11 @@ type CommissionPayoutResult {
   success: Boolean!
   payoutCount: Int!
   totalAmount: Int!
+  error: String
+}
+
+type ClientCareWorkflowResult {
+  success: Boolean!
   error: String
 }
 
@@ -8059,7 +8067,7 @@ type Query {
   calculateCommission(stylistId: ID!, startDate: String!, endDate: String!): CommissionResult
   storefrontStylists(serviceId: ID, take: Int): [StorefrontStylist!]!
   storefrontStylist(id: ID!): StorefrontStylist
-  salonOperationsWorkspace(section: String!): SalonOperationsWorkspace
+  salonOperationsWorkspace(section: String!, range: String): SalonOperationsWorkspace
   clientPortal: JSON
   publicStorefrontSettings: PublicSalonStorefrontSettings!
   salonManagementWorkspace(kind: String!): JSON

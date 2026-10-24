@@ -34,17 +34,17 @@ export interface WorkspaceMetric { label: string; value: number; format: 'money'
 export interface WorkspaceRecord { id: string; title: string; subtitle?: string | null; status?: string | null; detail?: string | null; amount?: number | null; metric?: number | null; occurredAt?: string | null; href?: string | null; action?: string | null }
 export interface WorkspaceData { actorId?: string | null; section: WorkspaceSection; title: string; description: string; attentionCount: number; attentionLabel?: string | null; metrics: WorkspaceMetric[]; records: WorkspaceRecord[] }
 
-export async function getSalonWorkspace(section: WorkspaceSection): Promise<WorkspaceData> {
+export async function getSalonWorkspace(section: WorkspaceSection, range?: string): Promise<WorkspaceData> {
   if (!workspaceSections.includes(section)) throw new Error('Unsupported salon workspace');
   const response = await keystoneClient<{ salonOperationsWorkspace: WorkspaceData }>(`
-    query SalonOperationsWorkspace($section: String!) {
-      salonOperationsWorkspace(section: $section) {
+    query SalonOperationsWorkspace($section: String!, $range: String) {
+      salonOperationsWorkspace(section: $section, range: $range) {
         actorId section title description attentionCount attentionLabel
         metrics { label value format }
         records { id title subtitle status detail amount metric occurredAt href action }
       }
     }
-  `, { section });
+  `, { section, range: range || null });
   if (!response.success) throw new Error(response.error || 'Unable to load salon operations');
   return response.data.salonOperationsWorkspace;
 }

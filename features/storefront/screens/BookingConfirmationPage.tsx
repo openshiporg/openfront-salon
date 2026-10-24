@@ -1,4 +1,5 @@
 import { Metadata } from "next"
+import { storefrontTitle } from "../lib/data/brand"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Check } from "lucide-react"
@@ -13,15 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const appointment = await getAppointmentById(id)
 
-  if (!appointment) {
-    return {
-      title: "Booking Not Found",
-      description: "The requested booking could not be found.",
-    }
-  }
+  if (!appointment) return { title: await storefrontTitle("Page not found"), description: "Page not found" }
 
   return {
-    title: `Booking — ${appointment.service?.name || "Appointment"}`,
+    title: await storefrontTitle(`Booking · ${appointment.service?.name || "Appointment"}`),
     description: `Appointment details for ${appointment.service?.name || "your visit"}.`,
   }
 }

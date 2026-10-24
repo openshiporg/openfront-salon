@@ -225,7 +225,8 @@ export async function computeStylistAvailability({
   const recurring = schedules.filter((schedule) => schedule.type === "recurring"
     && schedule.isAvailable && schedule.dayOfWeek === requestedWeekday && withinEffectiveRange(schedule, dateKey));
   const availability = oneTimeAvailable.length ? oneTimeAvailable : recurring;
-  const blocks = exact.filter((schedule) => schedule.type === "time_off" || (schedule.type === "one_time" && !schedule.isAvailable));
+  // Withdrawn time off is kept as history with isAvailable=true and no longer blocks.
+  const blocks = exact.filter((schedule) => !schedule.isAvailable && (schedule.type === "time_off" || schedule.type === "one_time"));
 
   const { start: dayStart, end: dayEnd } = zonedDayWindow(dateKey, timezone);
   const appointments = await sudo.query.Appointment.findMany({

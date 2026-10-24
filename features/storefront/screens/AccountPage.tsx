@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarPlus, LogOut } from "lucide-react";
-import { cancelOwnedAppointment, portalSignOut, submitOwnedConsultation } from "../account/actions";
+import { cancelOwnedAppointment, portalSignOut, reviewOwnedAppointment, submitOwnedConsultation } from "../account/actions";
 import { RescheduleForm } from "../components/RescheduleForm";
 
 import { formatSalonDateTime as dateTime } from "@/features/lib/formatSalonDateTime";
@@ -90,6 +90,19 @@ export function AccountPage({ portal, message, consultationUnresolved = false, c
               </div>
             </details>
           ) : null}
+          {appointment.status === "completed" ? (appointment.review ? (
+            <p className="border-t border-[var(--sf-rule)] px-[var(--sf-space-md)] py-4 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">Your review: {"★".repeat(appointment.review.rating)}{appointment.review.isApproved ? "" : " · awaiting approval"}</p>
+          ) : (
+            <details className="border-t border-[var(--sf-rule)]">
+              <summary className="sf-link cursor-pointer list-none px-[var(--sf-space-md)] py-4 text-[length:var(--sf-text-sm)] font-semibold [&::-webkit-details-marker]:hidden">Leave a review</summary>
+              <form action={reviewOwnedAppointment} className="grid max-w-md gap-3 px-[var(--sf-space-md)] pb-[var(--sf-space-md)]">
+                <input type="hidden" name="appointmentId" value={appointment.id} />
+                <fieldset className="sf-field"><legend>Rating</legend><div className="sf-track mt-2">{[1, 2, 3, 4, 5].map((value) => <label key={value} className="sf-btn cursor-pointer !px-3 has-[:checked]:!bg-[var(--sf-ink)] has-[:checked]:!text-[var(--sf-accent-ink)] has-[:focus-visible]:ring-2"><input type="radio" name="rating" value={value} required className="sr-only" />{value}★</label>)}</div></fieldset>
+                <label className="sf-field">Comment <span className="sf-field-hint">Optional</span><textarea className="sf-input min-h-20" name="comment" maxLength={2000} /></label>
+                <div className="sf-track sf-track-block"><button className="sf-btn sf-btn-primary" type="submit">Submit review</button></div>
+              </form>
+            </details>
+          )) : null}
           {appointment.transaction ? <div className="border-t border-dashed border-[var(--sf-rule-strong)] bg-[var(--sf-paper-2)] p-[var(--sf-space-md)]"><h4 className="sf-eyebrow">Receipt</h4><dl className="mt-3 grid max-w-md gap-1.5 text-[length:var(--sf-text-sm)]">{appointment.transaction.lineItems.map((line: any) => <div key={line.id} className="flex justify-between gap-4"><dt>{line.metadata?.title || line.itemType} × {line.quantity}</dt><dd className="tabular-nums">{money(line.unitPrice * line.quantity - line.discount)}</dd></div>)}<div className="flex justify-between gap-4 text-[var(--sf-ink-3)]"><dt>Tax</dt><dd className="tabular-nums">{money(appointment.payment?.tax)}</dd></div><div className="flex justify-between gap-4 text-[var(--sf-ink-3)]"><dt>Tip</dt><dd className="tabular-nums">{money(appointment.payment?.tip)}</dd></div>{appointment.transaction.metadata?.packageCredit > 0 ? <div className="flex justify-between gap-4 text-[var(--sf-ink-3)]"><dt>Package credit</dt><dd className="tabular-nums">-{money(appointment.transaction.metadata.packageCredit)}</dd></div> : null}{appointment.transaction.metadata?.depositCredit > 0 ? <div className="flex justify-between gap-4 text-[var(--sf-ink-3)]"><dt>Deposit applied</dt><dd className="tabular-nums">-{money(appointment.transaction.metadata.depositCredit)}</dd></div> : null}<div className="mt-1 flex justify-between gap-4 border-t border-[var(--sf-rule)] pt-2 font-semibold"><dt>Paid</dt><dd className="tabular-nums">{money(appointment.payment?.totalAmount)}</dd></div>{appointment.payment?.refundedAmount ? <div className="flex justify-between gap-4"><dt>Refunded</dt><dd className="tabular-nums">-{money(appointment.payment.refundedAmount)}</dd></div> : null}</dl></div> : null}
           </article>;
         }) : <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-xl)] text-center"><p className="sf-display mb-5 text-[length:var(--sf-text-xl)]">No appointments yet</p><div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div></div>}</div>

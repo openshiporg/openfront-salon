@@ -1,6 +1,7 @@
 import { Armchair, ArrowUpRight, Bath, Box, DoorOpen, Palette, Wrench } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { getResourceOperations, PlatformResource, setResourceActive } from '../actions/resources';
+import { appointmentContact } from '../../lib/appointmentContact';
 import { Chip, EmptyState, labelize, MetricStrip, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 interface PageProps {
@@ -109,7 +110,7 @@ function ResourceTile({ resource }: { resource: PlatformResource }) {
             {resource.appointments.slice(0, 3).map((appointment) => (
               <li key={appointment.id} className="min-w-0 text-sm">
                 <span className="font-medium tabular-nums">{formatDateTime(appointment.startTime, appointment.location?.timezone)}</span>
-                <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || 'Walk-in'} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}</span>
+                <span className="block truncate text-xs text-muted-foreground">{appointment.client?.displayName || appointmentContact({ metadata: appointment.metadata }).name} · {appointment.services.map((service) => service.name).filter(Boolean).join(', ') || 'Service'} · {appointment.stylist?.user?.name || 'Unassigned'}</span>
               </li>
             ))}
           </ul>

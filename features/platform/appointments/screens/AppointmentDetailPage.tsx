@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { CalendarClock, CreditCard, FileText, Package, ReceiptText, Scissors, UserRound, WalletCards } from 'lucide-react';
 import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
+import { lifecycleGates } from '../lib/lifecycleGates';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { formatSalonDateTime } from '@/features/lib/formatSalonDateTime';
 import { getAppointmentDetail, type AppointmentDetail } from '../actions/appointmentDetail';
@@ -53,10 +54,10 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           <span>{appointment.duration || 0} min</span>
           <span>{appointment.location?.name || 'Location not assigned'}</span>
         </>}
-        actions={capabilities.payments ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
+        actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
       />
 
-      {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" /> : null}
+      {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" gates={lifecycleGates(appointment.startTime, appointment.location?.timezone)} /> : null}
 
       <div className="flex flex-wrap gap-2">
         {appointment.depositAmount ? <Chip tone={appointment.depositPaid ? 'emerald' : 'amber'}>{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} · {usd(appointment.depositAmount)}</Chip> : null}
@@ -79,7 +80,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
             ) : <p className="p-5 text-sm text-muted-foreground">No services on this appointment.</p>}
           </Panel>
 
-          {canReschedule ? <Panel title="Reschedule" icon={CalendarClock}><AppointmentRescheduleForm id={appointment.id} startTime={appointment.startTime!} timeZone={appointment.location?.timezone} /></Panel> : null}
+          {canReschedule ? <Panel title="Reschedule" icon={CalendarClock}><AppointmentRescheduleForm id={appointment.id} startTime={appointment.startTime!} timeZone={appointment.location?.timezone} slot={{ stylistId: appointment.stylist?.id, locationId: appointment.location?.id, serviceId: appointment.services[0]?.id, duration: appointment.duration }} /></Panel> : null}
 
           <Panel title="Payment" icon={WalletCards}>
             {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} integrations={capabilities.integrations} />}
@@ -138,13 +139,13 @@ function PaymentBoundary({ boundary, integrations }: { boundary: NonNullable<Awa
       {boundary.payments.map((payment) => (
         <div key={payment.id} className="rounded-xl border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2"><TitleStatus tone={payment.status === 'completed' ? 'emerald' : 'amber'}>{labelize(payment.status) || 'Payment'} · {labelize(payment.paymentMethod) || 'Method not recorded'}</TitleStatus><span className="font-semibold tabular-nums">{usd(payment.totalAmount)}</span></div>
-          <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"><Fact label="Subtotal">{usd(payment.subtotal)}</Fact><Fact label="Tax">{usd(payment.tax)}</Fact><Fact label="Tip">{usd(payment.tip)}</Fact><Fact label="Refunded">{usd(payment.refundedAmount)}</Fact></dl>
+          <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5"><Fact label="Subtotal">{usd(payment.subtotal)}</Fact><Fact label="Discount">{payment.discount ? `−${usd(payment.discount)}` : usd(0)}</Fact><Fact label="Tax">{usd(payment.tax)}</Fact><Fact label="Tip">{usd(payment.tip)}</Fact><Fact label="Refunded">{usd(payment.refundedAmount)}</Fact></dl>
           {payment.cardLast4 ? <p className="mt-2 text-xs text-muted-foreground">{payment.cardBrand || 'Card'} ending {payment.cardLast4}</p> : null}
         </div>
       ))}
       {boundary.transactions.map((transaction) => (
         <div key={transaction.id} className="rounded-xl border p-3 text-sm">
-          <div className="font-medium">Transaction {transaction.status || 'open'} · {transaction.paymentStatus || 'payment pending'}</div>
+          <div className="font-medium">Ticket · {labelize(transaction.status) || 'Open'} · {labelize(transaction.paymentStatus) || 'Payment pending'}</div>
           {transaction.lineItems.map((line) => <div key={line.id} className="mt-2 flex justify-between gap-2 text-muted-foreground"><span>{line.service?.name || line.product?.name || line.itemType || 'Line item'} × {line.quantity || 1}</span><span className="tabular-nums">{usd((line.unitPrice || 0) * (line.quantity || 1) - (line.discount || 0))}</span></div>)}
         </div>
       ))}

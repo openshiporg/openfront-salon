@@ -103,3 +103,27 @@ export async function addColorFormula(_previous: CareFormState, formData: FormDa
   revalidatePath(`/dashboard/platform/clients/${clientId}`);
   return { status: 'success', message: 'Formula saved.' };
 }
+
+export async function updateCareProfile(_previous: CareFormState, formData: FormData): Promise<CareFormState> {
+  const clientId = String(formData.get('clientId') || '');
+  if (!clientId) return { status: 'error', message: 'Client not found.' };
+  const value = (key: string) => String(formData.get(key) || '').trim();
+  const response = await keystoneClient<{ updateClientCareProfile: { success: boolean; error?: string | null } }>(`
+    mutation UpdateClientCareProfile($clientId: ID!, $allergies: String, $skinSensitivities: String, $hairType: String, $hairTexture: String, $notes: String, $preferredStylistId: ID) {
+      updateClientCareProfile(clientId: $clientId, allergies: $allergies, skinSensitivities: $skinSensitivities, hairType: $hairType, hairTexture: $hairTexture, notes: $notes, preferredStylistId: $preferredStylistId) { success error }
+    }
+  `, {
+    clientId,
+    allergies: value('allergies'),
+    skinSensitivities: value('skinSensitivities'),
+    hairType: value('hairType'),
+    hairTexture: value('hairTexture'),
+    notes: value('notes'),
+    preferredStylistId: value('preferredStylistId'),
+  });
+  if (!response.success || !response.data.updateClientCareProfile.success) {
+    return { status: 'error', message: (response.success && response.data.updateClientCareProfile.error) || 'The profile could not be saved.' };
+  }
+  revalidatePath(`/dashboard/platform/clients/${clientId}`);
+  return { status: 'success', message: 'Profile saved.' };
+}

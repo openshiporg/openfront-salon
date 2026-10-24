@@ -174,7 +174,6 @@ export async function setStylistScheduleAvailabilityTransaction(
         where: { id: input.scheduleId }, query: "id type revision isAvailable reason",
       });
       if (!schedule) throw new Error("Schedule not found");
-      if (schedule.type === "time_off" && input.isAvailable) throw new Error("Time-off entries cannot be restored as availability");
       if (schedule.isAvailable === input.isAvailable && (!reason || schedule.reason === reason)) {
         return { success: true, scheduleId: schedule.id, revision: schedule.revision, error: null };
       }
@@ -182,7 +181,7 @@ export async function setStylistScheduleAvailabilityTransaction(
       const revision = schedule.revision + 1;
       await sudo.query.StylistSchedule.updateOne({
         where: { id: schedule.id },
-        data: { isAvailable: input.isAvailable, reason: reason || (input.isAvailable ? "" : "Blocked by operator"), revision },
+        data: { isAvailable: input.isAvailable, reason: schedule.type === "time_off" && input.isAvailable ? [schedule.reason, "withdrawn"].filter(Boolean).join(" · ") : reason || (input.isAvailable ? "" : "Blocked by operator"), revision },
         query: "id",
       });
       return { success: true, scheduleId: schedule.id, revision, error: null };

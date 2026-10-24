@@ -46,12 +46,16 @@ async function resolveGuestClient(
   sudo: ReturnType<Context["sudo"]>,
   input: { name: string; email: string; phone?: string | null },
 ): Promise<{ id: string; user: null }> {
-  const existing = await sudo.query.Client.findMany({
-    where: { user: null, guestEmail: { equals: input.email, mode: "insensitive" } },
+  // Front-desk contacts may have no email; those match other email-less guests by phone.
+  const match = input.email
+    ? { guestEmail: { equals: input.email, mode: "insensitive" as const } }
+    : input.phone ? { guestEmail: { equals: "" }, guestPhone: { equals: input.phone } } : null;
+  const existing = match ? await sudo.query.Client.findMany({
+    where: { user: null, ...match },
     orderBy: { createdAt: "asc" },
     take: 1,
     query: "id",
-  });
+  }) : [];
   if (existing[0]) {
     await sudo.query.Client.updateOne({
       where: { id: existing[0].id },
@@ -76,6 +80,8 @@ async function resolveAuthorizedClient(
   // Public requests remain guest bookings. They must never claim an existing
   // client identity merely by knowing an email address.
   if (!sessionUserId && !isOperator) return null;
+  // An operator booking a contact without email keeps an account-less guest record.
+  if (isOperator && !input.email) return null;
 
   let user = sessionUserId
     ? await sudo.query.User.findOne({ where: { id: sessionUserId }, query: "id name email phone" })
@@ -268,6 +274,7 @@ export const bookAppointment = graphql.field({
     clientEmail: graphql.arg({ type: graphql.nonNull(graphql.String) }),
     clientPhone: graphql.arg({ type: graphql.String }),
     clientNotes: graphql.arg({ type: graphql.String }),
+    clientId: graphql.arg({ type: graphql.ID }),
     policyAccepted: graphql.arg({ type: graphql.Boolean }),
     policyVersion: graphql.arg({ type: graphql.String }),
     requestKey: graphql.arg({ type: graphql.String }),
@@ -279,10 +286,12 @@ export const bookAppointment = graphql.field({
     const clientPhone = args.clientPhone?.trim() || "";
     const start = new Date(args.startTime);
     const isOperator = permissions.canManageAppointments({ session: context.session as any });
+    const clientId = args.clientId?.trim() || "";
+    if (clientId && !isOperator) return { success: false, appointmentId: null, error: "You must be an authorized salon operator" };
     const policy = bookingPolicy();
     if (!isOperator && !hasCurrentBookingPolicyAffirmation(args.policyAccepted, args.policyVersion, policy.version)) return { success: false, appointmentId: null, error: "Read and accept the current booking policy before reserving" };
     if (args.requestKey && (args.requestKey.length < 12 || args.requestKey.length > 160)) return { success: false, appointmentId: null, error: "Booking request key is invalid" };
-    const requestHash = createHash("sha256").update(JSON.stringify({ serviceIds: [...serviceIds].sort(), stylistId: args.stylistId, locationId: args.locationId || null, startTime: args.startTime, clientName, clientEmail, clientPhone, notes: args.clientNotes || "", policyVersion: args.policyVersion || null })).digest("hex");
+    const requestHash = createHash("sha256").update(JSON.stringify({ serviceIds: [...serviceIds].sort(), stylistId: args.stylistId, locationId: args.locationId || null, startTime: args.startTime, clientId, clientName, clientEmail, clientPhone, notes: args.clientNotes || "", policyVersion: args.policyVersion || null })).digest("hex");
     const requestKey = createHash("sha256").update(`${context.session?.itemId || "guest"}:${args.requestKey || requestHash}`).digest("hex");
 
     if (serviceIds.length === 0) {
@@ -294,8 +303,11 @@ export const bookAppointment = graphql.field({
     if (!clientName || clientName.length > 120) {
       return { success: false, appointmentId: null, error: "Client name is required" };
     }
-    if (!clientEmail || clientEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    if (clientEmail ? clientEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) : !isOperator) {
       return { success: false, appointmentId: null, error: "A valid email address is required" };
+    }
+    if (isOperator && !clientEmail && !clientPhone && !clientId) {
+      return { success: false, appointmentId: null, error: "Add a phone number or email for the client" };
     }
     if (clientPhone.length > 40 || (args.clientNotes?.length || 0) > 2_000) {
       return { success: false, appointmentId: null, error: "Booking contact details are too long" };
@@ -340,7 +352,9 @@ export const bookAppointment = graphql.field({
           throw new Error("Selected practitioner is not qualified for every booked service");
         }
         const resourceId = selectedSlot.resourceId;
-        const client = await resolveAuthorizedClient(
+        const chosen = clientId ? await sudo.query.Client.findOne({ where: { id: clientId }, query: "id user { id name email phone }" }) : null;
+        if (clientId && !chosen) throw new Error("Client not found");
+        const client = chosen ?? await resolveAuthorizedClient(
           sudo,
           { name: clientName, email: clientEmail, phone: clientPhone },
           isOperator ? undefined : context.session?.itemId,
@@ -443,7 +457,7 @@ export const bookAppointment = graphql.field({
         return { appointmentId: appointment.id, duration, services, stylistName, timezone: location.timezone, replayed: false };
       });
 
-      if (booking.replayed) return { success: true, appointmentId: booking.appointmentId, error: null };
+      if (booking.replayed || !clientEmail) return { success: true, appointmentId: booking.appointmentId, error: null };
       try {
         const dateStr = start.toLocaleDateString("en-US", {
           timeZone: booking.timezone,

@@ -152,7 +152,7 @@ export async function completeAppointmentCheckoutTransaction(
         where: { id: args.appointmentId },
         query: `
           id status startTime metadata depositAmount depositPaid payment { id } transaction { id } location { id name isActive timezone }
-          client { id lifetimeValue totalVisits guestEmail user { id email } }
+          client { id lifetimeValue totalVisits guestEmail homeLocation { id } user { id email } }
           stylist { id baseCommissionRate user { id } }
           lineItems { id serviceTitle serviceImagePath price quantity duration service { id } staff { id baseCommissionRate } }
         `,
@@ -352,7 +352,7 @@ export async function completeAppointmentCheckoutTransaction(
         }, query: "id" });
       }
       if (appointment.client?.id) {
-        await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { lifetimeValue: (appointment.client.lifetimeValue || 0) + taxable, totalVisits: (appointment.client.totalVisits || 0) + 1, lastVisit: now }, query: "id" });
+        await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { lifetimeValue: (appointment.client.lifetimeValue || 0) + taxable, totalVisits: (appointment.client.totalVisits || 0) + 1, lastVisit: now, ...(!appointment.client.homeLocation?.id && appointment.location?.id ? { homeLocation: { connect: { id: appointment.location.id } } } : {}) }, query: "id" });
       }
       const appointmentMetadata = appointment.metadata && typeof appointment.metadata === "object" ? appointment.metadata as Record<string, any> : {};
       const transitionHistory = Array.isArray(appointmentMetadata.transitionHistory) ? appointmentMetadata.transitionHistory.slice(-49) : [];

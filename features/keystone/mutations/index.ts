@@ -14,7 +14,8 @@ import { processAppointmentDeposit, transitionAppointment } from "./appointmentW
 import { redeemClientPackage } from "./packageWorkflows";
 import { joinWaitlist, transitionWaitlistEntry } from "./waitlistWorkflows";
 import { setStylistScheduleAvailability, upsertStylistSchedule } from "./scheduleWorkflows";
-import { payoutCommissions } from "./commissionWorkflows";
+import { payoutCommissions, payoutGratuities } from "./commissionWorkflows";
+import { submitAppointmentReview, updateClientCareProfile } from "./clientCareWorkflows";
 import { adjustSalonInventory } from "./inventoryWorkflows";
 import { setSalonResourceAvailability } from "./resourceWorkflows";
 import { scheduleAppointmentSegments, transitionAppointmentSegment } from "./segmentSchedulingWorkflows";
@@ -60,6 +61,9 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     upsertStylistSchedule,
     setStylistScheduleAvailability,
     payoutCommissions,
+    payoutGratuities,
+    updateClientCareProfile,
+    submitAppointmentReview,
     adjustSalonInventory,
     setSalonResourceAvailability,
     scheduleAppointmentSegments,

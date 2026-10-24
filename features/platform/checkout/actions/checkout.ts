@@ -81,8 +81,8 @@ export interface CheckoutAppointment {
     staff?: { id: string; baseCommissionRate?: number | null; user?: { name?: string | null } | null } | null;
     service?: { id: string; name?: string | null; price?: number | null; basePrice?: number | null } | null;
   }[];
-  payment?: { id: string; totalAmount?: number | null; tip?: number | null; tax?: number | null; discount?: number | null; status?: string | null; paymentMethod?: string | null } | null;
-  transaction?: { id: string; status?: string | null; paymentStatus?: string | null; paymentMethod?: string | null } | null;
+  payment?: { id: string; subtotal?: number | null; totalAmount?: number | null; tip?: number | null; tax?: number | null; discount?: number | null; status?: string | null; paymentMethod?: string | null } | null;
+  transaction?: { id: string; status?: string | null; paymentStatus?: string | null; paymentMethod?: string | null; lineItems?: { id: string; itemType?: string | null; quantity?: number | null; unitPrice?: number | null; discount?: number | null; service?: { name?: string | null } | null; product?: { name?: string | null } | null; staff?: { user?: { name?: string | null } | null } | null }[] } | null;
   clientPackages?: CheckoutPackageBenefit[];
   clientMemberships?: CheckoutMembershipBenefit[];
 }
@@ -195,8 +195,8 @@ const CHECKOUT_APPOINTMENT_QUERY = `
     staff { id baseCommissionRate user { name } }
     service { id }
   }
-  payment { id totalAmount tip tax discount status paymentMethod }
-  transaction { id status paymentStatus paymentMethod }
+  payment { id subtotal totalAmount tip tax discount status paymentMethod }
+  transaction { id status paymentStatus paymentMethod lineItems { id itemType quantity unitPrice discount service { name } product { name } staff { user { name } } } }
 `;
 
 const CLIENT_PACKAGE_QUERY = `
