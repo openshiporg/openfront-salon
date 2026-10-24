@@ -9,7 +9,7 @@ import type { MovementReceipt } from '@/features/keystone/inventory/movementRece
 export type SalonManagementKind = 'client' | 'staff' | 'location' | 'resource' | 'product' | 'service' | 'category';
 export interface SalonManagementOption { id: string; name: string; isActive?: boolean | null; status?: string | null; user?: { name?: string | null } | null }
 export interface SalonManagementRecord {
-  id: string; bio?: string | null; depositRequired?: boolean | null; depositAmount?: number | null; requiresConsultation?: boolean | null; requiresPatchTest?: boolean | null;
+  id: string; bio?: string | null; bufferMinutes?: number | null; depositRequired?: boolean | null; depositAmount?: number | null; requiresConsultation?: boolean | null; requiresPatchTest?: boolean | null;
   photo?: { id: string; imagePath?: string | null; image?: { url?: string | null } | null } | null; image?: { id: string; imagePath?: string | null; image?: { url?: string | null } | null } | null; name?: string | null; isActive?: boolean | null; status?: string | null;
   address?: string | null; city?: string | null; state?: string | null; zipCode?: string | null; phone?: string | null; email?: string | null;
   slug?: string | null; sku?: string | null; type?: string | null; capacity?: number | null; price?: number | null; basePrice?: number | null;
@@ -153,6 +153,7 @@ export async function saveSalonRecordFromWorkspace(formData: FormData): Promise<
         input.depositAmount = formInteger(formData, 'depositAmount');
         input.requiresConsultation = formBoolean(formData, 'requiresConsultation');
         input.requiresPatchTest = formBoolean(formData, 'requiresPatchTest');
+        if (formData.has('bufferMinutes')) input.bufferMinutes = formInteger(formData, 'bufferMinutes', 15);
       }
       { const imageId = await uploadPublicImage(formData.get('image'), formText(formData, 'name')); if (imageId === false) return { success: false, error: 'The image could not be uploaded. Use a PNG, JPG or WebP under 8 MB.' }; if (imageId) input.imageId = imageId; }
       break;

@@ -806,6 +806,7 @@ type Service {
   name: String
   description: String
   baseDuration: Int
+  bufferMinutes: Int
   price: Int
   basePrice: Int
   depositRequired: Boolean
@@ -849,6 +850,7 @@ input ServiceWhereInput {
   name: StringFilter
   description: StringFilter
   baseDuration: IntFilter
+  bufferMinutes: IntNullableFilter
   price: IntFilter
   basePrice: IntNullableFilter
   depositRequired: BooleanFilter
@@ -920,6 +922,7 @@ input ServiceOrderByInput {
   name: OrderDirection
   description: OrderDirection
   baseDuration: OrderDirection
+  bufferMinutes: OrderDirection
   price: OrderDirection
   basePrice: OrderDirection
   depositRequired: OrderDirection
@@ -935,6 +938,7 @@ input ServiceUpdateInput {
   name: String
   description: String
   baseDuration: Int
+  bufferMinutes: Int
   price: Int
   basePrice: Int
   depositRequired: Boolean
@@ -1005,6 +1009,7 @@ input ServiceCreateInput {
   name: String
   description: String
   baseDuration: Int
+  bufferMinutes: Int
   price: Int
   basePrice: Int
   depositRequired: Boolean

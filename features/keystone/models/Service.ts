@@ -64,6 +64,15 @@ export const Service = list({
       },
     }),
 
+    // Turnover after this service before the stylist's next booking (none after a blowout, more after colour).
+    bufferMinutes: integer({
+      defaultValue: 15,
+      validation: { min: 0, max: 120 },
+      ui: {
+        description: "Minutes kept free after this service before the next booking",
+      },
+    }),
+
     // Price in cents for consistency with other models
     price: integer({
       validation: { isRequired: true },

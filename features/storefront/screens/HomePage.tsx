@@ -34,7 +34,7 @@ export async function HomePage() {
   const activeStylists = stylists.filter((stylist) => stylist.isActive)
   const serviceCount = categories.reduce((sum, category) => sum + (category.services?.length || 0), 0)
   const averageRating = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : null
-  const status = openStatus(brand.hours, brand.timezone)
+  const status = openStatus(brand.hours, brand.timezone, new Date(), stylists)
   const hours = publishedHours(brand.hours)
   const bookable = stylists.length ? bookableHours(stylists, "short") : null
   const quotes = reviews.filter((review) => review.comment).slice(0, 3)

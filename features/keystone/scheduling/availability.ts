@@ -3,6 +3,14 @@ import { BOOKING_BUFFER_MINUTES, resourceCapacityAvailable } from "./occupancy";
 import { resolveBookableServiceResource } from "./resource-requirements";
 export { BOOKING_BUFFER_MINUTES } from "./occupancy";
 
+export const MAX_BUFFER_MINUTES = 120;
+
+/** The turnover after a booking is the longest buffer among its services; services without one use the salon default. */
+export function serviceBuffer(services: ReadonlyArray<{ bufferMinutes?: number | null }> | null | undefined) {
+  const values = (services || []).map((service) => service.bufferMinutes).filter((value): value is number => Number.isInteger(value) && value! >= 0);
+  return values.length ? Math.min(MAX_BUFFER_MINUTES, Math.max(...values)) : BOOKING_BUFFER_MINUTES;
+}
+
 const SLOT_INTERVAL_MINUTES = 30;
 const ACTIVE_APPOINTMENT_STATUSES = ["pending", "confirmed", "in_progress"] as const;
 const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
@@ -229,15 +237,17 @@ export async function computeStylistAvailability({
   const blocks = exact.filter((schedule) => !schedule.isAvailable && (schedule.type === "time_off" || schedule.type === "one_time"));
 
   const { start: dayStart, end: dayEnd } = zonedDayWindow(dateKey, timezone);
+  // Appointments that ended up to the largest allowed buffer before the day can still hold the stylist.
+  const lookback = new Date(dayStart.getTime() - MAX_BUFFER_MINUTES * 60_000).toISOString();
   const appointments = await sudo.query.Appointment.findMany({
     where: {
       stylist: { id: { equals: stylistId } },
       ...(excludeAppointmentId ? { NOT: { id: { equals: excludeAppointmentId } } } : {}),
       startTime: { lt: dayEnd.toISOString() },
-      OR: [{ endTime: { gt: new Date(dayStart.getTime() - BOOKING_BUFFER_MINUTES * 60_000).toISOString() } }, { endTime: null }],
+      OR: [{ endTime: { gt: lookback } }, { endTime: null }],
       status: { in: [...ACTIVE_APPOINTMENT_STATUSES] },
     }, take: 2000,
-    query: "id startTime duration segments(where: { status: { in: [planned, started] } }) { id }",
+    query: "id startTime duration services { bufferMinutes } segments(where: { status: { in: [planned, started] } }) { id }",
   });
   const resourceAppointments = await sudo.query.Appointment.findMany({
     where: {
@@ -256,8 +266,9 @@ export async function computeStylistAvailability({
   if (appointments.length >= 2000 || resourceAppointments.length >= 2000 || segments.length >= 5000) throw new Error("Schedule is too large to safely evaluate; narrow the operating window");
   const services = serviceIds.length ? await sudo.query.Service.findMany({
     where: { id: { in: [...new Set(serviceIds)] }, status: { equals: "active" } },
-    query: "id specialists { id } requiredResources { id name capacity isActive location { id } }",
+    query: "id bufferMinutes specialists { id } requiredResources { id name capacity isActive location { id } }",
   }) : [];
+  const candidateBuffer = serviceBuffer(services);
   if (serviceIds.length && services.length !== new Set(serviceIds).size) throw new Error("A selected service is unavailable");
   if (services.some((service: any) => !service.specialists.some((person: any) => person.id === stylistId))) throw new Error("Practitioner is not qualified for the selected service");
   const requiredResource = resolveBookableServiceResource(services, locationId);
@@ -279,7 +290,7 @@ export async function computeStylistAvailability({
     try { instant = zonedDateTimeToUtc(dateKey, slotStart, timezone).getTime(); } catch { continue; }
     if (instant <= Date.now() || instant > Date.now() + 366 * 86400_000) continue;
     if (!withinLocationHours(hours, requestedWeekday, slotStart, serviceEnd)) continue;
-    const instantEnd = instant + (serviceDuration + BOOKING_BUFFER_MINUTES) * 60_000;
+    const instantEnd = instant + (serviceDuration + candidateBuffer) * 60_000;
     const breakStart = schedule.breakStart ? timeToMinutes(schedule.breakStart) : null;
     const breakEnd = schedule.breakEnd ? timeToMinutes(schedule.breakEnd) : null;
     // The turnover buffer separates bookings; a service may end right as a break or time off starts.
@@ -291,7 +302,7 @@ export async function computeStylistAvailability({
     const appointmentConflict = appointments.some((appointment: any) => {
       if (appointment.segments?.length) return false;
       const appointmentStart = new Date(appointment.startTime).getTime();
-      return overlap(instant, instantEnd, appointmentStart, appointmentStart + (Number(appointment.duration || serviceDuration) + BOOKING_BUFFER_MINUTES) * 60_000);
+      return overlap(instant, instantEnd, appointmentStart, appointmentStart + (Number(appointment.duration || serviceDuration) + serviceBuffer(appointment.services)) * 60_000);
     }) || segments.some((segment: any) => segment.practitioner?.id === stylistId && overlap(instant, instantEnd, new Date(segment.plannedStart).getTime(), new Date(segment.plannedEnd).getTime() + BOOKING_BUFFER_MINUTES * 60_000));
 
     let selectedResource: any = null;

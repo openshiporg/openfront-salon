@@ -11,7 +11,7 @@ const config = {
   location: { list: "Location", permission: permissions.canManageSalon, fields: ["name", "address", "city", "state", "zipCode", "phone", "email", "timezone", "hours", "isActive"] },
   resource: { list: "SalonResource", permission: permissions.canManageResources, fields: ["name", "type", "locationId", "capacity", "isActive"] },
   product: { list: "Product", permission: permissions.canManageInventory, fields: ["name", "sku", "price", "cost", "reorderPoint", "category", "description", "isActive"] },
-  service: { list: "Service", permission: permissions.canManageCatalog, fields: ["name", "description", "price", "baseDuration", "status", "categoryId", "specialistIds", "resourceIds", "depositRequired", "depositAmount", "requiresConsultation", "requiresPatchTest", "imageId", "pricingTier"] },
+  service: { list: "Service", permission: permissions.canManageCatalog, fields: ["name", "description", "price", "baseDuration", "status", "categoryId", "specialistIds", "resourceIds", "depositRequired", "depositAmount", "requiresConsultation", "requiresPatchTest", "imageId", "pricingTier", "bufferMinutes"] },
   category: { list: "ServiceCategory", permission: permissions.canManageCatalog, fields: ["name", "slug", "description", "displayOrder", "sortOrder", "isVisible"] },
 } as const;
 type Kind = keyof typeof config;
@@ -20,7 +20,7 @@ function ids(value: unknown) { if (!Array.isArray(value) || value.length > 100 |
 function text(value: unknown, required = false) { const result = typeof value === "string" ? value.trim() : ""; if ((required && !result) || result.length > 2000) throw new Error("A required text field is missing or too long"); return result; }
 function integer(value: unknown, minimum = 0) { if (!Number.isSafeInteger(value) || Number(value) < minimum || Number(value) > 10_000_000) throw new Error("Use a valid integer amount or quantity"); return Number(value); }
 function stable(value: unknown): unknown { if (Array.isArray(value)) return value.map(stable); if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, child]) => [key, stable(child)])); return value; }
-const SAFE_MANAGEMENT_ERRORS = new Set(["A required text field is missing or too long", "Relationship selection is invalid", "Use a valid integer amount or quantity", "A valid operation key is required", "Operation input is invalid", "This operation cannot edit the supplied field", "Record not found", "A valid client or staff email is required", "An account already uses that email; do not merge identities without verified ownership", "A valid timezone is required", "Location email is invalid", "Location activity must be boolean", "Location hours are invalid", "Provide valid hours for every weekday", "Timezone changes require explicit schedule migration", "Reschedule active resource reservations before changing capacity or location", "Reschedule active bookings before removing a staff location", "Resource activity must be boolean", "Resource type is invalid", "Product activity must be boolean", "Service status is invalid", "Service duration cannot exceed eight hours", "Staff status is invalid", "Staff location is required", "Staff member has active reservations and cannot be deactivated", "Commission authority is required to change staff compensation", "Category slug is invalid", "Category visibility must be boolean", "Category not found", "Location selection was not found", "Service selection was not found", "Stylist selection was not found", "SalonResource selection was not found", "ServiceCategory selection was not found", "Location has active reservations and cannot be disabled", "A supported role is required", "SalonImage selection was not found", "Deposit cannot exceed the service price", "Service flags must be boolean"]);
+const SAFE_MANAGEMENT_ERRORS = new Set(["A required text field is missing or too long", "Relationship selection is invalid", "Use a valid integer amount or quantity", "A valid operation key is required", "Operation input is invalid", "This operation cannot edit the supplied field", "Record not found", "A valid client or staff email is required", "An account already uses that email; do not merge identities without verified ownership", "A valid timezone is required", "Location email is invalid", "Location activity must be boolean", "Location hours are invalid", "Provide valid hours for every weekday", "Timezone changes require explicit schedule migration", "Reschedule active resource reservations before changing capacity or location", "Reschedule active bookings before removing a staff location", "Resource activity must be boolean", "Resource type is invalid", "Product activity must be boolean", "Service status is invalid", "Service duration cannot exceed eight hours", "Staff status is invalid", "Staff location is required", "Staff member has active reservations and cannot be deactivated", "Commission authority is required to change staff compensation", "Category slug is invalid", "Category visibility must be boolean", "Category not found", "Location selection was not found", "Service selection was not found", "Stylist selection was not found", "SalonResource selection was not found", "ServiceCategory selection was not found", "Location has active reservations and cannot be disabled", "A supported role is required", "SalonImage selection was not found", "Deposit cannot exceed the service price", "Service flags must be boolean", "Buffer cannot exceed two hours"]);
 
 export async function saveSalonRecordTransaction(context: Context, args: { kind: string; id?: string | null; input: unknown; idempotencyKey: string }) {
   const kind = args.kind as Kind, definition = Object.hasOwn(config, args.kind) ? config[kind] : undefined;
@@ -186,6 +186,11 @@ export async function saveSalonRecordTransaction(context: Context, args: { kind:
           data.depositAmount = depositAmount;
         }
         if (input.imageId) data.image = await connect("SalonImage", input.imageId);
+        if (input.bufferMinutes !== undefined && input.bufferMinutes !== null && input.bufferMinutes !== "") {
+          const buffer = integer(input.bufferMinutes);
+          if (buffer > 120) throw new Error("Buffer cannot exceed two hours");
+          data.bufferMinutes = buffer;
+        }
         if (input.pricingTier !== undefined) {
           if (!input.pricingTier || typeof input.pricingTier !== "object" || Array.isArray(input.pricingTier)) throw new Error("Operation input is invalid");
           const tiers: Record<string, number> = {};
@@ -225,7 +230,7 @@ export const salonManagementWorkspace = graphql.field({ type: graphql.JSON, args
     location: "id name address city state zipCode phone email timezone hours isActive",
     resource: "id name type capacity isActive location { id }",
     product: "id name sku price cost reorderPoint category description isActive",
-    service: "id name description price basePrice baseDuration status depositRequired depositAmount requiresConsultation requiresPatchTest image { id imagePath image { url } } category { id } specialists { id } requiredResources { id }",
+    service: "id name description price basePrice baseDuration bufferMinutes status depositRequired depositAmount requiresConsultation requiresPatchTest image { id imagePath image { url } } category { id } specialists { id } requiredResources { id }",
     category: "id name slug description displayOrder sortOrder isVisible",
   };
   return { records: await query[definition.list].findMany({ take: 100, orderBy: { createdAt: "desc" }, query: selections[kind as Kind] }),

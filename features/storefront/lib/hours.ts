@@ -62,8 +62,28 @@ export interface OpenStatus {
   todayKey: string | null
 }
 
-/** Open/closed right now in the salon's own timezone, from published hours. */
-export function openStatus(hours: LocationHours | null, timezone?: string | null, now = new Date()): OpenStatus | null {
+/**
+ * Open/closed right now in the salon's own timezone, from published hours. With the
+ * roster, an open salon whose last bookable shift ends earlier says so.
+ */
+export function openStatus(hours: LocationHours | null, timezone?: string | null, now = new Date(), roster?: RosterStylist[]): OpenStatus | null {
+  const status = publishedOpenStatus(hours, timezone, now)
+  if (!status?.open || !roster?.length || !status.todayKey) return status
+  const current = zonedParts(now, timezone)
+  const dayOfWeek = (WEEK.indexOf(status.todayKey as (typeof WEEK)[number]) + 1) % 7
+  const ends = roster.filter((stylist) => stylist.isActive !== false).flatMap((stylist) => stylist.schedules || [])
+    .filter((block) => block.isAvailable && block.dayOfWeek === dayOfWeek && block.endTime).map((block) => toMinutes(block.endTime)!).filter((value) => value !== null)
+  const lastEnd = ends.length ? Math.max(...ends) : null
+  const closeAt = toMinutes(hours?.[status.todayKey as (typeof WEEK)[number]]?.close)
+  if (lastEnd === null || (current && current.minutes >= lastEnd)) return { ...status, label: "Open · no appointments left today" }
+  if (closeAt !== null && lastEnd < closeAt) {
+    const hh = Math.floor(lastEnd / 60), mm = lastEnd % 60
+    return { ...status, label: `Open · appointments until ${formatClock(`${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`, "short")}` }
+  }
+  return status
+}
+
+function publishedOpenStatus(hours: LocationHours | null, timezone?: string | null, now = new Date()): OpenStatus | null {
   if (!hours) return null
   const current = zonedParts(now, timezone)
   if (!current) return null

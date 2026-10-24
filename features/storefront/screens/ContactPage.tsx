@@ -18,7 +18,7 @@ export async function ContactPage() {
   const [brand, stylists] = await Promise.all([getStorefrontBrand(), getAllStylists().catch(() => [])])
   const hours = publishedHours(brand.hours)
   const bookable = stylists.length ? bookableHours(stylists) : null
-  const status = openStatus(brand.hours, brand.timezone)
+  const status = openStatus(brand.hours, brand.timezone, new Date(), stylists)
   const mapsHref = brand.addressLine ? `https://maps.google.com/?q=${encodeURIComponent(brand.addressLine)}` : null
 
   return (

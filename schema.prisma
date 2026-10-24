@@ -128,6 +128,7 @@ model Service {
   name                                  String                     @default("")
   description                           String                     @default("")
   baseDuration                          Int
+  bufferMinutes                         Int?                       @default(15)
   price                                 Int
   basePrice                             Int?
   depositRequired                       Boolean                    @default(false)
