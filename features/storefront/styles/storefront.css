@@ -614,12 +614,11 @@ a:hover .sf-media > img {
 @media (min-width: 960px) {
   .sf-hero {
     min-height: min(52rem, calc(100dvh - 4.25rem));
-    display: flex;
-    align-items: center;
+    display: grid;
+    align-content: center;
   }
 
   .sf-hero-grid {
-    width: 100%;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     align-items: center;
   }
@@ -689,7 +688,7 @@ a:hover .sf-media > img {
 .sf-hero-media .sf-arch {
   position: absolute;
   left: 0;
-  bottom: -1.5rem;
+  bottom: 1.25rem;
   width: 42%;
   aspect-ratio: 3 / 4.2;
   box-shadow: 0 0 0 6px var(--sf-paper), var(--sf-shadow-card);
