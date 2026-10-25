@@ -30,7 +30,7 @@ export async function ReviewsPage() {
   return (
     <div className="sf-page-pad">
       <div className="sf-container">
-        <PageIntro title={<>Client <em>reviews</em></>} size="large" />
+        <PageIntro title={<>Client reviews</>} size="large" />
 
         {reviews.length === 0 ? (
           <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">

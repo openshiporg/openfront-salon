@@ -343,7 +343,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
           <div className="sf-ticket overflow-hidden">
             <div className="p-[var(--sf-space-md)] text-center md:p-[var(--sf-space-lg)]">
               <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"><Check className="h-6 w-6" aria-hidden="true" /></span>
-              <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking <em>received</em></h1>
+              <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking received</h1>
               <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Booked under <span className="font-semibold text-[var(--sf-ink)]">{clientInfo.email}</span></p>
             </div>
             <div className="sf-ticket-perf" />
@@ -369,7 +369,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     <div className="sf-page-pad !pt-[var(--sf-space-lg)]">
       <div className="sf-container">
         <div className="mb-[var(--sf-space-lg)] flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Book an <em>appointment</em></h1>
+          <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Book an appointment</h1>
           <Link className="sf-link text-[length:var(--sf-text-sm)]" href="/account">{bookingContext?.client ? `Signed in as ${bookingContext.client.name}` : "Client sign in"}</Link>
         </div>
 

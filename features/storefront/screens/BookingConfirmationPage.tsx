@@ -48,7 +48,7 @@ export async function BookingConfirmationPage({ params }: Props) {
         <div className="sf-ticket overflow-hidden">
           <div className="p-[var(--sf-space-md)] text-center md:p-[var(--sf-space-lg)]">
             <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"><Check className="h-6 w-6" aria-hidden="true" /></span>
-            <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking <em>received</em></h1>
+            <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking received</h1>
             {client?.email ? <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Account email · <span className="font-semibold text-[var(--sf-ink)]">{client.email}</span></p> : null}
           </div>
           <div className="sf-ticket-perf" />

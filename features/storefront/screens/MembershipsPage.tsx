@@ -17,7 +17,7 @@ export async function MembershipsPage() {
 
   return (
     <div className="sf-page-pad"><div className="sf-container">
-      <PageIntro title={<>Memberships <em>&amp;</em> packages</>} size="large" />
+      <PageIntro title={<>Memberships &amp; packages</>} size="large" />
       {!benefits ? <p role="alert" className="sf-alert">Plans couldn&apos;t be loaded. Try again.</p>
         : memberships.length === 0 && packages.length === 0 ? (
           <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-xl)] text-center"><p className="sf-display mb-5 text-[length:var(--sf-text-xl)]">No plans on offer right now</p><div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div></div>

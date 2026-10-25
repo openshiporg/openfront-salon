@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export async function GiftCardsPage() {
   return <div className="sf-page-pad"><div className="sf-container">
-    <PageIntro title={<>Gift <em>cards</em></>} size="large" />
+    <PageIntro title={<>Gift cards</>} size="large" />
     <section className="sf-ticket max-w-2xl overflow-hidden">
       <div className="flex items-center gap-5 p-[var(--sf-space-md)] md:p-[var(--sf-space-lg)]">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--sf-accent-soft)] text-[var(--sf-accent-deep)]"><Gift className="h-6 w-6" aria-hidden="true" /></span>

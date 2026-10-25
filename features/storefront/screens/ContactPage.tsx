@@ -26,7 +26,7 @@ export async function ContactPage() {
       <div className="sf-container">
         <PageIntro
           eyebrow={status ? <span className="sf-status !text-[length:var(--sf-text-sm)] !normal-case !tracking-normal"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : undefined}
-          title={<>Visit <em>&amp;</em> hours</>}
+          title={<>Visit &amp; hours</>}
           size="large"
         />
 

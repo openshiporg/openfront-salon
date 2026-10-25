@@ -23,7 +23,7 @@ export async function GalleryPage() {
     <div className="sf-page-pad">
       <div className="sf-container">
         <PageIntro
-          title={<>The <em>work</em></>}
+          title={<>The work</>}
           size="large"
           aside={<div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div>}
         />

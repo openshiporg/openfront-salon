@@ -22,7 +22,7 @@ export async function StylistsPage() {
       <div className="sf-container">
         <PageIntro
           eyebrow={stylists.length ? `${stylists.length} ${stylists.length === 1 ? "stylist" : "stylists"}` : undefined}
-          title={<>The <em>stylists</em></>}
+          title={<>The stylists</>}
           size="large"
         />
 

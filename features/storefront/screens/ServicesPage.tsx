@@ -22,7 +22,7 @@ export async function ServicesPage() {
       <div className="sf-container">
         <PageIntro
           eyebrow={total ? `${total} ${total === 1 ? "service" : "services"}` : undefined}
-          title={<>Service <em>menu</em></>}
+          title={<>Service menu</>}
           size="large"
           aside={total ? <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div> : null}
         />

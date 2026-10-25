@@ -23,7 +23,8 @@ export default function Footer({ brand }: { brand: StorefrontBrand }) {
       <div className="sf-container py-[var(--sf-space-2xl)]">
         <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <div>
-            <p className="sf-footer-title">{brand.configured ? <>Book a <em className="sf-italic">visit</em></> : "Opening soon"}</p>
+            <span className="sf-footer-bar mb-8 w-40" aria-hidden="true">{[1, 2, 3, 4, 5, 6].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}</span>
+            <p className="sf-footer-title">{brand.configured ? "Book a visit" : "Opening soon"}</p>
             {brand.configured ? (
               <div className="sf-track mt-8">
                 <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
@@ -63,7 +64,7 @@ export default function Footer({ brand }: { brand: StorefrontBrand }) {
           </div>
         </div>
 
-        <hr className="sf-rule my-[var(--sf-space-lg)]" />
+        <hr className="sf-rule my-[var(--sf-space-xl)]" />
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />

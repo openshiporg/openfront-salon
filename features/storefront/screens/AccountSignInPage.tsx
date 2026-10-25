@@ -15,7 +15,7 @@ export function AccountSignInPage({ error, email = "", consultationUnresolved = 
   consultationAttempt?: ConsultationRetryAttempt | null;
 }) {
   return <div className="sf-page-pad"><div className="sf-container-narrow"><form action={portalSignIn} className="sf-ticket mx-auto grid max-w-md gap-5 p-[var(--sf-space-md)] md:p-[var(--sf-space-lg)]">
-    <div><p className="sf-kicker mb-3">Client account</p><h1 className="sf-display text-[length:var(--sf-text-3xl)]">Sign <em>in</em></h1></div>
+    <div><p className="sf-kicker mb-3">Client account</p><h1 className="sf-display text-[length:var(--sf-text-3xl)]">Sign in</h1></div>
     {consultationUnresolved ? <><input type="hidden" name="consultation" value="unresolved"/>{consultationAttempt ? <><input type="hidden" name="consultationTemplate" value={consultationAttempt.templateVersionId}/><input type="hidden" name="consultationKey" value={consultationAttempt.idempotencyKey}/></> : null}</> : null}
     {error && SIGN_IN_ERRORS[error] ? <p role="alert" className="sf-alert">{SIGN_IN_ERRORS[error]}</p> : null}
     <label className="sf-field">Email<input className="sf-input" name="email" type="email" autoComplete="email" defaultValue={error ? email : ""} required/></label>

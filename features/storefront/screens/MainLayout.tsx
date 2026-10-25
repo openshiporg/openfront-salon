@@ -1,4 +1,4 @@
-import { Fraunces, Hanken_Grotesk } from "next/font/google"
+import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google"
 import { Metadata } from "next"
 import type { CSSProperties } from "react"
 import Link from "next/link"
@@ -7,10 +7,10 @@ import Footer from "@/features/storefront/modules/layout/templates/footer"
 import { getStorefrontBrand, storefrontTitle } from "@/features/storefront/lib/data/brand"
 import "../styles/storefront.css"
 
-const display = Fraunces({
+const display = Bodoni_Moda({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  axes: ["SOFT", "WONK", "opsz"],
+  axes: ["opsz"],
   variable: "--font-sf-display",
 })
 

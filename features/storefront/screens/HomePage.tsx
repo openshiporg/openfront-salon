@@ -51,7 +51,7 @@ export async function HomePage() {
               {brand.city ? <span className="sf-eyebrow">{[brand.city, brand.state].filter(Boolean).join(", ")}</span> : null}
             </div>
             <h1 className="sf-display sf-hero-title">
-              {brand.name || <>Hair, color <em>&amp;</em> skin</>}
+              {brand.name || <>Hair, color &amp; skin</>}
             </h1>
             {brand.description ? <p className="sf-lead">{brand.description}</p> : null}
             <div className="sf-hero-actions">
@@ -70,7 +70,7 @@ export async function HomePage() {
           </div>
 
           <div className="sf-hero-media">
-            <figure className="sf-arch">
+            <figure className="sf-hero-floor">
               <img src={PHOTOS.interior} alt="Salon floor with mirrors and styling chairs" fetchPriority="high" />
             </figure>
             <figure className="sf-arch">
@@ -88,7 +88,7 @@ export async function HomePage() {
         <section className="sf-section !pt-[var(--sf-space-lg)]" aria-labelledby="home-categories">
           <div className="sf-container">
             <div className="sf-section-head">
-              <h2 id="home-categories" className="sf-display sf-section-title">Book by <em>category</em></h2>
+              <h2 id="home-categories" className="sf-display sf-section-title">Book by category</h2>
               <Link href="/services" className="sf-link text-[length:var(--sf-text-sm)]">Full menu</Link>
             </div>
             <div className="sf-category-grid">
@@ -101,6 +101,7 @@ export async function HomePage() {
                       <h3>{category.name}</h3>
                       <p>{category.services.length} {category.services.length === 1 ? "service" : "services"}{prices.length ? ` · from ${formatMenuPrice(Math.min(...prices))}` : ""}</p>
                     </span>
+                    <ArrowUpRight aria-hidden="true" />
                   </Link>
                 )
               })}
@@ -113,7 +114,7 @@ export async function HomePage() {
         <section className="sf-section bg-[var(--sf-paper-2)]" aria-labelledby="home-services">
           <div className="sf-container grid gap-[var(--sf-space-lg)] lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
             <div>
-              <h2 id="home-services" className="sf-display sf-section-title">Most <em>booked</em></h2>
+              <h2 id="home-services" className="sf-display sf-section-title">Most booked</h2>
               <div className="sf-track mt-6">
                 <Link href="/services" className="sf-btn">See all services</Link>
               </div>
@@ -129,7 +130,7 @@ export async function HomePage() {
         <section className="sf-section" aria-labelledby="home-artists">
           <div className="sf-container">
             <div className="sf-section-head">
-              <h2 id="home-artists" className="sf-display sf-section-title">Choose your <em>stylist</em></h2>
+              <h2 id="home-artists" className="sf-display sf-section-title">Choose your stylist</h2>
               <Link href="/team" className="sf-link text-[length:var(--sf-text-sm)]">All stylists</Link>
             </div>
             <div className="sf-artist-rail">
@@ -144,14 +145,14 @@ export async function HomePage() {
           <div className="sf-container">
             <div className="sf-section-head">
               <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
-                <h2 id="home-reviews" className="sf-display sf-section-title">{averageRating.toFixed(1)} <em>★</em></h2>
+                <h2 id="home-reviews" className="sf-display sf-section-title">{averageRating.toFixed(1)} <span className="text-[var(--sf-accent)]">★</span></h2>
                 <p className="pb-2 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{reviews.length} client {reviews.length === 1 ? "review" : "reviews"}</p>
               </div>
               <Link href="/reviews" className="sf-link text-[length:var(--sf-text-sm)]">Read reviews</Link>
             </div>
             <ul className="grid gap-4 md:grid-cols-3">
               {quotes.map((review) => (
-                <li key={review.id} className="sf-card flex flex-col gap-5 p-[var(--sf-space-md)]">
+                <li key={review.id} className="flex flex-col gap-5 border-t border-[var(--sf-rule-strong)] pt-[var(--sf-space-md)]">
                   <span className="sf-stars" aria-label={`${review.rating} out of 5 stars`}>{[0, 1, 2, 3, 4].map((index) => <Star key={index} className={index < review.rating ? "fill-current" : "opacity-25"} aria-hidden="true" />)}</span>
                   <blockquote className="sf-quote line-clamp-5 flex-1">&ldquo;{review.comment}&rdquo;</blockquote>
                   <p className="text-[length:var(--sf-text-sm)]"><span className="font-semibold">{review.reviewerName || "Client"}</span>{review.service?.name ? <span className="text-[var(--sf-ink-3)]"> · {review.service.name}</span> : null}</p>
