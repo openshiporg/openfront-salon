@@ -1,11 +1,13 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { ArrowUpRight, Star } from "lucide-react"
-import { getServicesGroupedByCategory } from "../lib/data/services"
+import { getCategoryBands, getServicesGroupedByCategory } from "../lib/data/services"
 import { getAllStylists } from "../lib/data/stylists"
 import { getApprovedReviews } from "../lib/data/reviews"
-import { ServiceCarton, bandFor } from "../components/ServiceCard"
-import { StylistCard } from "../components/StylistCard"
+import { ServiceCarton } from "../components/ServiceCard"
+import { categoryBand, serviceCodes } from "../lib/bands"
+import { getStorefrontImageSrc } from "../lib/images"
+import { StylistCard, serviceCategoryIndex } from "../components/StylistCard"
 import { getStorefrontBrand, storefrontDescription, storefrontTitle } from "../lib/data/brand"
 import { bookableHours, openStatus, publishedHours } from "../lib/hours"
 
@@ -19,15 +21,28 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function HomePage() {
-  const [categories, stylists, reviews, brand] = await Promise.all([
+  const [categories, stylists, reviews, brand, bands] = await Promise.all([
     getServicesGroupedByCategory(),
     getAllStylists(),
     getApprovedReviews(),
     getStorefrontBrand(),
+    getCategoryBands(),
   ])
 
   const activeStylists = stylists.filter((stylist) => stylist.isActive)
-  const cartons = categories.flatMap((category, index) => category.services.map((service) => ({ service, band: bandFor(index), label: category.name })))
+  // Each carton keeps its category's shade; a photo already on the wall is not shown twice.
+  const seenPhotos = new Set<string>([INTERIOR])
+  const cartons = categories.flatMap((category) => {
+    const codes = serviceCodes(category.services.map((service) => ({ id: service.id, category: { id: category.id, name: category.name } })))
+    return category.services.map((service) => {
+      const src = getStorefrontImageSrc(service.image)
+      const showImage = Boolean(src && !seenPhotos.has(src))
+      if (src) seenPhotos.add(src)
+      return { service, band: categoryBand(bands, category.id), code: codes.get(service.id), label: category.name, showImage }
+    })
+  })
+  const serviceIndex = serviceCategoryIndex(categories.flatMap((category) => category.services.map((service) => ({ id: service.id, category: { id: category.id } }))))
+  const legend = categories.map((category) => ({ id: category.id, name: category.name, band: categoryBand(bands, category.id) }))
   const averageRating = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : null
   const status = openStatus(brand.hours, brand.timezone, new Date(), stylists)
   const hours = publishedHours(brand.hours)
@@ -57,8 +72,8 @@ export async function HomePage() {
               <img src={INTERIOR} alt={brand.name ? `Inside ${brand.name}` : "Inside the salon"} fetchPriority="high" />
               {brand.locationName ? <figcaption>{brand.locationName}</figcaption> : null}
             </figure>
-            {cartons.length > 0 ? cartons.map(({ service, band, label }) => (
-              <ServiceCarton key={service.id} service={service} band={band} bandLabel={label} />
+            {cartons.length > 0 ? cartons.map(({ service, band, code, label, showImage }) => (
+              <ServiceCarton key={service.id} service={service} band={band} code={code} meta={legend.length > 1 ? label : null} showImage={showImage} />
             )) : (
               <article className="sf-carton sf-carton-empty" data-band="ink">
                 <h2 className="sf-display text-[length:var(--sf-text-xl)]">No services listed yet</h2>
@@ -67,7 +82,14 @@ export async function HomePage() {
             )}
           </div>
           {cartons.length > 0 ? (
-            <p className="mt-4 text-right"><Link href="/services" className="sf-link text-[length:var(--sf-text-sm)]">Services by category</Link></p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+              {legend.length > 1 ? (
+                <ul className="sf-legend" aria-label="Category colours">
+                  {legend.map((item) => <li key={item.id} data-band={item.band}><span className="sf-shade" aria-hidden="true" />{item.name}</li>)}
+                </ul>
+              ) : <span />}
+              <Link href="/services" className="sf-link text-[length:var(--sf-text-sm)]">Services by category</Link>
+            </div>
           ) : null}
         </div>
       </section>
@@ -80,7 +102,7 @@ export async function HomePage() {
               <Link href="/team" className="sf-link text-[length:var(--sf-text-sm)]">All stylists</Link>
             </div>
             <div className="sf-shelf-grid" data-cols="4">
-              {activeStylists.slice(0, 4).map((stylist) => <StylistCard key={stylist.id} stylist={stylist} />)}
+              {activeStylists.slice(0, 4).map((stylist) => <StylistCard key={stylist.id} stylist={stylist} bands={bands} serviceIndex={serviceIndex} />)}
             </div>
           </div>
         </section>
@@ -113,7 +135,7 @@ export async function HomePage() {
       ) : null}
 
       {brand.configured && (brand.addressLine || hours.length > 0) ? (
-        <section className="sf-shelf !pt-0" aria-labelledby="home-visit">
+        <section className={`sf-shelf ${averageRating && quotes.length > 0 ? "!pt-0" : ""}`} aria-labelledby="home-visit">
           <div className="sf-container">
             <div className="sf-section-head">
               <h2 id="home-visit" className="sf-display sf-section-title">Hours &amp; address</h2>

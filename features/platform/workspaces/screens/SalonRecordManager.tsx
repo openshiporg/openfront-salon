@@ -130,8 +130,11 @@ export function SalonRecordManager({ kind, data, extras = {}, title }: { kind: S
   const needle = query.trim().toLowerCase();
   const all = data.records || [];
   const records = all.filter((record) => !needle || [record.user?.name, record.user?.email, record.user?.phone, record.name, record.guestName, record.guestEmail, record.guestPhone, record.sku].some((value) => value?.toLowerCase().includes(needle)));
-  const columns = columnsFor(kind, data, extras);
-  const span = columns.length + 2;
+  const allColumns = columnsFor(kind, data, extras);
+  // Below md the status sits second, straight after the name, so a phone never scrolls to find it.
+  const statusColumn = allColumns.find((column) => column.label === 'Status') || null;
+  const columns = allColumns.map((column) => column === statusColumn ? { ...column, className: `${column.className || ''} hidden md:table-cell` } : column);
+  const span = columns.length + 2 + (statusColumn ? 1 : 0);
 
   return (
     <section aria-labelledby={`management-${kind}-title`} id={`management-${kind}`} className="grid min-w-0 scroll-mt-20 gap-2">
@@ -154,6 +157,7 @@ export function SalonRecordManager({ kind, data, extras = {}, title }: { kind: S
           <thead>
             <tr>
               <th scope="col" className={thClass}>{kind === 'staff' ? 'Name' : kind === 'client' ? 'Client' : labelize(kind)}</th>
+              {statusColumn ? <th scope="col" className={`${thClass} md:hidden`}>Status</th> : null}
               {columns.map((column) => <th key={column.label} scope="col" className={`${thClass} ${column.className || ''}`}>{column.label}</th>)}
               <th scope="col" className={`${thClass} w-px`}><span className="sr-only">Actions</span></th>
             </tr>
@@ -173,6 +177,7 @@ export function SalonRecordManager({ kind, data, extras = {}, title }: { kind: S
                       {href ? <a href={href} className="font-medium underline-offset-4 hover:underline">{label}</a> : <span className="font-medium">{label}</span>}
                       {sub ? <span className="block truncate text-xs text-muted-foreground">{sub}</span> : null}
                     </td>
+                    {statusColumn ? <td className={`${tdClass} md:hidden`}>{statusColumn.cell(record)}</td> : null}
                     {columns.map((column) => <td key={column.label} className={`${tdClass} ${column.className || ''}`}>{column.cell(record)}</td>)}
                     <td className={`${tdClass} text-right`}>
                       <button type="button" onClick={() => { setEditing(activeEdit ? null : record.id); setAdding(false); }} className={pillClass('quiet', 'sm')} aria-expanded={activeEdit} aria-label={`${activeEdit ? 'Cancel editing' : 'Edit'} ${label}`}>

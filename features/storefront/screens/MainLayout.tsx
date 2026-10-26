@@ -46,7 +46,7 @@ export function MainNotFound() {
   return (
     <div className="sf-container sf-page-pad-lg">
       <div className="sf-carton mx-auto max-w-md" data-band="ink">
-        <div className="sf-carton-band"><span>Not on the shelf</span><span className="sf-shade" aria-hidden="true" /></div>
+        <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
         <div className="sf-carton-body gap-5">
           <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Page not found</h1>
           <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">The link may be old, or the page was moved.</p>

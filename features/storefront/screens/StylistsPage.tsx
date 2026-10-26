@@ -1,7 +1,8 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { StylistCard } from "../components/StylistCard"
+import { StylistCard, serviceCategoryIndex } from "../components/StylistCard"
 import { getAllStylists } from "../lib/data/stylists"
+import { getAllServices, getCategoryBands } from "../lib/data/services"
 import { PageIntro } from "../components/ui/PageIntro"
 import { getStorefrontBrand, storefrontTitle } from "../lib/data/brand"
 
@@ -14,7 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function StylistsPage() {
-  const stylists = await getAllStylists()
+  const [stylists, bands, catalog] = await Promise.all([getAllStylists(), getCategoryBands(), getAllServices()])
+  const serviceIndex = catalog.status === "available" ? serviceCategoryIndex(catalog.items) : null
 
   return (
     <div className="sf-page-pad">
@@ -31,7 +33,7 @@ export async function StylistsPage() {
           </div>
         ) : (
           <div className="sf-shelf-grid" data-cols="4">
-            {stylists.map((stylist) => <StylistCard key={stylist.id} stylist={stylist} />)}
+            {stylists.map((stylist) => <StylistCard key={stylist.id} stylist={stylist} bands={bands} serviceIndex={serviceIndex} />)}
           </div>
         )}
       </div>

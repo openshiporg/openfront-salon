@@ -4,7 +4,7 @@ import { portalSignUp } from '../account/actions';
 export async function AccountSignUpPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   return <div className="sf-page-pad"><div className="sf-container-narrow"><form action={portalSignUp} className="sf-carton mx-auto w-full max-w-md" data-band="ink">
-    <div className="sf-carton-band"><span>Client account</span><span className="sf-shade" aria-hidden="true" /></div>
+    <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
     <div className="grid gap-5 p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
       <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Create account</h1>
       {error === "failed" ? <p role="alert" className="sf-alert">We couldn't create your account. Use a new email and a password of 12–128 characters, or sign in.</p> : null}

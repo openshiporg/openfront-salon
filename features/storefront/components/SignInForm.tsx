@@ -20,7 +20,7 @@ export function SignInForm({ error, email = "", consultationUnresolved = false, 
   const Heading = headingLevel === 1 ? "h1" : "h2";
   return (
     <form action={portalSignIn} className="sf-carton mx-auto w-full max-w-md" data-band="ink">
-      <div className="sf-carton-band"><span>Client account</span><span className="sf-shade" aria-hidden="true" /></div>
+      <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
       <div className="grid gap-5 p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
         <Heading className="sf-display text-[length:var(--sf-text-3xl)]">{title}</Heading>
         {consultationUnresolved ? <><input type="hidden" name="consultation" value="unresolved"/>{consultationAttempt ? <><input type="hidden" name="consultationTemplate" value={consultationAttempt.templateVersionId}/><input type="hidden" name="consultationKey" value={consultationAttempt.idempotencyKey}/></> : null}</> : null}

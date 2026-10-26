@@ -1,6 +1,8 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { getGalleryImages } from "../lib/data/gallery"
+import { getAllServices, getCategoryBands } from "../lib/data/services"
+import { categoryBand } from "../lib/bands"
 import { getStorefrontImageSrc } from "../lib/images"
 import { PageIntro } from "../components/ui/PageIntro"
 import { getStorefrontBrand, storefrontTitle } from "../lib/data/brand"
@@ -14,7 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function GalleryPage() {
-  const images = (await getGalleryImages()).flatMap((image) => {
+  const [gallery, bands, catalog] = await Promise.all([getGalleryImages(), getCategoryBands(), getAllServices()])
+  // A photo's bar takes the shade of the category of the service it shows; ink when it shows none.
+  const categoryByService = new Map((catalog.status === "available" ? catalog.items : []).map((service) => [service.id, service.category?.id ?? null]))
+  const bandFor = (serviceId?: string | null) => serviceId && categoryByService.has(serviceId) ? categoryBand(bands, categoryByService.get(serviceId)) : "ink"
+  const images = gallery.flatMap((image) => {
     const src = getStorefrontImageSrc(image)
     return src ? [{ image, src }] : []
   })
@@ -27,7 +33,7 @@ export async function GalleryPage() {
         {images.length > 0 ? (
           <div className="sf-gallery">
             {images.map(({ image, src }, index) => (
-              <figure key={image.id} className="sf-carton" data-band={String((index % 6) + 1)}>
+              <figure key={image.id} className="sf-carton" data-band={bandFor(image.metadata?.serviceId)}>
                 <div className={`overflow-hidden bg-[var(--sf-alu)] ${index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-[4/3]"}`}>
                   <img src={src} alt={image.altText || image.metadata?.title || "Salon work"} loading={index < 3 ? undefined : "lazy"} className="h-full w-full object-cover" />
                 </div>

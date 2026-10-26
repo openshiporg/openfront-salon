@@ -11,7 +11,8 @@ import { getBookingContext } from "../lib/data/booking-context"
 import { getAvailableTimeSlots, type BookingSlot } from "../lib/data/availability"
 import { clearBookingRequestKey, getOrCreateBookingRequestKey } from "../lib/data/bookingSubmitOutcome"
 import type { BookingContextRead, BookingSelectionRead } from "../lib/data/bookingSelectionRead"
-import { bandFor, serviceTags } from "../components/ServiceCard"
+import { serviceTags } from "../components/ServiceCard"
+import { categoryBand, serviceCodes, type CategoryBands } from "../lib/bands"
 import { StylistPortrait, stylistTitle } from "../components/StylistCard"
 import { TimeSlotPicker } from "../components/TimeSlotPicker"
 import { joinWaitlistForDay } from "../lib/data/waitlist"
@@ -44,6 +45,8 @@ interface BookingPageProps {
   preselectedStylistName?: string | null
   /** Services the preselected stylist performs; null when unknown. */
   preselectedStylistServiceIds?: string[] | null
+  /** Category shades ranked over the whole catalogue, shared with home and /services. */
+  categoryBands?: CategoryBands | null
 }
 
 type StylistReadState =
@@ -57,7 +60,7 @@ function formatNotice(minutes?: number | null) {
   return `${value} minutes`
 }
 
-export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null }: BookingPageProps) {
+export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null, categoryBands = null }: BookingPageProps) {
 
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<string | null>(preselectedService)
@@ -325,15 +328,10 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     return groups
   }, [])
 
-  // Category order fixes each service's band colour, the same as on the services page.
-  const bandByService = new Map<string, string>()
-  services.reduce<string[]>((names, item) => {
-    const name = item.category?.name || "Services"
-    if (!names.includes(name)) names.push(name)
-    bandByService.set(item.id, bandFor(names.indexOf(name)))
-    return names
-  }, [])
-  const serviceBand = service ? bandByService.get(service.id) || "1" : "1"
+  // The category, not its position, fixes each service's band colour and chip code, as on home and /services.
+  const bandByService = new Map<string, string>(services.map((item) => [item.id, categoryBand(categoryBands, item.category?.id)]))
+  const codeByService = serviceCodes(services)
+  const serviceBand = service ? bandByService.get(service.id) || "ink" : "ink"
   const trayMeta = [stylist?.user?.name, selectedDate?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }), selectedTimeLabel].filter(Boolean).join(", ")
   const detailsReady = Boolean(requestKey && locationId && bookingContext && policyAccepted && !submitting)
 
@@ -353,7 +351,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
       <div className="sf-page-pad">
         <div className="sf-container-narrow">
           <div className="sf-carton" data-band={serviceBand} data-selected="true">
-            <div className="sf-carton-band"><span className="inline-flex items-center gap-2"><span className="sf-tick"><Check aria-hidden="true" /></span>Booked</span></div>
+            <div className="sf-carton-band"><span className="sf-tick"><Check aria-hidden="true" /></span></div>
             <div className="px-[var(--sf-space-sm)] pb-3 pt-[var(--sf-space-sm)] md:px-[var(--sf-space-md)]">
               <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Booking received</h1>
               <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Booked under <span className="font-semibold text-[var(--sf-ink)]">{clientInfo.email}</span></p>
@@ -444,10 +442,9 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                                 const tags = serviceTags(svc)
                                 const chosen = selectedService === svc.id
                                 return (
-                                  <button key={svc.id} type="button" aria-pressed={chosen} onClick={() => handleServiceSelect(svc.id)} className="sf-carton" data-band={bandByService.get(svc.id) || "1"}>
+                                  <button key={svc.id} type="button" aria-pressed={chosen} onClick={() => handleServiceSelect(svc.id)} className="sf-carton" data-band={bandByService.get(svc.id) || "ink"}>
                                     <span className="sf-carton-band">
-                                      <span>{group.name}</span>
-                                      {chosen ? <span className="sf-tick"><Check aria-hidden="true" /></span> : <span className="sf-shade" aria-hidden="true" />}
+                                      {chosen ? <span className="sf-tick"><Check aria-hidden="true" /></span> : <span className="sf-shade" aria-hidden="true">{codeByService.get(svc.id)}</span>}
                                     </span>
                                     <span className="sf-carton-body">
                                       <span className="sf-carton-name">{svc.name}</span>

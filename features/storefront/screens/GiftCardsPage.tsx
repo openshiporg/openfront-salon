@@ -11,8 +11,8 @@ export async function GiftCardsPage() {
   return <div className="sf-page-pad"><div className="sf-container">
     <PageIntro title="Gift cards" />
     <div className="grid gap-[var(--sf-space-md)] md:grid-cols-2">
-      <section className="sf-carton" data-band="1" aria-labelledby="gift-buy">
-        <div className="sf-carton-band"><span>Gift card</span><span className="sf-shade" aria-hidden="true" /></div>
+      <section className="sf-carton" data-band="ink" aria-labelledby="gift-buy">
+        <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
         <div className="sf-carton-body !gap-3 !p-[var(--sf-space-sm)] md:!p-[var(--sf-space-md)]">
           <h2 id="gift-buy" className="sf-display text-[length:var(--sf-text-2xl)]">In-salon purchase only</h2>
           <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Online gift-card checkout is unavailable.</p>

@@ -5,7 +5,8 @@ import { notFound } from "next/navigation"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { getStylistById } from "../lib/data/stylists"
 import { getTierDisplayName } from "../lib/utils/stylist-helpers"
-import { StylistPortrait, WeekStrip } from "../components/StylistCard"
+import { StylistPortrait, WeekStrip, serviceCategoryIndex, stylistBand } from "../components/StylistCard"
+import { getAllServices, getCategoryBands } from "../lib/data/services"
 import { storefrontTitle } from "../lib/data/brand"
 
 interface StylistDetailPageProps {
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: StylistDetailPageProps): Prom
 
 export async function StylistDetailPage({ params }: StylistDetailPageProps) {
   const { id } = await params
-  const stylist = await getStylistById(id)
+  const [stylist, bands, catalog] = await Promise.all([getStylistById(id), getCategoryBands(), getAllServices()])
 
   if (!stylist) {
     notFound()
@@ -41,8 +42,8 @@ export async function StylistDetailPage({ params }: StylistDetailPageProps) {
 
         <div className="mt-[var(--sf-space-sm)] grid gap-[var(--sf-space-xl)] md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-[var(--sf-space-2xl)]">
           <div className="min-w-0">
-            <div className="sf-carton md:sticky md:top-24" data-band="ink">
-              <div className="sf-carton-band"><span>{tierName}</span><span className="sf-shade" aria-hidden="true" /></div>
+            <div className="sf-carton md:sticky md:top-24" data-band={stylistBand(stylist, bands, catalog.status === "available" ? serviceCategoryIndex(catalog.items) : null)}>
+              <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
               <StylistPortrait stylist={stylist} className="aspect-[4/5] w-full" />
               <Link href={`/book?stylist=${stylist.id}`} className="sf-carton-action">Book with {firstName}<ArrowRight aria-hidden="true" /></Link>
             </div>

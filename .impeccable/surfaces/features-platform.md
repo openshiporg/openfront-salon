@@ -20,6 +20,6 @@ STORY: The operator sees what needs doing (who is next, who to confirm, what to 
 
 FIRST VIEWPORT: Title line with one truthful status and the primary action at right; underline filter tabs with counts; then the work list as a table. On Appointments/Today a day board (lane per stylist, blocks placed by time, a now-line) sits above the table.
 
-FORM: Extension of the established shell world, no concept roll (surface inside an established world, Operate); seed: none (unavailable). Signature move: the day board's stylist lanes.
+FORM: Extension of the established shell world. The concept roll was skipped on purpose: the owner's brief pins this surface's structure (task-first pages, dense tables with a status column, flat underline tabs, radii at most 6px), and a pinned brief outranks the roll; seed: none (skipped, structure pinned by the owner's brief). Signature move: the day board's stylist lanes.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

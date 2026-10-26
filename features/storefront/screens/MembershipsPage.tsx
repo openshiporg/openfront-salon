@@ -27,8 +27,8 @@ export async function MembershipsPage() {
                 <h2 id="memberships" className="sf-display mb-3 border-b border-[var(--sf-ink)] pb-2 text-[length:var(--sf-text-2xl)]">Memberships</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {memberships.map((plan) => (
-                    <article key={plan.id} className="sf-carton" data-band="1">
-                      <div className="sf-carton-band"><span>Membership</span><span className="sf-shade" aria-hidden="true" /></div>
+                    <article key={plan.id} className="sf-carton" data-band="ink">
+                      <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
                       <div className="sf-carton-body">
                       <h3 className="sf-carton-name">{plan.name}</h3>
                       <p className="sf-num text-[length:var(--sf-text-2xl)]">{formatMenuPrice(plan.monthlyPrice / 100)}<small>/ month</small></p>
@@ -45,8 +45,8 @@ export async function MembershipsPage() {
                 <h2 id="packages" className="sf-display mb-3 border-b border-[var(--sf-ink)] pb-2 text-[length:var(--sf-text-2xl)]">Packages</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {packages.map((plan) => (
-                    <article key={plan.id} className="sf-carton" data-band="2">
-                      <div className="sf-carton-band"><span>Package</span><span className="sf-shade" aria-hidden="true" /></div>
+                    <article key={plan.id} className="sf-carton" data-band="ink">
+                      <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
                       <div className="sf-carton-body">
                       <h3 className="sf-carton-name">{plan.name}</h3>
                       <p className="sf-num text-[length:var(--sf-text-2xl)]">{formatMenuPrice(plan.totalPrice / 100)}</p>

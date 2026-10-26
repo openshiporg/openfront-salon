@@ -3,10 +3,13 @@ import { cn } from '@/lib/utils';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { appointmentLabel, appointmentTone, type Tone } from '../../components/salon-ui';
 import type { PlatformAppointment } from '../actions/appointments';
+import type { DayShift, ShiftWindow } from '../actions/dayShifts';
 
 /*
- * The day board: one lane per stylist, each appointment a block placed by its
- * start and end on the salon's wall clock, and a now-line across every lane.
+ * The day board: one lane per stylist working today (booked or not), their
+ * working hours shaded, each appointment a block placed by its start and end on
+ * the salon's wall clock, and a now-line across every lane. Without schedule data
+ * the lanes fall back to the stylists who have appointments.
  * The board scrolls sideways inside its own frame on a phone; the stylist
  * column stays pinned.
  */
@@ -48,7 +51,13 @@ export function appointmentEnd(appointment: PlatformAppointment) {
 
 type Placed = { appointment: PlatformAppointment; start: number; end: number; row: number };
 
-export function DayBoard({ appointments, timeZone, now = new Date() }: { appointments: PlatformAppointment[]; timeZone: string; now?: Date }) {
+function clock(minutes: number) {
+  const h = Math.floor(minutes / 60) % 24;
+  const m = minutes % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}${m ? `:${String(m).padStart(2, '0')}` : ''}${h < 12 ? 'a' : 'p'}`;
+}
+
+export function DayBoard({ appointments, timeZone, now = new Date(), shifts = null }: { appointments: PlatformAppointment[]; timeZone: string; now?: Date; shifts?: DayShift[] | null }) {
   const items = appointments.map((appointment) => {
     const start = wallMinutes(appointment.startTime, timeZone);
     let end = wallMinutes(appointmentEnd(appointment), timeZone);
@@ -56,8 +65,10 @@ export function DayBoard({ appointments, timeZone, now = new Date() }: { appoint
     return { appointment, start, end };
   });
 
-  const firstHour = items.length ? Math.floor(Math.min(...items.map((item) => item.start)) / 60) : 9;
-  const lastHour = items.length ? Math.ceil(Math.max(...items.map((item) => item.end)) / 60) : 18;
+  const shiftWindows = (shifts || []).flatMap((shift) => shift.windows);
+  const edges = [...items, ...shiftWindows];
+  const firstHour = edges.length ? Math.floor(Math.min(...edges.map((item) => item.start)) / 60) : 9;
+  const lastHour = edges.length ? Math.ceil(Math.max(...edges.map((item) => item.end)) / 60) : 18;
   // The booked span padded to whole hours, never narrower than a 9–6 day so a single visit still reads in context.
   const spanStart = Math.min(firstHour, 9) * 60;
   const spanEnd = Math.min(24, Math.max(lastHour, 18)) * 60;
@@ -65,10 +76,11 @@ export function DayBoard({ appointments, timeZone, now = new Date() }: { appoint
   const pct = (minutes: number) => `${((minutes - spanStart) / total) * 100}%`;
   const hours = Array.from({ length: total / 60 + 1 }, (_, index) => spanStart / 60 + index);
 
-  const laneMap = new Map<string, { id: string; name: string; placed: Placed[]; rows: number }>();
+  const laneMap = new Map<string, { id: string; name: string; placed: Placed[]; rows: number; windows: ShiftWindow[] }>();
+  for (const shift of shifts || []) laneMap.set(shift.stylistId, { id: shift.stylistId, name: shift.name, placed: [], rows: 1, windows: shift.windows });
   for (const item of [...items].sort((a, b) => a.start - b.start)) {
     const id = item.appointment.stylist?.id || 'unassigned';
-    const lane = laneMap.get(id) || { id, name: item.appointment.stylist?.user?.name || 'Unassigned', placed: [], rows: 0 };
+    const lane = laneMap.get(id) || { id, name: item.appointment.stylist?.user?.name || 'Unassigned', placed: [], rows: 0, windows: [] };
     const ends: number[] = [];
     for (const placed of lane.placed) ends[placed.row] = Math.max(ends[placed.row] ?? 0, placed.end);
     let row = ends.findIndex((end) => end <= item.start);
@@ -79,7 +91,8 @@ export function DayBoard({ appointments, timeZone, now = new Date() }: { appoint
   }
   const lanes = [...laneMap.values()].sort((a, b) => (a.id === 'unassigned' ? 1 : b.id === 'unassigned' ? -1 : a.name.localeCompare(b.name)));
 
-  const sameDay = items.length > 0 && dayKey(now, timeZone) === dayKey(appointments[0].startTime, timeZone);
+  // The board is only shown for today; with no bookings it is still today's board.
+  const sameDay = items.length === 0 || dayKey(now, timeZone) === dayKey(appointments[0].startTime, timeZone);
   const nowMinutes = wallMinutes(now, timeZone);
   const showNow = sameDay && nowMinutes >= spanStart && nowMinutes <= spanEnd;
 
@@ -101,10 +114,21 @@ export function DayBoard({ appointments, timeZone, now = new Date() }: { appoint
           {lanes.map((lane) => (
             <div key={lane.id} className="flex border-b last:border-b-0">
               <div className="sticky left-0 z-20 flex w-32 shrink-0 items-center border-r bg-background px-3 text-sm font-medium md:w-40">
-                <span className="truncate">{lane.name}</span>
-                <span className="ml-auto pl-2 text-xs tabular-nums text-muted-foreground">{lane.placed.length}</span>
+                <span className="min-w-0">
+                  <span className="block truncate">{lane.name}</span>
+                  {lane.windows.length ? <span className="block truncate text-[11px] font-normal tabular-nums text-muted-foreground">{lane.windows.map((window) => `${clock(window.start)}–${clock(window.end)}`).join(', ')}</span> : null}
+                </span>
+                <span className="ml-auto pl-2 text-xs tabular-nums text-muted-foreground" aria-label={`${lane.placed.length} ${lane.placed.length === 1 ? 'appointment' : 'appointments'}`}>{lane.placed.length}</span>
               </div>
-              <div className="relative flex-1" style={{ height: lane.rows * ROW + 8 }}>
+              <div className="relative flex-1" style={{ height: Math.max(1, lane.rows) * ROW + 8 }}>
+                {lane.windows.map((window) => (
+                  <span
+                    key={`${window.start}-${window.end}`}
+                    aria-hidden="true"
+                    className="absolute inset-y-0 bg-muted/70"
+                    style={{ left: pct(Math.max(spanStart, window.start)), width: `${((Math.min(spanEnd, window.end) - Math.max(spanStart, window.start)) / total) * 100}%` }}
+                  />
+                ))}
                 {hours.map((hour) => <span key={hour} aria-hidden="true" className="absolute inset-y-0 w-px bg-border/60" style={{ left: pct(hour * 60) }} />)}
                 {lane.placed.map(({ appointment, start, end, row }) => {
                   const contact = appointmentContact(appointment);

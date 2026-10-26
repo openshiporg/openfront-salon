@@ -1,7 +1,9 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { getServicesGroupedByCategory } from "../lib/data/services"
-import { ServiceCarton, bandFor } from "../components/ServiceCard"
+import { getCategoryBands, getServicesGroupedByCategory } from "../lib/data/services"
+import { ServiceCarton } from "../components/ServiceCard"
+import { categoryBand, serviceCodes } from "../lib/bands"
+import { getStorefrontImageSrc } from "../lib/images"
 import { PageIntro } from "../components/ui/PageIntro"
 import { storefrontTitle } from "../lib/data/brand"
 
@@ -13,7 +15,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function ServicesPage() {
-  const categories = await getServicesGroupedByCategory()
+  const [categories, bands] = await Promise.all([getServicesGroupedByCategory(), getCategoryBands()])
+  // A photo already on the page is not shown again on a later carton.
+  const seenPhotos = new Set<string>()
+  const showPhoto = new Map<string, boolean>()
+  for (const category of categories) {
+    for (const service of category.services || []) {
+      const src = getStorefrontImageSrc(service.image)
+      showPhoto.set(service.id, Boolean(src && !seenPhotos.has(src)))
+      if (src) seenPhotos.add(src)
+    }
+  }
   const total = categories.reduce((sum, category) => sum + (category.services?.length || 0), 0)
 
   return (
@@ -29,8 +41,8 @@ export async function ServicesPage() {
         <div className="sf-sticky-tabs">
           <div className="sf-container">
             <nav aria-label="Service categories" className="sf-track sf-track-scroll !gap-0">
-              {categories.map((category, index) => (
-                <a key={category.id} href={`#${category.id}`} className="sf-tab" data-band={bandFor(index)}>
+              {categories.map((category) => (
+                <a key={category.id} href={`#${category.id}`} className="sf-tab" data-band={categoryBand(bands, category.id)}>
                   <span className="sf-shade" aria-hidden="true" />
                   {category.name}
                 </a>
@@ -48,8 +60,11 @@ export async function ServicesPage() {
           </div>
         ) : (
           <div className="grid gap-[var(--sf-space-xl)]">
-            {categories.map((category, index) => (
-              <section key={category.id} id={category.id} className="scroll-mt-32" aria-labelledby={`category-${category.id}`} data-band={bandFor(index)}>
+            {categories.map((category) => {
+              const band = categoryBand(bands, category.id)
+              const codes = serviceCodes((category.services || []).map((service) => ({ id: service.id, category: { id: category.id, name: category.name } })))
+              return (
+              <section key={category.id} id={category.id} className="scroll-mt-32" aria-labelledby={`category-${category.id}`} data-band={band}>
                 <div className="sf-shelf-head">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="sf-shade" aria-hidden="true" />
@@ -60,13 +75,14 @@ export async function ServicesPage() {
 
                 {category.services && category.services.length > 0 ? (
                   <div className="sf-shelf-grid" data-cols="4">
-                    {category.services.map((service) => <ServiceCarton key={service.id} service={service} band={bandFor(index)} bandLabel={category.name} showDescription />)}
+                    {category.services.map((service) => <ServiceCarton key={service.id} service={service} band={band} code={codes.get(service.id)} showImage={showPhoto.get(service.id) ?? true} showDescription />)}
                   </div>
                 ) : (
                   <p className="sf-note">No services in this category yet.</p>
                 )}
               </section>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

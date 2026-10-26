@@ -5,7 +5,7 @@
  * never scrolls the page sideways. Local to the appointments, checkout,
  * sales and clients slices; the shared kit stays untouched.
  */
-export const stackWrapClass = 'min-w-0 overflow-hidden rounded-[6px] border bg-background lg:relative overflow-x-auto';
+export const stackWrapClass = 'relative min-w-0 overflow-x-auto rounded-[6px] border bg-background';
 export const stackTableClass = 'block w-full border-collapse text-sm lg:table';
 export const stackHeadClass = 'hidden lg:table-header-group';
 export const stackBodyClass = 'block divide-y lg:table-row-group lg:divide-y-0';

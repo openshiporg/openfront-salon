@@ -5,6 +5,7 @@ import { salonClient } from "../config"
 import { cache } from "react"
 import { getStylistsForService } from "./stylists"
 import { isBookableServiceSelection, resolveBookingSelectionRead, type BookingSelectionRead } from "./bookingSelectionRead"
+import { bandsFromCategories, type CategoryBands } from "../bands"
 
 export interface StorefrontImage {
   image: {
@@ -142,6 +143,30 @@ export const getServicesGroupedByCategory = cache(async function (): Promise<Ser
   } catch (error) {
     console.error("Error fetching services by category:", error)
     return []
+  }
+})
+
+/**
+ * Band shade per category id, ranked over the whole catalogue by display order then
+ * name, so every page gives a category the same colour. Fails soft to {} (the
+ * helper then hashes the id).
+ */
+export const getCategoryBands = cache(async function (): Promise<CategoryBands> {
+  const GET_CATEGORY_ORDER = gql`
+    query GetStorefrontCategoryOrder {
+      serviceCategories(take: 100) {
+        id
+        name
+        displayOrder
+      }
+    }
+  `
+  try {
+    const data = await salonClient.request<{ serviceCategories: Array<{ id: string; name: string | null; displayOrder: number | null }> }>(GET_CATEGORY_ORDER)
+    return bandsFromCategories(data.serviceCategories || [])
+  } catch (error) {
+    console.error("Error fetching category order:", error)
+    return {}
   }
 })
 

@@ -2,7 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft, ShieldCheck } from "lucide-react"
-import { getServiceById } from "../lib/data/services"
+import { getCategoryBands, getServiceById } from "../lib/data/services"
+import { categoryBand } from "../lib/bands"
 import { StylistPortrait, stylistTitle, tierLabels } from "../components/StylistCard"
 import { serviceTags } from "../components/ServiceCard"
 import { getStorefrontImageSrc } from "../lib/images"
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: ServiceDetailPageProps): Prom
 
 export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { id } = await params
-  const service = await getServiceById(id)
+  const [service, bands] = await Promise.all([getServiceById(id), getCategoryBands()])
 
   if (!service) {
     notFound()
@@ -42,9 +43,8 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
         <div className="mt-[var(--sf-space-sm)] grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)]">
           <div className="min-w-0">
-            <header className="sf-carton" data-band="1">
+            <header className="sf-carton" data-band={categoryBand(bands, service.category?.id)}>
               <div className="sf-carton-band !min-h-[4.5rem]">
-                <span>{service.category?.name || "Service"}</span>
                 <span className="sf-shade" aria-hidden="true" />
               </div>
               {imageSrc ? (
@@ -53,7 +53,10 @@ export async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 </div>
               ) : null}
               <div className="sf-carton-body !gap-4 !p-[var(--sf-space-sm)] md:!p-[var(--sf-space-md)]">
-                <h1 className="sf-display text-[length:var(--sf-text-display-s)]">{service.name}</h1>
+                <div>
+                  <h1 className="sf-display text-[length:var(--sf-text-display-s)]">{service.name}</h1>
+                  {service.category?.name ? <p className="sf-carton-meta mt-2">{service.category.name}</p> : null}
+                </div>
                 {tags.length ? <div className="sf-carton-tags">{tags.map((tag) => <span key={tag} className="sf-chip sf-chip-accent"><ShieldCheck aria-hidden="true" />{tag}</span>)}</div> : null}
                 {service.description ? <p className="max-w-[60ch] text-[length:var(--sf-text-lg)] leading-relaxed text-[var(--sf-ink-2)]">{service.description}</p> : null}
               </div>

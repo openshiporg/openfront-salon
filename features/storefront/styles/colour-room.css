@@ -581,10 +581,11 @@ body:has(.storefront) {
   text-align: left;
 }
 
+/* The band carries colour only: no label, just the shade chip at the carton end. */
 .storefront .sf-carton-band {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.5rem;
   min-height: 3.75rem;
   padding: 0.625rem 0.75rem;
@@ -607,6 +608,28 @@ body:has(.storefront) {
 .storefront .sf-carton-band .sf-shade {
   background: color-mix(in oklch, var(--band, var(--sf-band-1)) 45%, var(--sf-on-band));
   outline: 1px solid color-mix(in oklch, var(--sf-on-band) 60%, transparent);
+}
+
+/* With a literal code ("H2") the chip widens to print it. */
+.storefront .sf-carton-band .sf-shade:not(:empty) {
+  width: auto;
+  height: auto;
+  min-width: 1.75rem;
+  padding: 0.125rem 0.3125rem;
+  color: var(--sf-ink);
+  font-variation-settings: "wdth" 80;
+  font-size: var(--sf-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The tick on an ink band reverses so it stays visible. */
+.storefront [data-band="ink"] .sf-carton-band .sf-tick {
+  background: var(--sf-on-band);
+  color: var(--sf-ink);
 }
 
 .storefront .sf-carton-band svg {
@@ -652,28 +675,70 @@ body:has(.storefront) {
   text-decoration-color: var(--band, var(--sf-band-1));
 }
 
+/* A small meta line under the name (category on a mixed wall, a stylist's title). */
+.storefront .sf-carton-meta {
+  margin-top: -0.125rem;
+  font-size: var(--sf-text-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sf-ink-2);
+}
+
+/* Colour legend for a wall that mixes categories. */
+.storefront .sf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 1rem;
+  font-size: var(--sf-text-xs);
+  font-weight: 600;
+  color: var(--sf-ink-2);
+}
+
+.storefront .sf-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
 .storefront .sf-carton-desc {
   font-size: var(--sf-text-sm);
   line-height: 1.45;
   color: var(--sf-ink-2);
 }
 
+/* Duration and price stay on one line; the numerals scale down rather than wrap. */
 .storefront .sf-carton-figures {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.25rem 0.75rem;
+  gap: 0.5rem;
   margin-top: auto;
   padding-top: 0.5rem;
+  container-type: inline-size;
 }
 
 .storefront .sf-carton-duration {
-  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  min-width: 0;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.5rem);
+  white-space: nowrap;
 }
 
 .storefront .sf-carton-price {
-  font-size: clamp(1.0625rem, 0.95rem + 0.4vw, 1.25rem);
+  flex-shrink: 0;
+  font-size: clamp(0.9375rem, 0.85rem + 0.4vw, 1.25rem);
+  white-space: nowrap;
+}
+
+/* Sized to the carton, not the viewport, so a narrow phone carton keeps both figures on one line. */
+@supports (font-size: 1cqi) {
+  .storefront .sf-carton-duration {
+    font-size: clamp(1.25rem, 15cqi, 2.5rem);
+  }
+
+  .storefront .sf-carton-price {
+    font-size: clamp(0.8125rem, 9cqi, 1.25rem);
+  }
 }
 
 .storefront .sf-carton-price small {
@@ -723,17 +788,37 @@ body:has(.storefront) {
 }
 
 /* Selection is a mark, not a hue: the chosen carton is notched and ticked. */
+/* A small lift when a carton is pulled: transform only, 150ms; reduced motion keeps it still. */
+.storefront .sf-carton:has(> .sf-carton-action),
+.storefront button.sf-carton {
+  transition: transform 150ms var(--sf-ease-out), border-color var(--sf-dur-short) ease;
+}
+
 .storefront button.sf-carton {
   cursor: pointer;
-  transition: transform var(--sf-dur-short) var(--sf-ease-out), box-shadow var(--sf-dur-short) var(--sf-ease-out), border-color var(--sf-dur-short) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .storefront .sf-carton:has(> .sf-carton-action):hover,
+  .storefront button.sf-carton:hover {
+    transform: translateY(-3px);
+  }
 }
 
 .storefront button.sf-carton:hover {
   border-color: var(--sf-ink);
 }
 
+.storefront .sf-carton:has(> .sf-carton-action:active),
 .storefront button.sf-carton:active {
-  transform: scale(0.985);
+  transform: translateY(-1px) scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront .sf-carton:has(> .sf-carton-action),
+  .storefront button.sf-carton {
+    transform: none !important;
+  }
 }
 
 .storefront .sf-carton[aria-pressed="true"],
@@ -759,11 +844,12 @@ body:has(.storefront) {
   height: 0.95rem;
 }
 
+/* An empty shelf is still a carton: a solid band across the top, then the message. */
 .storefront .sf-carton-empty {
   justify-content: center;
   gap: 1rem;
   padding: var(--sf-space-md);
-  border-style: dashed;
+  border-top: 0.75rem solid var(--band, var(--sf-ink));
 }
 
 /* ---------- Name band (home first viewport) ---------- */
@@ -1112,9 +1198,12 @@ body:has(.storefront) {
   text-decoration: none;
 }
 
+/* Current page: the same band-coloured underline the desktop nav uses. */
 .storefront .sf-mobile-link[aria-current="page"] {
-  box-shadow: inset 4px 0 0 var(--sf-band-1);
-  padding-left: 0.75rem;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-decoration-color: var(--sf-band-1);
+  text-underline-offset: 0.3em;
 }
 
 /* Book bar on phone for browsing pages (not on book/account). */

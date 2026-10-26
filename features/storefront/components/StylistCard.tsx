@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { getStorefrontImageSrc } from "../lib/images"
+import { categoryBand, type CategoryBands } from "../lib/bands"
 
 export interface StylistCardData {
   id: string
@@ -9,7 +10,7 @@ export interface StylistCardData {
   role?: string | null
   bio: string | null
   photo: { image: { url: string } | null; imagePath?: string | null; altText: string | null } | null
-  specializations?: { name: string }[]
+  specializations?: { id?: string; name: string }[]
   schedules?: { dayOfWeek: number | null; isAvailable: boolean }[]
 }
 
@@ -62,22 +63,46 @@ export function StylistPortrait({ stylist, className = "" }: { stylist: StylistC
   )
 }
 
-/** A stylist carton: ink band with their title, portrait window, working days, Book. */
-export function StylistCard({ stylist, showSpecializations = true, bookHref }: { stylist: StylistCardData; showSpecializations?: boolean; bookHref?: string }) {
+/** Which category each service id sits in (null for uncategorized), from the service menu. */
+export type ServiceCategoryIndex = Record<string, string | null>
+
+export function serviceCategoryIndex(services: Array<{ id: string; category?: { id: string } | null }>): ServiceCategoryIndex {
+  return Object.fromEntries(services.map((service) => [service.id, service.category?.id ?? null]))
+}
+
+/**
+ * A stylist's band takes the shade of the category most of their services sit in,
+ * so the stylist shelf reads as part of the same colour room. Ink when unknown.
+ */
+export function stylistBand(stylist: Pick<StylistCardData, "specializations">, bands?: CategoryBands | null, index?: ServiceCategoryIndex | null) {
+  if (!bands || !index) return "ink"
+  const counts = new Map<string, number>()
+  for (const service of stylist.specializations || []) {
+    if (!service.id || !(service.id in index)) continue
+    const key = index[service.id] || ""
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  let best: string | null = null
+  for (const [key, count] of counts) if (best === null || count > (counts.get(best) || 0)) best = key
+  return best !== null ? categoryBand(bands, best || null) : "ink"
+}
+
+/** A stylist carton: band in their main category's shade, portrait window, name with title under it, working days, Book. */
+export function StylistCard({ stylist, showSpecializations = true, bookHref, bands, serviceIndex }: { stylist: StylistCardData; showSpecializations?: boolean; bookHref?: string; bands?: CategoryBands | null; serviceIndex?: ServiceCategoryIndex | null }) {
   const name = stylist.user?.name || "Stylist"
   const firstName = name.split(" ")[0]
   const tier = stylistTitle(stylist.tier, stylist.role)
   const specialties = (stylist.specializations || []).map((service) => service.name).filter(Boolean)
 
   return (
-    <article className="sf-carton" data-band="ink">
+    <article className="sf-carton" data-band={stylistBand(stylist, bands, serviceIndex)}>
       <div className="sf-carton-band">
-        <span>{tier}</span>
         <span className="sf-shade" aria-hidden="true" />
       </div>
       <StylistPortrait stylist={stylist} className="sf-portrait-window" />
       <div className="sf-carton-body">
         <h3><Link href={`/team/${stylist.id}`} className="sf-carton-name">{name}</Link></h3>
+        <p className="sf-carton-meta">{tier}</p>
         {showSpecializations && specialties.length > 0 ? (
           <p className="sf-carton-desc line-clamp-2">{specialties.slice(0, 3).join(", ")}</p>
         ) : null}

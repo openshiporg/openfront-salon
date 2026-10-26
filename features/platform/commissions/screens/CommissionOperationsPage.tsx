@@ -104,6 +104,8 @@ function CommissionRow({ commission, timeZone }: { commission: PlatformCommissio
       <Td>
         <span className="font-medium">{commission.service?.name || 'Service'}</span>
         <span className="block text-xs text-muted-foreground">Sale {usd(commission.saleAmount)} · {commission.payment?.paymentMethod ? labelize(commission.payment.paymentMethod) : 'Unknown method'}<span className="sm:hidden"> · {stylistName}</span></span>
+        {/* Below sm the status column is hidden, so the status rides second, under the service. */}
+        <span className="mt-1 block sm:hidden"><StatusCell tone={commission.isPaid ? 'emerald' : 'amber'}>{commission.isPaid ? `Paid ${formatDate(commission.paidAt, timeZone)}` : 'Unpaid'}</StatusCell></span>
       </Td>
       <Td className="hidden sm:table-cell">{stylistName}</Td>
       <Td className="hidden text-muted-foreground md:table-cell">

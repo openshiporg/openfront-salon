@@ -8,6 +8,7 @@ import { DayBoard, appointmentEnd } from './DayBoard';
 import { lifecycleGates } from '../lib/lifecycleGates';
 import { stackBodyClass, stackCellClass, stackHeadClass, stackRowClass, stackTableClass, stackThClass, stackWrapClass } from '../lib/stackTable';
 import { getAppointmentOperations, PlatformAppointment } from '../actions/appointments';
+import { getDayShifts } from '../actions/dayShifts';
 import {
   appointmentLabel,
   appointmentTone,
@@ -70,6 +71,8 @@ export async function AppointmentOperationsPage({ searchParams }: PageProps) {
   const now = new Date();
   const next = isToday ? appointments.find((appointment) => ['pending', 'confirmed'].includes(appointment.status) && new Date(appointment.startTime).getTime() >= now.getTime()) : undefined;
   const inChair = isToday ? appointments.filter((appointment) => appointment.status === 'in_progress').length : 0;
+  // Today's lanes come from who is working, not only who is booked; null (unreadable) falls back to booked lanes.
+  const shifts = isToday && result.status === 'available' ? await getDayShifts(boardZone, now).catch(() => null) : null;
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: 'Appointments' }]}>
@@ -104,6 +107,8 @@ export async function AppointmentOperationsPage({ searchParams }: PageProps) {
           action={<RetryAppointmentQueueButton />}
         />
       ) : appointments.length === 0 ? (
+        <>
+        {isToday && shifts && shifts.length > 0 ? <DayBoard appointments={appointments} timeZone={boardZone} now={now} shifts={shifts} /> : null}
         <EmptyState
           icon={CalendarDays}
           title={isToday ? 'No appointments today' : `No ${activeLabel.toLowerCase()} appointments`}
@@ -112,9 +117,10 @@ export async function AppointmentOperationsPage({ searchParams }: PageProps) {
             <PillLink href="/dashboard/platform/appointments/new"><CalendarPlus />Book a client</PillLink>
           </Track>}
         />
+        </>
       ) : (
         <>
-          {isToday ? <DayBoard appointments={appointments} timeZone={boardZone} now={now} /> : null}
+          {isToday ? <DayBoard appointments={appointments} timeZone={boardZone} now={now} shifts={shifts} /> : null}
           <AppointmentTable appointments={appointments} showDay={!isToday} />
         </>
       )}

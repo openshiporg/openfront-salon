@@ -15,38 +15,35 @@ function hasTiers(service: Service) {
   return Boolean(service.pricingTier && Object.keys(service.pricingTier).length > 0)
 }
 
-/** Band colours rotate per category; six shades, then they repeat. */
-export function bandFor(index: number) {
-  return String((Math.max(0, index) % 6) + 1)
-}
-
 /**
- * A colour-tube carton: category band across the top, a window onto the service photo,
- * the name in condensed caps, duration and price in wide numerals, and a Book control.
+ * A colour-tube carton: a band in the category's shade across the top (colour only,
+ * plus the shade chip's literal code), a window onto the service photo, the name in
+ * condensed caps, duration and price in wide numerals, and a Book control.
+ * `meta` is a small line under the name (the category, on mixed walls).
  */
 export function ServiceCarton({
   service,
   band = "1",
-  bandLabel,
+  code,
+  meta,
   showImage = true,
   showDescription = false,
   bookHref,
 }: {
   service: Service
   band?: string
-  bandLabel?: string | null
+  code?: string | null
+  meta?: string | null
   showImage?: boolean
   showDescription?: boolean
   bookHref?: string
 }) {
   const tags = serviceTags(service)
   const imageSrc = showImage ? getStorefrontImageSrc(service.image) : null
-  const label = bandLabel ?? service.category?.name ?? "Service"
   return (
     <article className="sf-carton" data-band={band}>
       <div className="sf-carton-band">
-        <span>{label}</span>
-        <span className="sf-shade" aria-hidden="true" />
+        <span className="sf-shade" aria-hidden="true">{code || null}</span>
       </div>
       {imageSrc ? (
         <div className="sf-carton-window">
@@ -55,6 +52,7 @@ export function ServiceCarton({
       ) : null}
       <div className="sf-carton-body">
         <h3><Link href={`/services/${service.id}`} className="sf-carton-name">{service.name}</Link></h3>
+        {meta ? <p className="sf-carton-meta">{meta}</p> : null}
         {showDescription && service.description ? <p className="sf-carton-desc line-clamp-3">{service.description}</p> : null}
         {tags.length ? (
           <div className="sf-carton-tags">

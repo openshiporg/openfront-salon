@@ -6,5 +6,5 @@ import { redirect } from 'next/navigation';
  * crashed into "Something went wrong". The staff list lives on Staff & locations.
  */
 export default function StaffIndexPage() {
-  redirect('/dashboard/platform/administration#management-staff');
+  redirect('/dashboard/platform/administration');
 }
