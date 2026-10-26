@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, CalendarCheck, PackageCheck, ReceiptText } from 'lucide-react';
+import { ArrowUpRight, CalendarCheck, CalendarPlus, PackageCheck, ReceiptText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { stackBodyClass, stackCellClass, stackHeadClass, stackRowClass, stackTableClass, stackThClass, stackWrapClass } from '../../appointments/lib/stackTable';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { RetryCheckoutQueueButton } from './RetryCheckoutQueueButton';
 import { CheckoutActionForm } from './CheckoutActionForm';
@@ -24,6 +26,8 @@ import {
   PageHeader,
   PillLink,
   PlatformPage,
+  StatusCell,
+  StatusDot,
   TitleStatus,
   Track,
   usd,
@@ -37,14 +41,17 @@ function zonedTime(value: string | null | undefined, timezone?: string | null) {
 
 export async function CheckoutQueuePage() {
   const queue = await getCheckoutQueue();
-  const count = queue.status === 'available' ? queue.data.appointments.length : null;
+  const appointments = queue.status === 'available' ? queue.data.appointments : [];
+  const inChair = appointments.filter((appointment) => appointment.status === 'in_progress');
+  const upcoming = appointments.filter((appointment) => appointment.status !== 'in_progress');
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: 'Checkout' }]}>
       <PageHeader
         icon={ReceiptText}
         title="Checkout"
-        status={count !== null ? <TitleStatus tone={count > 0 ? 'blue' : 'emerald'}>{count > 0 ? `${count} ready to pay` : 'Queue clear'}</TitleStatus> : null}
+        status={queue.status === 'available' ? <TitleStatus tone={inChair.length ? 'blue' : appointments.length ? 'amber' : 'emerald'}>{inChair.length ? `${inChair.length} in chair` : appointments.length ? `${appointments.length} booked today` : 'Queue clear'}</TitleStatus> : null}
+        actions={<Track><PillLink href="/dashboard/platform/appointments" variant="quiet"><CalendarCheck />Today&apos;s book</PillLink><PillLink href="/dashboard/platform/appointments/new"><CalendarPlus />Walk-in</PillLink></Track>}
       />
 
       {queue.status === 'unavailable' ? (
@@ -54,17 +61,72 @@ export async function CheckoutQueuePage() {
           message="The queue could not be verified, so appointments and counts are not shown as empty or zero. Check your access or connection, then retry."
           action={<RetryCheckoutQueueButton />}
         />
-      ) : queue.data.appointments.length === 0 ? (
-        <EmptyState icon={CalendarCheck} title="No appointments ready for checkout" action={<Track><PillLink href="/dashboard/platform/appointments?status=confirmed">Confirmed appointments</PillLink></Track>} />
+      ) : appointments.length === 0 ? (
+        <EmptyState
+          icon={CalendarCheck}
+          title="No one to ring up today"
+          action={<Track><PillLink href="/dashboard/platform/appointments?status=confirmed" variant="quiet">Confirmed appointments</PillLink><PillLink href="/dashboard/platform/appointments/new" variant="primary"><CalendarPlus />Book a walk-in</PillLink></Track>}
+        />
       ) : (
-        <div className="grid gap-5">
-          {queue.data.appointments.map((appointment) => (
-            <CheckoutWorkflowCard key={appointment.id} appointment={appointment} />
-          ))}
-        </div>
+        <>
+          {inChair.length ? (
+            <section aria-labelledby="checkout-in-chair" className="grid gap-3">
+              <h2 id="checkout-in-chair" className="flex items-center gap-2 text-sm font-semibold"><StatusDot tone="blue" />In the chair</h2>
+              {inChair.map((appointment) => <CheckoutWorkflowCard key={appointment.id} appointment={appointment} />)}
+            </section>
+          ) : null}
+          {upcoming.length ? (
+            <section aria-labelledby="checkout-later" className="grid gap-3">
+              <h2 id="checkout-later" className="text-sm font-semibold">{inChair.length ? 'Later today' : 'Booked today'}</h2>
+              <QueueTable appointments={upcoming} />
+            </section>
+          ) : null}
+        </>
       )}
     </PlatformPage>
   );
+}
+
+function QueueTable({ appointments }: { appointments: CheckoutAppointment[] }) {
+  return (
+    <div className={stackWrapClass}>
+      <table className={stackTableClass} aria-label="Booked today">
+        <thead className={stackHeadClass}>
+          <tr>
+            {['Time', 'Client', 'Services', 'Stylist', 'Status'].map((label) => <th key={label} scope="col" className={stackThClass}>{label}</th>)}
+            <th scope="col" className={cn(stackThClass, 'text-right')}>Est. due</th>
+            <th scope="col" className={stackThClass}><span className="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody className={stackBodyClass}>
+          {appointments.map((appointment) => {
+            const totals = calculateCheckoutTotals(appointment);
+            const status = appointment.status || '';
+            const paid = appointment.transaction?.status === 'completed' || appointment.payment?.status === 'completed';
+            const services = appointment.services.map((service) => service.name).filter(Boolean).join(', ') || totals.lineItems.map((item) => item.serviceName).join(', ') || 'No services';
+            return (
+              <tr key={appointment.id} className={cn(stackRowClass, 'grid-cols-[4.75rem_minmax(0,1fr)_auto]')}>
+                <td className={cn(stackCellClass, 'row-span-2 whitespace-nowrap font-semibold tabular-nums lg:w-24')}>{clockTime(appointment.startTime, appointment.location?.timezone)}</td>
+                <td className={cn(stackCellClass, 'font-semibold')}><Link href={`/dashboard/platform/appointments/${appointment.id}`} className="block truncate underline-offset-4 hover:underline">{appointmentContact(appointment).name}</Link></td>
+                <td className={cn(stackCellClass, 'col-start-2 row-start-2 truncate text-muted-foreground lg:max-w-64 lg:text-foreground')}>{services}<span className="lg:hidden"> · {appointment.stylist?.user?.name || 'Unassigned'}</span></td>
+                <td className={cn(stackCellClass, 'hidden whitespace-nowrap lg:table-cell')}>{appointment.stylist?.user?.name || 'Unassigned'}</td>
+                <td className={cn(stackCellClass, 'hidden lg:table-cell')}>{paid ? <StatusCell tone="emerald">Paid</StatusCell> : <StatusCell tone={appointmentTone[status] || 'zinc'}>{appointmentLabel[status] || labelize(status) || 'Appointment'}</StatusCell>}</td>
+                <td className={cn(stackCellClass, 'col-start-3 row-start-1 text-right font-medium tabular-nums')}>{usd(paid ? appointment.payment?.totalAmount || 0 : totals.totalDue)}</td>
+                <td className={cn(stackCellClass, 'col-start-3 row-start-2 text-right lg:w-px')}>
+                  <PillLink href={`/dashboard/platform/checkout/${appointment.id}`} size="sm" variant={paid ? 'quiet' : 'raised'}>{paid ? 'View' : 'Ring up'}<ArrowUpRight /></PillLink>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function clockTime(value: string | null | undefined, timezone?: string | null) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('en-US', { timeZone: timezone || 'UTC', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
 }
 
 /** The recorded ticket after payment: every service and retail line, then the totals that were charged. */
@@ -93,7 +155,7 @@ function PaidTicket({ appointment }: { appointment: CheckoutAppointment }) {
 }
 
 /** One salon ticket: services and staff on the left, payment capture on the right. */
-export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '' }: { appointment: CheckoutAppointment; retailPage?: number; retailSearch?: string }) {
+export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '', showClient = true }: { appointment: CheckoutAppointment; retailPage?: number; retailSearch?: string; showClient?: boolean }) {
   const totals = calculateCheckoutTotals(appointment);
   const clientName = appointmentContact(appointment).name;
   const stylistName = appointment.stylist?.user?.name || 'Unassigned';
@@ -103,18 +165,20 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
   const status = appointment.status || '';
 
   return (
-    <article className="grid min-w-0 overflow-hidden rounded-2xl border bg-background xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <article className="grid min-w-0 overflow-hidden rounded-[6px] border bg-background lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 p-4 md:p-5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Avatar name={clientName} />
-          <h2 className="min-w-0 truncate text-lg font-semibold">{clientName}</h2>
-          {alreadyCheckedOut ? <TitleStatus tone="emerald">Paid</TitleStatus> : <TitleStatus tone={appointmentTone[status] || 'blue'}>{appointmentLabel[status] || labelize(status) || 'Appointment'}</TitleStatus>}
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">{zonedTime(appointment.startTime, appointment.location?.timezone)} · {appointment.duration || 60} min · {stylistName}</p>
+        {showClient ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Avatar name={clientName} />
+            <h3 className="min-w-0 truncate text-base font-semibold">{clientName}</h3>
+            {alreadyCheckedOut ? <TitleStatus tone="emerald">Paid</TitleStatus> : <TitleStatus tone={appointmentTone[status] || 'blue'}>{appointmentLabel[status] || labelize(status) || 'Appointment'}</TitleStatus>}
+          </div>
+        ) : null}
+        <p className={showClient ? 'mt-1 text-sm text-muted-foreground' : 'text-sm text-muted-foreground'}>{zonedTime(appointment.startTime, appointment.location?.timezone)} · {appointment.duration || 60} min · {stylistName}</p>
         {appointment.depositPaid ? <p className="mt-2 text-xs text-muted-foreground">Deposit on file · applied at checkout</p> : null}
 
-        <div className="mt-4 rounded-xl border">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b px-3 py-2 text-xs font-medium text-muted-foreground"><span>Ticket</span><span>Amount</span></div>
+        <div className="mt-4 overflow-hidden rounded-[6px] border">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"><span>Ticket</span><span>Amount</span></div>
           {alreadyCheckedOut && appointment.payment ? <PaidTicket appointment={appointment} /> : <>
           <ul className="divide-y">
             {totals.lineItems.map((item) => (
@@ -146,7 +210,7 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
         </div>
       </div>
 
-      <aside className="min-w-0 border-t bg-muted/20 p-4 md:p-5 xl:border-l xl:border-t-0">
+      <aside className="min-w-0 border-t bg-muted/20 p-4 md:p-5 lg:border-l lg:border-t-0">
         {alreadyCheckedOut ? (
           <div className="grid gap-3">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><TitleStatus tone="emerald">Payment recorded</TitleStatus></h3>

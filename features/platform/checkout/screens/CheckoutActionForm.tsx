@@ -65,7 +65,7 @@ export function CheckoutActionForm({
       </div>
       {rejection && state === 'idle' ? <p role="alert" className="mt-3 text-xs text-destructive">{rejection}</p> : null}
       {state === 'failure' && (
-        <div role="alert" className="mt-3 grid gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+        <div role="alert" className="mt-3 grid gap-2 rounded-[6px] border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
           <p>Checkout result not confirmed. Refresh to verify status before trying again.</p>
           <div className={trackClass}>
             <button

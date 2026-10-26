@@ -4,9 +4,9 @@ import { useActionState, useEffect, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { rescheduleOperatorAppointment, type RescheduleState } from '../actions/rescheduleAppointment';
 import { fieldLabelClass, inputClass, pillClass, trackClass } from '../../components/pill';
-import { TimeSlotPicker } from '@/features/storefront/components/TimeSlotPicker';
+import { cn } from '@/lib/utils';
 import { getAvailableTimeSlots, type BookingSlot } from '@/features/storefront/lib/data/availability';
-import '@/features/storefront/styles/storefront.css';
+import { DeskSlotPicker } from './DeskSlotPicker';
 
 function localDateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -36,6 +36,7 @@ export function AppointmentRescheduleForm({ id, startTime, timeZone, slot }: { i
   const [slots, setSlots] = useState<BookingSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [state, action, pending] = useActionState<RescheduleState, FormData>(rescheduleOperatorAppointment, { status: 'idle', message: '' });
   useEffect(() => { setKey(`operator-reschedule:${crypto.randomUUID()}`); }, []);
   useEffect(() => { if (state.status === 'success' || state.status === 'rejected') { setKey(`operator-reschedule:${crypto.randomUUID()}`); setTime(null); } }, [state]);
@@ -52,7 +53,7 @@ export function AppointmentRescheduleForm({ id, startTime, timeZone, slot }: { i
       .catch(() => { if (!cancelled) setFailed(true); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [date, slot.stylistId, slot.duration, slot.serviceId, slot.locationId]);
+  }, [date, slot.stylistId, slot.duration, slot.serviceId, slot.locationId, retry]);
 
   return (
     <form action={action} className="grid min-w-0 gap-4">
@@ -60,19 +61,23 @@ export function AppointmentRescheduleForm({ id, startTime, timeZone, slot }: { i
       <input type="hidden" name="idempotencyKey" value={key} />
       <input type="hidden" name="timeZone" value={zone} />
       {canPick ? (
-        <div className={`${trackClass} justify-self-start`} role="group" aria-label="Reschedule mode">
-          <button type="button" aria-pressed={mode === 'slot'} onClick={() => setMode('slot')} className={pillClass(mode === 'slot' ? 'raised' : 'quiet', 'sm')}>Open slots</button>
-          <button type="button" aria-pressed={mode === 'manual'} onClick={() => setMode('manual')} className={pillClass(mode === 'manual' ? 'raised' : 'quiet', 'sm')}>Other time</button>
-        </div>
+        <fieldset className="inline-flex justify-self-start overflow-hidden rounded-[6px] border text-xs font-medium">
+          <legend className="sr-only">Reschedule mode</legend>
+          {([['slot', 'Open slots'], ['manual', 'Other time']] as const).map(([value, label], index) => (
+            <label key={value} className={cn('inline-flex h-8 cursor-pointer select-none items-center px-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-ring', index > 0 && 'border-l', mode === value ? 'bg-foreground text-background' : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground')}>
+              <input type="radio" name="rescheduleMode" value={value} checked={mode === value} onChange={() => setMode(value)} className="sr-only" />
+              {label}
+            </label>
+          ))}
+        </fieldset>
       ) : null}
       {mode === 'slot' ? (
-        <div className="storefront grid min-w-0 gap-3 !bg-transparent">
+        <div className="grid min-w-0 gap-3">
           <input type="hidden" name="startTime" value={time || ''} />
-          <TimeSlotPicker selectedDate={date} onDateSelect={setDate} selectedTime={time} onTimeSelect={setTime} availableSlots={slots} loadingSlots={loading} />
-          {failed ? <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">Availability couldn&apos;t be checked. Try again.</p> : null}
+          <DeskSlotPicker date={date} onDateSelect={setDate} time={time} onTimeSelect={setTime} slots={slots} loading={loading} failed={failed} onRetry={() => setRetry((value) => value + 1)} />
         </div>
       ) : (
-        <label className={fieldLabelClass}>New date and time<input name="startTime" type="datetime-local" step={900} defaultValue={wallClock(startTime, zone)} required className={`${inputClass} tabular-nums`} /><span className="font-normal">{zone.replaceAll('_', ' ')} · checked against the stylist&apos;s hours on save</span></label>
+        <label className={fieldLabelClass}>New date and time<input name="startTime" type="datetime-local" step={900} defaultValue={wallClock(startTime, zone)} required className={`${inputClass} tabular-nums sm:max-w-xs`} /><span className="font-normal">{zone.replaceAll('_', ' ')} · checked against the stylist&apos;s hours on save</span></label>
       )}
       <label className={fieldLabelClass}>Reason<input name="reason" required maxLength={1000} className={inputClass} /></label>
       <div className="flex flex-wrap items-center gap-3">

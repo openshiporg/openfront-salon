@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Banknote, History, ReceiptText, RotateCcw } from 'lucide-react';
+import { ArrowUpRight, Banknote, History, ReceiptText, RotateCcw } from 'lucide-react';
 import { getSale } from '../actions/sales';
 import { CompensationForm, RefundForm, type RefundableLine } from './SaleForms';
 import { paymentLabel, paymentTone, saleClient } from './SalesListPage';
@@ -36,7 +36,7 @@ export async function SaleDetailPage({ params }: { params: Promise<{ id: string 
         title={name}
         status={<TitleStatus tone={paymentTone[payment?.status || ''] || 'zinc'}>{paymentLabel[payment?.status || ''] || labelize(payment?.status) || 'No payment'}</TitleStatus>}
         meta={<><span>{when(sale.completedAt)}</span><span>{labelize(sale.paymentMethod) || 'Method not recorded'}</span>{sale.location?.name ? <span>{sale.location.name}</span> : null}</>}
-        actions={sale.appointment?.id ? <Track><PillLink href={`/dashboard/platform/appointments/${sale.appointment.id}`} variant="quiet">Appointment</PillLink>{sale.client?.id ? <PillLink href={`/dashboard/platform/clients/${sale.client.id}`} variant="quiet">Client</PillLink> : null}</Track> : null}
+        actions={sale.appointment?.id || sale.client?.id ? <Track>{sale.appointment?.id ? <PillLink href={`/dashboard/platform/appointments/${sale.appointment.id}`} variant="quiet">Appointment<ArrowUpRight /></PillLink> : null}{sale.client?.id ? <PillLink href={`/dashboard/platform/clients/${sale.client.id}`} variant="quiet">Client<ArrowUpRight /></PillLink> : null}</Track> : null}
       />
 
       <Panel title="Ticket" icon={ReceiptText} padded={false}>
@@ -65,6 +65,18 @@ export async function SaleDetailPage({ params }: { params: Promise<{ id: string 
 
       {payment ? <Panel title="Refund" icon={RotateCcw}><RefundForm transactionId={sale.id} lines={refundable} remainingTip={remainingTip} packageCredit={packageCredit} idempotencyKey={`sale-reversal:${sale.id}:${randomUUID()}`} /></Panel> : null}
 
+      <Panel title="History" icon={History} padded={false}>
+        {sale.reversals.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No refunds or adjustments.</p> : (
+          <ul className="divide-y">
+            {sale.reversals.map((item) => (
+              <li key={item.id} className="grid gap-1 px-4 py-3 text-sm md:px-5">
+                <span className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-2 font-medium">{reversalLabel[item.type] || labelize(item.type)}<TitleStatus tone={item.status === 'posted' ? 'emerald' : 'amber'}>{labelize(item.status)}</TitleStatus></span><span className="tabular-nums">{item.type === 'compensation' ? `${item.commissionDelta >= 0 ? '+' : '−'}${usd(Math.abs(item.commissionDelta))} commission` : `−${usd(Math.abs(item.paymentDelta))}`}</span></span>
+                <span className="text-xs text-muted-foreground">{when(item.postedAt)}{item.actor?.name ? ` · ${item.actor.name}` : ''} · {item.reason}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
       {compensation && (compensation.commissions.length || compensation.tips.length) ? (
         <Panel title="Commission & tips" icon={Banknote}>
           <div className="grid gap-5">
@@ -85,18 +97,6 @@ export async function SaleDetailPage({ params }: { params: Promise<{ id: string 
         </Panel>
       ) : null}
 
-      <Panel title="History" icon={History} padded={false}>
-        {sale.reversals.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No refunds or adjustments.</p> : (
-          <ul className="divide-y">
-            {sale.reversals.map((item) => (
-              <li key={item.id} className="grid gap-1 px-4 py-3 text-sm md:px-5">
-                <span className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-2 font-medium">{reversalLabel[item.type] || labelize(item.type)}<TitleStatus tone={item.status === 'posted' ? 'emerald' : 'amber'}>{labelize(item.status)}</TitleStatus></span><span className="tabular-nums">{item.type === 'compensation' ? `${item.commissionDelta >= 0 ? '+' : '−'}${usd(Math.abs(item.commissionDelta))} commission` : `−${usd(Math.abs(item.paymentDelta))}`}</span></span>
-                <span className="text-xs text-muted-foreground">{when(item.postedAt)}{item.actor?.name ? ` · ${item.actor.name}` : ''} · {item.reason}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
       <Link href="/dashboard/platform/sales" className="text-sm font-medium underline-offset-4 hover:underline">All sales</Link>
     </PlatformPage>
   );

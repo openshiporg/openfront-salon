@@ -22,22 +22,18 @@ export async function GalleryPage() {
   return (
     <div className="sf-page-pad">
       <div className="sf-container">
-        <PageIntro
-          title={<>The work</>}
-          size="large"
-          aside={<div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div>}
-        />
+        <PageIntro title="Gallery" aside={<Link href="/book" className="sf-btn sf-btn-primary">Book</Link>} />
 
         {images.length > 0 ? (
-          <div className="sf-masonry">
+          <div className="sf-gallery">
             {images.map(({ image, src }, index) => (
-              <figure key={image.id}>
-                <div className={`sf-media ${index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-[4/3]"}`}>
-                  <img src={src} alt={image.altText || image.metadata?.title || "Salon work"} loading={index < 3 ? undefined : "lazy"} />
+              <figure key={image.id} className="sf-carton" data-band={String((index % 6) + 1)}>
+                <div className={`overflow-hidden bg-[var(--sf-alu)] ${index % 3 === 0 ? "aspect-[4/5]" : index % 3 === 1 ? "aspect-square" : "aspect-[4/3]"}`}>
+                  <img src={src} alt={image.altText || image.metadata?.title || "Salon work"} loading={index < 3 ? undefined : "lazy"} className="h-full w-full object-cover" />
                 </div>
                 {image.metadata?.title || image.metadata?.caption ? (
-                  <figcaption className="mt-2.5 px-1">
-                    {image.metadata?.title ? <p className="font-semibold text-[length:var(--sf-text-sm)]">{image.metadata.title}</p> : null}
+                  <figcaption className="border-t-[0.5rem] border-[var(--band)] px-3 py-2.5">
+                    {image.metadata?.title ? <p className="sf-carton-name !text-[length:var(--sf-text-lg)]">{image.metadata.title}</p> : null}
                     {image.metadata?.caption ? <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{image.metadata.caption}</p> : null}
                   </figcaption>
                 ) : null}
@@ -45,9 +41,9 @@ export async function GalleryPage() {
             ))}
           </div>
         ) : (
-          <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
-            <h2 className="sf-display mb-6 text-[length:var(--sf-text-2xl)]">No photos yet</h2>
-            <div className="sf-track"><Link href="/services" className="sf-btn">Service menu</Link></div>
+          <div className="sf-carton sf-carton-empty mx-auto max-w-md" data-band="ink">
+            <h2 className="sf-display text-[length:var(--sf-text-2xl)]">No photos yet</h2>
+            <div className="sf-track"><Link href="/services" className="sf-btn">Services</Link></div>
           </div>
         )}
       </div>

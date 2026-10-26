@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { StoreBrand } from "@/features/storefront/components/StoreBrand"
 import { usePathname } from "next/navigation"
-import { ArrowUpRight, CalendarPlus, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 interface NavProps {
@@ -26,20 +26,12 @@ const secondary = [
   { name: "My appointments", href: "/account" },
 ]
 
-// Booking and account pages own their primary action; the floating bar would compete.
+// Booking and account pages own their primary action; the phone book bar would compete.
 const NO_BOOK_BAR = ["/book", "/booking", "/account"]
 
 export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
 
   useEffect(() => {
     setMobileMenuOpen(false)
@@ -51,66 +43,52 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
 
   return (
     <>
-      <header className="sf-nav" data-scrolled={scrolled || mobileMenuOpen}>
+      <header className="sf-nav">
         <div className="sf-container sf-nav-inner">
           <StoreBrand name={brandName} logoIcon={logoIcon} logoColor={logoColor} />
 
-          <nav className="sf-nav-links hidden lg:block" aria-label="Main">
-            <div className="sf-track">
+          <nav className="hidden lg:block" aria-label="Main">
+            <ul className="flex items-center">
               {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                  className="sf-btn sf-btn-quiet"
-                >
-                  {item.name}
-                </Link>
+                <li key={item.name}>
+                  <Link href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className="sf-nav-link">
+                    {item.name}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Link href="/account" className="sf-link hidden text-[length:var(--sf-text-sm)] xl:inline">
+          <div className="flex shrink-0 items-center gap-2">
+            <Link href="/account" aria-current={isActive("/account") ? "page" : undefined} className="sf-nav-link hidden xl:inline-flex">
               My appointments
             </Link>
-            <div className="sf-track">
-              <Link href="/book" className="sf-btn sf-btn-primary hidden sm:inline-flex">
-                Book now
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="sf-btn sf-btn-icon lg:hidden"
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                aria-expanded={mobileMenuOpen}
-                aria-controls="sf-mobile-menu"
-              >
-                {mobileMenuOpen ? <X /> : <Menu />}
-              </button>
-            </div>
+            <Link href="/book" className="sf-btn sf-btn-primary hidden sm:inline-flex">
+              Book
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="sf-btn sf-btn-icon lg:hidden"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="sf-mobile-menu"
+            >
+              {mobileMenuOpen ? <X /> : <Menu />}
+            </button>
           </div>
         </div>
 
         {mobileMenuOpen ? (
           <div id="sf-mobile-menu" className="sf-mobile-sheet lg:hidden">
-            <nav className="sf-container pb-6 pt-2" aria-label="Mobile">
+            <nav className="sf-container pb-6 pt-1" aria-label="Mobile">
               {[...navigation, ...secondary].map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                  className="sf-mobile-link"
-                >
+                <Link key={item.name} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className="sf-mobile-link">
                   {item.name}
-                  <ArrowUpRight className="h-5 w-5 text-[var(--sf-ink-3)]" aria-hidden="true" />
                 </Link>
               ))}
               <div className="sf-track sf-track-block mt-6">
-                <Link href="/book" className="sf-btn sf-btn-primary">
-                  <CalendarPlus />
-                  Book an appointment
-                </Link>
+                <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
               </div>
             </nav>
           </div>
@@ -120,10 +98,7 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
       {showBookBar && !mobileMenuOpen ? (
         <div className="sf-book-bar">
           <div className="sf-track sf-track-block">
-            <Link href="/book" className="sf-btn sf-btn-primary">
-              <CalendarPlus />
-              Book an appointment
-            </Link>
+            <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
           </div>
         </div>
       ) : null}

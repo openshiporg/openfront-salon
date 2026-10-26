@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Gift, Search } from 'lucide-react';
 import { changeGiftCardBalance, getGiftCards, sellGiftCard, type PlatformGiftCard } from '../actions/giftCards';
 import { ActionForm } from '../../components/ActionForm';
-import { EmptyState, ErrorState, fieldLabelClass, inputClass, labelize, MetricStrip, PageHeader, Panel, PlatformPage, SegmentTabs, TitleStatus, textareaClass, usd, type Tone } from '../../components/salon-ui';
+import { EmptyState, ErrorState, fieldLabelClass, inputClass, labelize, PageHeader, Panel, pillClass, PlatformPage, SegmentTabs, StatusCell, textareaClass, usd, type Tone } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
 
 const tabs = [
@@ -34,83 +34,107 @@ export async function GiftCardsPage({ searchParams }: { searchParams?: Promise<{
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: 'Gift cards' }]}>
-      <PageHeader icon={Gift} title="Gift cards" status={data ? <TitleStatus tone="emerald">{data.counts.active} active</TitleStatus> : null} />
+      <PageHeader title="Gift cards" meta={data ? <span>{data.counts.active} active · {usd(data.outstanding)} outstanding{data.counts.expired ? ` · ${data.counts.expired} expired` : ''}</span> : null} />
       {!data ? <ErrorState id="gift-cards-error" title="Gift cards couldn't be loaded" message="Check your payment access, then reload." action={null} /> : (
         <>
-          <MetricStrip items={[
-            { label: 'Active cards', value: data.counts.active, tone: 'emerald' },
-            { label: 'Outstanding balance', value: usd(data.outstanding) },
-            { label: 'Used up', value: data.counts.spent },
-            { label: 'Expired', value: data.counts.expired, tone: data.counts.expired ? 'rose' : undefined },
-          ]} />
-
-          <Panel title="Sell a gift card" icon={Gift}>
-            {data.purchasers.length === 0 ? <p className="text-sm text-muted-foreground">The purchaser needs a client account. Add the client first.</p> : (
-              <ActionForm action={sellGiftCard} submitLabel="Issue gift card" pendingLabel="Issuing…" resetOnSuccess>
-                <input type="hidden" name="idempotencyKey" value={`desk-gift-card:${randomUUID()}`} />
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <label className={fieldLabelClass}>Purchaser
-                    <select name="purchaserEmail" required className={inputClass} defaultValue="">
-                      <option value="" disabled>Choose a client</option>
-                      {data.purchasers.map((person) => <option key={person.email} value={person.email}>{person.name} · {person.email}</option>)}
-                    </select>
-                  </label>
-                  <label className={fieldLabelClass}>Amount<input name="amount" type="number" min="25" max="500" step="0.01" required inputMode="decimal" placeholder="50.00" className={inputClass} /></label>
-                  <label className={fieldLabelClass}>Recipient name<input name="recipientName" maxLength={120} className={inputClass} /></label>
-                  <label className={fieldLabelClass}>Recipient email<input name="recipientEmail" type="email" maxLength={254} className={inputClass} /></label>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-start">
+            <Panel title="Check balance" icon={Search}>
+              <form role="search" className="flex gap-2">
+                <input type="hidden" name="status" value="all" />
+                <label className="min-w-0 flex-1"><span className="sr-only">Gift card code or recipient</span><input name="q" type="search" defaultValue={q} placeholder="Code or recipient" autoComplete="off" className={`${inputClass} font-mono`} /></label>
+                <button type="submit" className={pillClass('primary', 'md')}>Look up</button>
+              </form>
+              {q ? (
+                <div className="mt-3 border-t pt-3">
+                  {data.giftCards.length === 0 ? <p className="text-sm text-muted-foreground">No card matches &ldquo;{q}&rdquo;.</p> : (
+                    <dl className="grid gap-2">
+                      {data.giftCards.slice(0, 3).map((card) => {
+                        const state = cardState(card);
+                        return (
+                          <div key={card.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                            <dt className="min-w-0"><span className="font-mono text-sm font-semibold">{card.code}</span> <StatusCell tone={state.tone}>{state.label}</StatusCell></dt>
+                            <dd className="text-lg font-semibold tabular-nums">{usd(card.currentBalance)}<span className="ml-1 text-sm font-normal text-muted-foreground">of {usd(card.initialValue)}</span></dd>
+                          </div>
+                        );
+                      })}
+                      {data.giftCards.length > 3 ? <p className="text-xs text-muted-foreground">{data.giftCards.length - 3} more below</p> : null}
+                    </dl>
+                  )}
+                  <a href="/dashboard/platform/gift-cards" className="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</a>
                 </div>
-                <label className={fieldLabelClass}>Message<textarea name="message" maxLength={2000} className={`${textareaClass} min-h-16`} /></label>
-              </ActionForm>
-            )}
-          </Panel>
+              ) : null}
+            </Panel>
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <SegmentTabs label="Gift card status" active={status} tabs={tabs.map((tab) => ({ value: tab.value, label: tab.label, href: href(tab.value), count: tab.value === 'active' ? data.counts.active : tab.value === 'spent' ? data.counts.spent : tab.value === 'expired' ? data.counts.expired : data.counts.all }))} />
-            <form className="relative w-full md:w-72" role="search">
-              {status !== 'active' ? <input type="hidden" name="status" value={status} /> : null}
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input name="q" type="search" defaultValue={q} placeholder="Code or recipient" aria-label="Search gift cards" className={`${inputClass} pl-9`} />
-            </form>
+            <Panel title="Sell a gift card" icon={Gift}>
+              {data.purchasers.length === 0 ? <p className="text-sm text-muted-foreground">The purchaser needs a client account. Add the client first.</p> : (
+                <ActionForm action={sellGiftCard} submitLabel="Issue gift card" pendingLabel="Issuing…" resetOnSuccess size="md">
+                  <input type="hidden" name="idempotencyKey" value={`desk-gift-card:${randomUUID()}`} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className={fieldLabelClass}>Purchaser
+                      <select name="purchaserEmail" required className={inputClass} defaultValue="">
+                        <option value="" disabled>Choose a client</option>
+                        {data.purchasers.map((person) => <option key={person.email} value={person.email}>{person.name} · {person.email}</option>)}
+                      </select>
+                    </label>
+                    <label className={fieldLabelClass}>Amount<span className="relative block"><span aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span><input name="amount" type="number" min="25" max="500" step="0.01" required inputMode="decimal" placeholder="50.00" className={`${inputClass} pl-6 tabular-nums`} /></span></label>
+                    <label className={fieldLabelClass}>Recipient name<input name="recipientName" maxLength={120} className={inputClass} /></label>
+                    <label className={fieldLabelClass}>Recipient email<input name="recipientEmail" type="email" maxLength={254} className={inputClass} /></label>
+                  </div>
+                  <label className={fieldLabelClass}>Message<textarea name="message" maxLength={2000} rows={2} className={`${textareaClass} min-h-0`} /></label>
+                </ActionForm>
+              )}
+            </Panel>
           </div>
 
-          {data.giftCards.length === 0 ? <EmptyState icon={Gift} title="No gift cards in this view" /> : (
-            <ul className="grid gap-3">
-              {data.giftCards.map((card) => {
-                const state = cardState(card);
-                return (
-                  <li key={card.id} className="min-w-0 overflow-hidden rounded-2xl border bg-background">
-                    <details className="group">
-                      <summary className="grid cursor-pointer list-none gap-1 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center md:px-5 [&::-webkit-details-marker]:hidden">
-                        <span className="min-w-0">
-                          <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="font-mono text-sm font-semibold">{card.code}</span><TitleStatus tone={state.tone}>{state.label}</TitleStatus></span>
-                          <span className="block truncate text-xs text-muted-foreground">{card.recipientName || card.recipientEmail || 'No recipient'} · bought by {card.purchasedBy?.name || card.purchasedBy?.email || 'unknown'} · expires {date(card.expiresAt)}</span>
-                        </span>
-                        <span className="text-sm font-semibold tabular-nums">{usd(card.currentBalance)} <span className="font-normal text-muted-foreground">of {usd(card.initialValue)}</span></span>
-                      </summary>
-                      <div className="grid gap-5 border-t px-4 py-4 md:grid-cols-2 md:px-5">
-                        <div className="min-w-0">
-                          <h3 className="text-xs font-semibold text-muted-foreground">Balance history</h3>
-                          <ul className="mt-2 grid gap-1.5 text-sm">
-                            {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{labelize(item.type)} · {date(item.createdAt)}{item.notes && !item.notes.startsWith('provider:') ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
-                          </ul>
-                        </div>
-                        {state.label === 'Active' || state.label === 'Used up' ? (
-                          <ActionForm action={changeGiftCardBalance} submitLabel="Apply" resetOnSuccess>
-                            <input type="hidden" name="giftCardId" value={card.id} />
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <label className={fieldLabelClass}>Action<select name="action" className={inputClass}><option value="redemption">Redeem</option><option value="refund">Return value to card</option></select></label>
-                              <label className={fieldLabelClass}>Amount<input name="amount" type="number" min="0.01" step="0.01" required inputMode="decimal" className={inputClass} /></label>
+          <section aria-labelledby="issued-cards" className="grid gap-2">
+            <h2 id="issued-cards" className="text-sm font-semibold">Issued cards</h2>
+            <SegmentTabs label="Gift card status" active={status} tabs={tabs.map((tab) => ({ value: tab.value, label: tab.label, href: href(tab.value), count: tab.value === 'active' ? data.counts.active : tab.value === 'spent' ? data.counts.spent : tab.value === 'expired' ? data.counts.expired : data.counts.all }))} />
+            {data.giftCards.length === 0 ? <EmptyState icon={Gift} title={q ? `No cards match "${q}"` : 'No gift cards in this view'} /> : (
+              <div className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
+                <div aria-hidden="true" className="hidden h-9 grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_6rem_5rem] items-center gap-3 border-b bg-muted/40 px-3 text-xs font-medium text-muted-foreground md:grid">
+                  <span>Code</span><span>Recipient</span><span>Bought by</span><span className="text-right">Balance</span><span>Expires</span><span>Status</span><span />
+                </div>
+                <ul className="divide-y">
+                  {data.giftCards.map((card) => {
+                    const state = cardState(card);
+                    return (
+                      <li key={card.id} className="min-w-0">
+                        <details className="group">
+                          <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 px-3 py-2.5 text-sm hover:bg-muted/30 md:grid-cols-[9rem_minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_6rem_5rem] md:items-center [&::-webkit-details-marker]:hidden">
+                            <span className="font-mono font-semibold">{card.code}</span>
+                            <span className="min-w-0 truncate max-md:order-3 max-md:col-span-2 max-md:text-xs max-md:text-muted-foreground">{card.recipientName || card.recipientEmail || 'No recipient'}</span>
+                            <span className="hidden min-w-0 truncate text-muted-foreground md:block">{card.purchasedBy?.name || card.purchasedBy?.email || 'Unknown'}</span>
+                            <span className="text-right font-semibold tabular-nums max-md:order-2">{usd(card.currentBalance)}<span className="block text-xs font-normal text-muted-foreground">of {usd(card.initialValue)}</span></span>
+                            <span className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:block">{date(card.expiresAt)}</span>
+                            <span className="max-md:order-4"><StatusCell tone={state.tone}>{state.label}</StatusCell></span>
+                            <span className="text-xs font-medium text-muted-foreground max-md:order-5 md:text-right"><span className="group-open:hidden">Manage</span><span className="hidden group-open:inline">Close</span></span>
+                          </summary>
+                          <div className="grid gap-5 border-t bg-muted/10 px-3 py-4 md:grid-cols-2">
+                            <div className="min-w-0">
+                              <h3 className="text-xs font-semibold text-muted-foreground">Balance history</h3>
+                              <ul className="mt-2 grid gap-1.5 text-sm">
+                                {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{labelize(item.type)} · {date(item.createdAt)}{item.notes && !item.notes.startsWith('provider:') ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
+                              </ul>
                             </div>
-                            <label className={fieldLabelClass}>Reason<input name="reason" required maxLength={1000} className={inputClass} /></label>
-                          </ActionForm>
-                        ) : null}
-                      </div>
-                    </details>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                            {state.label === 'Active' || state.label === 'Used up' ? (
+                              <ActionForm action={changeGiftCardBalance} submitLabel="Apply" resetOnSuccess>
+                                <input type="hidden" name="giftCardId" value={card.id} />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <label className={fieldLabelClass}>Action<select name="action" className={inputClass}><option value="redemption">Redeem</option><option value="refund">Return value to card</option></select></label>
+                                  <label className={fieldLabelClass}>Amount<input name="amount" type="number" min="0.01" step="0.01" required inputMode="decimal" className={inputClass} /></label>
+                                </div>
+                                <label className={fieldLabelClass}>Reason<input name="reason" required maxLength={1000} className={inputClass} /></label>
+                              </ActionForm>
+                            ) : null}
+                          </div>
+                        </details>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </section>
         </>
       )}
     </PlatformPage>

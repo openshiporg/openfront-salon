@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Banknote, CalendarClock, CalendarDays, Star, UserRound } from 'lucide-react';
 import { getStaffProfile } from '../actions/staffProfile';
-import { appointmentLabel, appointmentTone, Avatar, Chip, Fact, labelize, MetricStrip, PageHeader, Panel, PillLink, PlatformPage, TitleStatus, Track, usd } from '../../components/salon-ui';
+import { appointmentLabel, appointmentTone, Avatar, Chip, DataTable, Fact, labelize, PageHeader, Panel, PillLink, PlatformPage, StatusCell, Td, TitleStatus, Track, usd } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -32,30 +32,27 @@ export async function StaffProfilePage({ params }: { params: Promise<{ id: strin
         icon={UserRound}
         title={name}
         status={<TitleStatus tone={statusTone}>{labelize(stylist.status) || 'Active'}</TitleStatus>}
-        meta={[[labelize(stylist.tier), labelize(stylist.role)].filter(Boolean).join(' '), stylist.user?.email, stylist.user?.phone].filter(Boolean).join(' · ') || null}
-        actions={<Track><PillLink href="/dashboard/platform/administration#management-staff" variant="quiet">Edit profile</PillLink><PillLink href="/dashboard/platform/schedules" variant="quiet">Hours & time off</PillLink><PillLink href={`/dashboard/platform/appointments/new?stylist=${stylist.id}`} variant="primary">Book</PillLink></Track>}
+        meta={<>
+          <span>{[[labelize(stylist.tier), labelize(stylist.role)?.toLowerCase()].filter(Boolean).join(' '), stylist.user?.email, stylist.user?.phone].filter(Boolean).join(' · ')}</span>
+          <span>{upcomingCount} upcoming · {completedCount} completed{noShowCount ? ` · ${noShowCount} no-show${noShowCount === 1 ? '' : 's'}` : ''}{average ? ` · rated ${average.toFixed(1)} from ${approved.length}` : ''}</span>
+        </>}
+        actions={<Track><PillLink href="/dashboard/platform/administration#management-staff" variant="raised">Edit profile</PillLink><PillLink href="/dashboard/platform/schedules" variant="raised">Hours & time off</PillLink><PillLink href={`/dashboard/platform/appointments/new?stylist=${stylist.id}`} variant="primary">Book</PillLink></Track>}
       />
-      <MetricStrip items={[
-        { label: 'Upcoming', value: upcomingCount, tone: upcomingCount ? 'blue' : undefined },
-        { label: 'Completed visits', value: completedCount },
-        { label: 'No-shows', value: noShowCount, tone: noShowCount ? 'orange' : undefined },
-        { label: 'Rating', value: average ? `${average.toFixed(1)} · ${approved.length}` : '—' },
-      ]} />
-
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-6">
-          <Panel title="Upcoming appointments" icon={CalendarDays} padded={false}>
-            {upcoming.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No upcoming appointments.</p> : (
-              <ul className="divide-y">
-                {upcoming.map((appointment) => (
-                  <li key={appointment.id}><Link href={`/dashboard/platform/appointments/${appointment.id}`} className="grid gap-0.5 px-4 py-3 text-sm hover:bg-muted/40 sm:grid-cols-[minmax(0,1fr)_auto] md:px-5">
-                    <span className="min-w-0"><span className="flex flex-wrap items-center gap-x-3"><span className="truncate font-medium">{appointment.client?.displayName || 'Client'}</span><TitleStatus tone={appointmentTone[appointment.status] || 'zinc'}>{appointmentLabel[appointment.status] || labelize(appointment.status)}</TitleStatus></span><span className="block truncate text-xs text-muted-foreground">{appointment.services.map((service) => service.name).filter(Boolean).join(', ')}</span></span>
-                    <span className="tabular-nums text-muted-foreground">{new Date(appointment.startTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: appointment.location?.timezone || timeZone })}</span>
-                  </Link></li>
-                ))}
-              </ul>
-            )}
-          </Panel>
+          <section aria-labelledby="staff-upcoming" className="grid gap-2">
+            <h2 id="staff-upcoming" className="flex items-center gap-2 text-sm font-semibold"><CalendarDays className="size-3.5 text-muted-foreground" />Upcoming appointments</h2>
+            <DataTable label="Upcoming appointments" head={[{ label: 'When' }, { label: 'Client' }, { label: 'Services', className: 'hidden md:table-cell' }, { label: 'Status' }]}>
+              {upcoming.length === 0 ? <tr><Td colSpan={4} className="py-4 text-muted-foreground">No upcoming appointments.</Td></tr> : upcoming.map((appointment) => (
+                <tr key={appointment.id} className="hover:bg-muted/30">
+                  <Td className="whitespace-nowrap"><Link href={`/dashboard/platform/appointments/${appointment.id}`} className="font-medium tabular-nums underline-offset-4 hover:underline">{new Date(appointment.startTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: appointment.location?.timezone || timeZone })}</Link></Td>
+                  <Td>{appointment.client?.displayName || 'Client'}</Td>
+                  <Td className="hidden text-muted-foreground md:table-cell">{appointment.services.map((service) => service.name).filter(Boolean).join(', ')}</Td>
+                  <Td><StatusCell tone={appointmentTone[appointment.status] || 'zinc'}>{appointmentLabel[appointment.status] || labelize(appointment.status)}</StatusCell></Td>
+                </tr>
+              ))}
+            </DataTable>
+          </section>
 
           <Panel title="Weekly hours" icon={CalendarClock}>
             {weekly.length === 0 ? <p className="text-sm text-muted-foreground">No weekly hours. Online booking shows no times for {name}.</p> : (
@@ -86,8 +83,8 @@ export async function StaffProfilePage({ params }: { params: Promise<{ id: strin
           ) : null}
 
           <Panel title="Reviews" icon={Star} padded={false}>
-            {stylist.reviews.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No reviews yet.</p> : (
-              <ul className="divide-y">{stylist.reviews.slice(0, 8).map((review) => <li key={review.id} className="px-4 py-3 text-sm md:px-5"><span className="flex items-center gap-2 font-medium">{'★'.repeat(review.rating)}<TitleStatus tone={review.isApproved ? 'emerald' : 'amber'}>{review.isApproved ? 'Published' : 'Awaiting approval'}</TitleStatus></span>{review.comment ? <p className="mt-1 text-muted-foreground">{review.comment}</p> : null}</li>)}</ul>
+            {stylist.reviews.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">No reviews yet.</p> : (
+              <ul className="divide-y">{stylist.reviews.slice(0, 8).map((review) => <li key={review.id} className="px-4 py-3 text-sm md:px-5"><span className="flex items-center gap-2 font-medium"><span className="tabular-nums">{review.rating} / 5</span><TitleStatus tone={review.isApproved ? 'emerald' : 'amber'}>{review.isApproved ? 'Published' : 'Awaiting approval'}</TitleStatus></span>{review.comment ? <p className="mt-1 text-muted-foreground">{review.comment}</p> : null}</li>)}</ul>
             )}
           </Panel>
         </div>
@@ -102,7 +99,7 @@ export async function StaffProfilePage({ params }: { params: Promise<{ id: strin
             {stylist.bio ? <p className="mt-4 whitespace-pre-line border-t pt-4 text-sm text-muted-foreground">{stylist.bio}</p> : <p className="mt-4 border-t pt-4 text-sm text-muted-foreground">No bio on the storefront.</p>}
           </Panel>
           <Panel title="Services offered" padded={false}>
-            {stylist.specializations.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No services assigned.</p> : (
+            {stylist.specializations.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">No services assigned.</p> : (
               <ul className="divide-y">{stylist.specializations.map((service) => <li key={service.id}><Link href={`/dashboard/platform/catalog/${service.id}`} className="block px-4 py-2.5 text-sm hover:bg-muted/40 md:px-5">{service.name}</Link></li>)}</ul>
             )}
           </Panel>

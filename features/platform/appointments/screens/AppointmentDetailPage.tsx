@@ -12,7 +12,6 @@ import {
   appointmentLabel,
   appointmentTone,
   Avatar,
-  Chip,
   Fact,
   Notice,
   PageHeader,
@@ -23,6 +22,8 @@ import {
   Track,
   usd,
   labelize,
+  inputClass,
+  StatusDot,
 } from '../../components/salon-ui';
 
 interface PageProps { params: Promise<{ id: string }> }
@@ -60,6 +61,8 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           <span className="inline-flex items-center gap-1.5"><CalendarClock className="size-4" />{appointment.startTime ? formatSalonDateTime(appointment.startTime, appointment.location?.timezone) : 'Not scheduled'}</span>
           <span>{appointment.duration || 0} min</span>
           <span>{appointment.location?.name || 'Location not assigned'}</span>
+          {appointment.depositAmount ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
+          {appointment.services.some((service) => service.requiresConsultation) ? <span className="inline-flex items-center gap-1.5 text-violet-800 dark:text-violet-300"><StatusDot tone="violet" />Consultation required</span> : null}
         </>}
         actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
       />
@@ -71,12 +74,6 @@ export async function AppointmentDetailPage({ params }: PageProps) {
       ) : null}
 
       {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" gates={lifecycleGates(appointment.startTime, appointment.location?.timezone)} /> : null}
-
-      <div className="flex flex-wrap gap-2">
-        {appointment.depositAmount ? <Chip tone={appointment.depositPaid ? 'emerald' : 'amber'}>{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} · {usd(appointment.depositAmount)}</Chip> : null}
-        {appointment.services.some((service) => service.requiresConsultation) ? <Chip tone="violet">Consultation required</Chip> : null}
-        {appointment.services.some((service) => service.requiresPatchTest) ? <Chip tone="violet">Patch test required</Chip> : null}
-      </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-5">
@@ -127,7 +124,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
                 <ActionForm action={recordDeposit} submitLabel={`Record ${usd(appointment.depositAmount)} deposit`} pendingLabel="Recording…" className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="appointmentId" value={appointment.id} />
                   <input type="hidden" name="idempotencyKey" value={`desk-deposit:${appointment.id}`} />
-                  <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Paid by<select name="paymentMethod" required defaultValue="" className="h-9 rounded-xl border bg-background px-3 text-sm text-foreground"><option value="" disabled>Choose tender</option><option value="credit_card">Card · external terminal</option><option value="cash">Cash</option></select></label>
+                  <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Paid by<select name="paymentMethod" required defaultValue="" className={inputClass}><option value="" disabled>Choose tender</option><option value="credit_card">Card · external terminal</option><option value="cash">Cash</option></select></label>
                 </ActionForm>
               )}
             </Panel>
@@ -199,19 +196,19 @@ function PaymentBoundary({ boundary, integrations }: { boundary: NonNullable<Awa
   return (
     <div className="grid gap-3">
       {boundary.payments.map((payment) => (
-        <div key={payment.id} className="rounded-xl border p-3 text-sm">
+        <div key={payment.id} className="rounded-[6px] border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2"><TitleStatus tone={payment.status === 'completed' ? 'emerald' : 'amber'}>{labelize(payment.status) || 'Payment'} · {labelize(payment.paymentMethod) || 'Method not recorded'}</TitleStatus><span className="font-semibold tabular-nums">{usd(payment.totalAmount)}</span></div>
           <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5"><Fact label="Subtotal">{usd(payment.subtotal)}</Fact><Fact label="Discount">{payment.discount ? `−${usd(payment.discount)}` : usd(0)}</Fact><Fact label="Tax">{usd(payment.tax)}</Fact><Fact label="Tip">{usd(payment.tip)}</Fact><Fact label="Refunded">{usd(payment.refundedAmount)}</Fact></dl>
           {payment.cardLast4 ? <p className="mt-2 text-xs text-muted-foreground">{payment.cardBrand || 'Card'} ending {payment.cardLast4}</p> : null}
         </div>
       ))}
       {boundary.transactions.map((transaction) => (
-        <div key={transaction.id} className="rounded-xl border p-3 text-sm">
+        <div key={transaction.id} className="rounded-[6px] border p-3 text-sm">
           <div className="font-medium">Ticket · {labelize(transaction.status) || 'Open'} · {labelize(transaction.paymentStatus) || 'Payment pending'}</div>
           {transaction.lineItems.map((line) => <div key={line.id} className="mt-2 flex justify-between gap-2 text-muted-foreground"><span>{line.service?.name || line.product?.name || line.itemType || 'Line item'} × {line.quantity || 1}</span><span className="tabular-nums">{usd((line.unitPrice || 0) * (line.quantity || 1) - (line.discount || 0))}</span></div>)}
         </div>
       ))}
-      {boundary.sessions.length ? <p className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">{boundary.sessions.length} payment session{boundary.sessions.length === 1 ? '' : 's'} recorded.{integrations ? ' Provider settings live in Integrations.' : ''}</p> : null}
+      {boundary.sessions.length ? <p className="rounded-[6px] border border-dashed p-3 text-sm text-muted-foreground">{boundary.sessions.length} payment session{boundary.sessions.length === 1 ? '' : 's'} recorded.{integrations ? ' Provider settings live in Integrations.' : ''}</p> : null}
     </div>
   );
 }

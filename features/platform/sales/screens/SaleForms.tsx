@@ -29,14 +29,16 @@ export function RefundForm({ transactionId, lines, remainingTip, packageCredit, 
       <input type="hidden" name="transactionId" value={transactionId} />
       <input type="hidden" name="mode" value={mode} />
       <input type="hidden" name="idempotencyKey" value={`${idempotencyKey}:${mode}`} />
-      <div className={`${trackClass} justify-self-start`} role="group" aria-label="Refund type">
-        {(['refund', 'partial', 'void'] as const).map((value) => (
-          <button key={value} type="button" aria-pressed={mode === value} onClick={() => { setMode(value); setArmed(false); }} className={pillClass(mode === value ? 'raised' : 'quiet', 'sm')}>
+      <fieldset className="inline-flex justify-self-start overflow-hidden rounded-[6px] border text-xs font-medium">
+        <legend className="sr-only">Refund type</legend>
+        {(['refund', 'partial', 'void'] as const).map((value, index) => (
+          <label key={value} className={`inline-flex h-8 cursor-pointer select-none items-center px-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-ring ${index > 0 ? 'border-l' : ''} ${mode === value ? 'bg-foreground text-background' : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+            <input type="radio" name="refundTypeChoice" value={value} checked={mode === value} onChange={() => { setMode(value); setArmed(false); }} className="sr-only" />
             {value === 'refund' ? 'Full refund' : value === 'partial' ? 'Partial refund' : 'Void'}
-          </button>
+          </label>
         ))}
-      </div>
-      <ul className="divide-y rounded-xl border">
+      </fieldset>
+      <ul className="divide-y rounded-[6px] border">
         {lines.map((line) => (
           <li key={line.id} className="grid min-w-0 gap-2 px-3 py-2.5 text-sm sm:grid-cols-[minmax(0,1fr)_6rem_10rem] sm:items-center">
             <input type="hidden" name="lineId" value={line.id} />

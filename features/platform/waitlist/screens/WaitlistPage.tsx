@@ -1,4 +1,3 @@
-import { ListOrdered } from 'lucide-react'
 import { getWaitlistQueue } from '../actions/waitlist'
 import { WaitlistClient } from './WaitlistClient'
 import { PlatformPage } from '../../components/salon-ui'
@@ -8,7 +7,7 @@ export async function WaitlistPage() {
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: 'Walk-in waitlist' }]}>
-      <WaitlistClient initialQueue={initialQueue} icon={<ListOrdered className="size-[18px]" />} />
+      <WaitlistClient initialQueue={initialQueue} />
     </PlatformPage>
   )
 }

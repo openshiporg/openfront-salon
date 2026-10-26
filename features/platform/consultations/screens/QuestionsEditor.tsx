@@ -18,7 +18,7 @@ export function QuestionsEditor({ initial }: { initial: Row[] }) {
         <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
           <input aria-label={`Question ${index + 1}`} value={row.label} onChange={(event) => update(index, { label: event.target.value })} maxLength={500} className={`${inputClass} h-9`} />
           <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={row.required} onChange={(event) => update(index, { required: event.target.checked })} className="size-4 accent-foreground" />Required</label>
-          <button type="button" aria-label={`Remove question ${index + 1}`} onClick={() => setRows((current) => current.filter((_, i) => i !== index))} disabled={rows.length === 1} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"><X className="size-4" /></button>
+          <button type="button" aria-label={`Remove question ${index + 1}`} onClick={() => setRows((current) => current.filter((_, i) => i !== index))} disabled={rows.length === 1} className="inline-flex size-9 items-center justify-center rounded-[6px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30"><X className="size-4" /></button>
         </div>
       ))}
       <div className={`${trackClass} justify-self-start`}><button type="button" onClick={() => setRows((current) => [...current, { label: '', required: false }])} className={pillClass('quiet', 'sm')}><Plus />Add question</button></div>

@@ -19,7 +19,7 @@ export function PayoutForm({ action, field, value, label, amount }: { action: (f
   return (
     <form action={async (formData) => { setPending(true); try { await action(formData); } finally { setPending(false); setConfirming(false); } }} className="flex min-w-0 flex-wrap items-center justify-end gap-2">
       <input type="hidden" name={field} value={value} />
-      <label className="min-w-0 flex-1 sm:w-40 sm:flex-none"><span className="sr-only">Payout reference</span><input name="reference" maxLength={200} placeholder="Reference (optional)" className={`${inputClass} h-8 rounded-lg text-xs`} /></label>
+      <label className="min-w-0 flex-1 sm:w-40 sm:flex-none"><span className="sr-only">Payout reference</span><input name="reference" maxLength={200} placeholder="Reference (optional)" className={`${inputClass} h-7 text-xs`} /></label>
       <div className={trackClass}>
         <button type="button" onClick={() => setConfirming(false)} disabled={pending} className={pillClass('quiet', 'sm')}>Cancel</button>
         <button type="submit" disabled={pending} className={pillClass('primary', 'sm')}>{pending ? 'Paying…' : `Pay ${amount}`}</button>

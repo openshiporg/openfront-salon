@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Gift, Package, Plus, Sparkles, UserPlus } from 'lucide-react';
 import { getBenefits, savePlan, sellBenefit, setBenefitStatus, type MembershipPlan, type PackagePlan } from '../actions/benefits';
 import { ActionForm } from '../../components/ActionForm';
-import { EmptyState, ErrorState, fieldLabelClass, inputClass, labelize, MetricStrip, PageHeader, Panel, PillLink, PlatformPage, TitleStatus, Track, textareaClass, usd, type Tone } from '../../components/salon-ui';
+import { DataTable, ErrorState, fieldLabelClass, inputClass, labelize, PageHeader, Panel, pillClass, PillLink, PlatformPage, StatusCell, Td, textareaClass, usd, type Tone } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
 
 const statusTone: Record<string, Tone> = { active: 'emerald', paused: 'amber', cancelled: 'zinc', expired: 'rose', 'fully-used': 'zinc' };
@@ -27,10 +27,10 @@ function PlanFields({ kind, plan, services }: { kind: 'membership' | 'package'; 
             <label className={fieldLabelClass}>Valid for (days)<input name="validDays" type="number" min="0" max="3650" step="1" inputMode="numeric" defaultValue={pack?.validDays ?? 365} className={inputClass} /></label>
           </>
         )}
-        <label className="flex min-h-10 items-center gap-2 self-end rounded-xl border bg-background px-3 text-sm"><input type="checkbox" name="isActive" value="true" defaultChecked={plan?.isActive !== false} className="h-4 w-4 accent-foreground" />Available to sell</label>
+        <label className="flex h-9 items-center gap-2 self-end rounded-[6px] border bg-background px-2.5 text-sm"><input type="checkbox" name="isActive" value="true" defaultChecked={plan?.isActive !== false} className="size-4 accent-foreground" />Available to sell</label>
       </div>
       <label className={fieldLabelClass}>{kind === 'membership' ? 'Services the discount covers' : 'Services in the package'}
-        <select name="serviceIds" multiple defaultValue={selected} className="min-h-28 w-full rounded-xl border bg-background px-2 py-2 text-sm">{services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select>
+        <select name="serviceIds" multiple defaultValue={selected} className="min-h-28 w-full rounded-[6px] border border-input bg-background px-2 py-2 text-sm text-foreground outline-none focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/30">{services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select>
       </label>
       <label className={fieldLabelClass}>Description<textarea name="description" maxLength={2000} defaultValue={plan?.description || ''} className={`${textareaClass} min-h-16`} /></label>
     </>
@@ -51,17 +51,15 @@ export async function BenefitsPage() {
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'page', label: 'Memberships & packages' }]}>
-      <PageHeader icon={Gift} title="Memberships & packages" status={<TitleStatus tone="emerald">{activeMembers} active members</TitleStatus>} actions={<Track><PillLink href="/dashboard/platform/gift-cards" variant="quiet">Gift cards</PillLink></Track>} />
-      <MetricStrip items={[
-        { label: 'Active members', value: activeMembers, tone: 'emerald' },
-        { label: 'Active packages', value: activePackages.length },
-        { label: 'Prepaid value left', value: usd(remaining) },
-        { label: 'Plans on sale', value: sellable.length },
-      ]} />
+      <PageHeader
+        title="Memberships & packages"
+        meta={<span>{activeMembers} active members · {activePackages.length} active packages · {usd(remaining)} prepaid left</span>}
+        actions={<PillLink href="/dashboard/platform/gift-cards" variant="raised"><Gift />Gift cards</PillLink>}
+      />
 
       <Panel title="Sell or enrol" icon={UserPlus}>
         {sellable.length === 0 || data.accounts.length === 0 ? <p className="text-sm text-muted-foreground">{sellable.length === 0 ? 'Create a plan below first.' : 'The client needs an account. Add the client first.'}</p> : (
-          <ActionForm action={sellBenefit} submitLabel="Record sale" pendingLabel="Recording…" resetOnSuccess>
+          <ActionForm action={sellBenefit} submitLabel="Record sale" pendingLabel="Recording…" resetOnSuccess size="md">
             <input type="hidden" name="idempotencyKey" value={`benefit-sale:${randomUUID()}`} />
             <div className="grid gap-3 sm:grid-cols-3">
               <label className={fieldLabelClass}>Client<select name="clientUserId" required defaultValue="" className={inputClass}><option value="" disabled>Choose a client</option>{data.accounts.map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}</select></label>
@@ -72,26 +70,23 @@ export async function BenefitsPage() {
         )}
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PlanList kind="membership" title="Membership plans" plans={data.memberships} services={data.services} />
-        <PlanList kind="package" title="Packages" plans={data.servicePackages} services={data.services} />
-      </div>
-
-      <Panel title="Members" icon={Sparkles} padded={false}>
-        {data.clientMemberships.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No members yet.</p> : (
-          <ul className="divide-y">
-            {data.clientMemberships.map((item) => (
-              <li key={item.id} className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-5">
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="truncate font-medium">{item.client?.name || item.client?.email || 'Client'}</span><TitleStatus tone={statusTone[item.status || ''] || 'zinc'}>{labelize(item.status)}{item.status === 'paused' && item.pausedUntil ? ` until ${date(item.pausedUntil)}` : ''}</TitleStatus></span>
-                  <span className="block truncate text-xs text-muted-foreground">{item.membership?.name} · since {date(item.startDate)}{item.nextBillingDate && item.status === 'active' ? ` · renews ${date(item.nextBillingDate)}` : ''}</span>
-                </span>
+      <section aria-labelledby="members" className="grid gap-2">
+        <h2 id="members" className="flex items-baseline gap-2 text-sm font-semibold">Members<span className="text-xs font-normal tabular-nums text-muted-foreground">{data.clientMemberships.length}</span></h2>
+        <DataTable label="Members" head={[{ label: 'Client' }, { label: 'Plan', className: 'hidden sm:table-cell' }, { label: 'Since', className: 'hidden md:table-cell' }, { label: 'Renews', className: 'hidden md:table-cell' }, { label: 'Status' }, { label: 'Actions', className: 'text-right' }]}>
+          {data.clientMemberships.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No members yet.</Td></tr> : data.clientMemberships.map((item) => (
+            <tr key={item.id}>
+              <Td><span className="font-medium">{item.client?.name || item.client?.email || 'Client'}</span><span className="block text-xs text-muted-foreground sm:hidden">{item.membership?.name}</span></Td>
+              <Td className="hidden sm:table-cell">{item.membership?.name}</Td>
+              <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">{date(item.startDate)}</Td>
+              <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">{item.nextBillingDate && item.status === 'active' ? date(item.nextBillingDate) : '—'}</Td>
+              <Td><StatusCell tone={statusTone[item.status || ''] || 'zinc'}>{labelize(item.status)}{item.status === 'paused' && item.pausedUntil ? ` until ${date(item.pausedUntil)}` : ''}</StatusCell></Td>
+              <Td>
                 {item.status !== 'cancelled' ? (
-                  <div className="flex flex-wrap gap-2 md:justify-end">
+                  <div className="flex flex-wrap items-start justify-end gap-1.5">
                     {item.status === 'active' ? (
-                      <ActionForm action={setBenefitStatus} submitLabel="Pause" variant="raised" className="flex flex-wrap items-center gap-2">
+                      <ActionForm action={setBenefitStatus} submitLabel="Pause" variant="raised" className="flex flex-wrap items-center gap-1.5">
                         <input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="paused" />
-                        <label><span className="sr-only">Pause until</span><input name="pausedUntil" type="date" required className={`${inputClass} h-8 w-36 text-xs`} /></label>
+                        <label><span className="sr-only">Pause until</span><input name="pausedUntil" type="date" required className={`${inputClass} h-7 w-36 text-xs`} /></label>
                       </ActionForm>
                     ) : (
                       <ActionForm action={setBenefitStatus} submitLabel="Resume" variant="raised" className="contents"><input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="active" /></ActionForm>
@@ -99,27 +94,33 @@ export async function BenefitsPage() {
                     <ActionForm action={setBenefitStatus} submitLabel="Cancel" confirm="Cancel membership" variant="danger" className="contents"><input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="cancelled" /></ActionForm>
                   </div>
                 ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+              </Td>
+            </tr>
+          ))}
+        </DataTable>
+      </section>
 
-      <Panel title="Packages sold" icon={Package} padded={false}>
-        {data.clientPackages.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No packages sold yet.</p> : (
-          <ul className="divide-y">
-            {data.clientPackages.map((item) => (
-              <li key={item.id} className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-5">
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="truncate font-medium">{item.client?.name || item.client?.email || 'Client'}</span><TitleStatus tone={statusTone[item.status || ''] || 'zinc'}>{labelize(item.status?.replace('-', ' '))}</TitleStatus></span>
-                  <span className="block truncate text-xs text-muted-foreground">{item.package?.name} · {usd(Math.max(0, item.totalValue - (item.usedValue || 0)))} of {usd(item.totalValue)} left · expires {date(item.expiresAt)}</span>
-                </span>
-                {item.status === 'active' ? <ActionForm action={setBenefitStatus} submitLabel="Cancel" confirm="Cancel package" variant="danger" className="contents"><input type="hidden" name="kind" value="package" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="cancelled" /></ActionForm> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
+      <section aria-labelledby="packages-sold" className="grid gap-2">
+        <h2 id="packages-sold" className="flex items-baseline gap-2 text-sm font-semibold">Packages sold<span className="text-xs font-normal tabular-nums text-muted-foreground">{data.clientPackages.length}</span></h2>
+        <DataTable label="Packages sold" head={[{ label: 'Client' }, { label: 'Package', className: 'hidden sm:table-cell' }, { label: 'Value left', className: 'text-right' }, { label: 'Expires', className: 'hidden md:table-cell' }, { label: 'Status' }, { label: 'Actions', className: 'text-right' }]}>
+          {data.clientPackages.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No packages sold yet.</Td></tr> : data.clientPackages.map((item) => (
+            <tr key={item.id}>
+              <Td><span className="font-medium">{item.client?.name || item.client?.email || 'Client'}</span><span className="block text-xs text-muted-foreground sm:hidden">{item.package?.name}</span></Td>
+              <Td className="hidden sm:table-cell">{item.package?.name}</Td>
+              <Td className="whitespace-nowrap text-right tabular-nums">{usd(Math.max(0, item.totalValue - (item.usedValue || 0)))}<span className="block text-xs text-muted-foreground">of {usd(item.totalValue)}</span></Td>
+              <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">{date(item.expiresAt)}</Td>
+              <Td><StatusCell tone={statusTone[item.status || ''] || 'zinc'}>{labelize(item.status?.replace('-', ' '))}</StatusCell></Td>
+              <Td className="text-right">{item.status === 'active' ? <ActionForm action={setBenefitStatus} submitLabel="Cancel" confirm="Cancel package" variant="danger" className="flex justify-end"><input type="hidden" name="kind" value="package" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="cancelled" /></ActionForm> : null}</Td>
+            </tr>
+          ))}
+        </DataTable>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <PlanList kind="membership" title="Membership plans" plans={data.memberships} services={data.services} />
+        <PlanList kind="package" title="Packages" plans={data.servicePackages} services={data.services} />
+      </div>
+
       <p className="text-xs text-muted-foreground">Members and package holders redeem at <Link href="/dashboard/platform/checkout" className="underline-offset-4 hover:underline">Checkout</Link>.</p>
     </PlatformPage>
   );
@@ -128,16 +129,16 @@ export async function BenefitsPage() {
 function PlanList({ kind, title, plans, services }: { kind: 'membership' | 'package'; title: string; plans: Array<MembershipPlan | PackagePlan>; services: { id: string; name: string }[] }) {
   return (
     <Panel title={title} icon={kind === 'membership' ? Sparkles : Package} padded={false}>
-      {plans.length === 0 ? <div className="p-5"><EmptyState icon={kind === 'membership' ? Sparkles : Package} title={`No ${kind === 'membership' ? 'membership plans' : 'packages'} yet`} /></div> : (
+      {plans.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">No {kind === 'membership' ? 'membership plans' : 'packages'} yet</p> : (
         <ul className="divide-y">
           {plans.map((plan) => {
             const price = kind === 'membership' ? `${usd((plan as MembershipPlan).monthlyPrice)}/mo · ${(plan as MembershipPlan).discountPercent || 0}% off` : `${usd((plan as PackagePlan).totalPrice)} · ${(plan as PackagePlan).validDays ? `${(plan as PackagePlan).validDays} days` : 'no expiry'}`;
             const covered = (kind === 'membership' ? (plan as MembershipPlan).includedServices : (plan as PackagePlan).services).map((service) => service.name).filter(Boolean).join(', ');
             return (
-              <li key={plan.id} className="px-4 py-3 md:px-5">
+              <li key={plan.id} className="px-4 py-2.5">
                 <details>
                   <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="font-medium">{plan.name}</span><TitleStatus tone={plan.isActive ? 'emerald' : 'zinc'}>{plan.isActive ? 'On sale' : 'Not on sale'}</TitleStatus></span>
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1"><span className="font-medium">{plan.name}</span><StatusCell tone={plan.isActive ? 'emerald' : 'zinc'}>{plan.isActive ? 'On sale' : 'Not on sale'}</StatusCell></span>
                     <span className="block text-xs text-muted-foreground">{price}{covered ? ` · ${covered}` : ''}</span>
                   </summary>
                   <div className="mt-3"><ActionForm action={savePlan} submitLabel="Save plan"><PlanFields kind={kind} plan={plan} services={services} /></ActionForm></div>
@@ -147,8 +148,8 @@ function PlanList({ kind, title, plans, services }: { kind: 'membership' | 'pack
           })}
         </ul>
       )}
-      <details className="border-t px-4 py-3 md:px-5">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium [&::-webkit-details-marker]:hidden"><Plus className="size-4" />New {kind === 'membership' ? 'membership plan' : 'package'}</summary>
+      <details className="border-t px-4 py-3">
+        <summary className={`${pillClass('raised', 'sm')} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}><Plus />New {kind === 'membership' ? 'membership plan' : 'package'}</summary>
         <div className="mt-3"><ActionForm action={savePlan} submitLabel="Create plan" resetOnSuccess><PlanFields kind={kind} services={services} /></ActionForm></div>
       </details>
     </Panel>

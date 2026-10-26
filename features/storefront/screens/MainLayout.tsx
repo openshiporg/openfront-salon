@@ -1,22 +1,17 @@
-import { Bodoni_Moda, Hanken_Grotesk } from "next/font/google"
+import { Archivo } from "next/font/google"
 import { Metadata } from "next"
 import type { CSSProperties } from "react"
 import Link from "next/link"
 import Nav from "@/features/storefront/modules/layout/templates/nav"
 import Footer from "@/features/storefront/modules/layout/templates/footer"
 import { getStorefrontBrand, storefrontTitle } from "@/features/storefront/lib/data/brand"
-import "../styles/storefront.css"
+import "../styles/colour-room.css"
 
-const display = Bodoni_Moda({
+// One family along its width axis: condensed caps for carton names, wide numerals, normal body.
+const archivo = Archivo({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  axes: ["opsz"],
-  variable: "--font-sf-display",
-})
-
-const body = Hanken_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-sf-body",
+  axes: ["wdth"],
+  variable: "--font-sf",
 })
 
 type StorefrontThemeStyle = CSSProperties & { "--sf-theme-hue": number }
@@ -27,17 +22,17 @@ export async function MainLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`storefront ${display.variable} ${body.variable} min-h-screen flex flex-col`}
+      className={`storefront ${archivo.variable} flex min-h-svh flex-col`}
       style={themeStyle}
     >
       {!brand.configured ? (
-        <div role="status" className="flex items-center justify-center gap-2 border-b border-[var(--sf-rule)] bg-[var(--sf-paper-2)] px-4 py-2 text-center text-[length:var(--sf-text-xs)] font-medium text-[var(--sf-ink-2)]">
+        <div role="status" className="flex items-center justify-center gap-2 border-b border-[var(--sf-ink)] bg-[var(--sf-alu)] px-4 py-2 text-center text-[length:var(--sf-text-xs)] font-semibold text-[var(--sf-ink)]">
           <span className="sf-dot" data-tone="warn" aria-hidden="true" />
           Online booking opens soon
         </div>
       ) : null}
       <Nav brandName={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
-      <main className="flex-1 min-w-0">{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
       <Footer brand={brand} />
     </div>
   )
@@ -49,15 +44,17 @@ export async function generateNotFoundMetadata(): Promise<Metadata> {
 
 export function MainNotFound() {
   return (
-    <div className="sf-container sf-page-pad-lg flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <span className="sf-swatch-fan mb-6" aria-hidden="true">
-        {[1, 2, 3, 4, 5].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}
-      </span>
-      <p className="sf-eyebrow mb-4">404</p>
-      <h1 className="sf-display mb-8 text-[length:var(--sf-text-display-s)]">Page not found</h1>
-      <div className="sf-track">
-        <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
-        <Link href="/services" className="sf-btn sf-btn-quiet">Service menu</Link>
+    <div className="sf-container sf-page-pad-lg">
+      <div className="sf-carton mx-auto max-w-md" data-band="ink">
+        <div className="sf-carton-band"><span>Not on the shelf</span><span className="sf-shade" aria-hidden="true" /></div>
+        <div className="sf-carton-body gap-5">
+          <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Page not found</h1>
+          <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">The link may be old, or the page was moved.</p>
+          <div className="sf-track">
+            <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
+            <Link href="/services" className="sf-btn sf-btn-quiet">Services</Link>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -4,7 +4,7 @@ import { appointmentContact } from '../../lib/appointmentContact';
 import { getCheckoutWorkflow } from '../actions/checkout';
 import { CheckoutWorkflowCard } from './CheckoutQueuePage';
 import { RetryCheckoutWorkflowButton } from './RetryCheckoutWorkflowButton';
-import { ErrorState, inputClass, PageHeader, pillClass, PillLink, PlatformPage, Track, trackClass } from '../../components/salon-ui';
+import { appointmentLabel, appointmentTone, ErrorState, inputClass, PageHeader, pillClass, PillLink, PlatformPage, TitleStatus, Track, trackClass } from '../../components/salon-ui';
 
 interface PageProps { params: Promise<{ id: string }>; searchParams?: Promise<{ retailPage?: string; retailSearch?: string }> }
 
@@ -30,18 +30,22 @@ export async function CheckoutWorkflowPage({ params, searchParams }: PageProps) 
   }
   const { appointment } = result.data;
   const clientName = appointmentContact(appointment).name;
+  const paid = appointment.transaction?.status === 'completed' || appointment.payment?.status === 'completed';
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'link', label: 'Checkout', href: '/platform/checkout' }, { type: 'page', label: clientName }]}>
       <PageHeader
-        title={`Checkout · ${clientName}`}
+        title={clientName}
+        status={<TitleStatus tone={paid ? 'emerald' : appointmentTone[appointment.status || ''] || 'blue'}>{paid ? 'Paid' : appointmentLabel[appointment.status || ''] || 'Checkout'}</TitleStatus>}
         actions={<Track><PillLink href={`/dashboard/platform/appointments/${appointment.id}`}>Appointment<ArrowUpRight /></PillLink></Track>}
       />
-      <form method="get" className="flex w-full max-w-xl flex-wrap items-center gap-2" aria-label="Search retail products at this appointment location">
-        <label className="min-w-0 flex-1"><span className="sr-only">Retail product name or SKU</span><input name="retailSearch" defaultValue={retailSearch} maxLength={80} placeholder="Retail product name or SKU" className={inputClass} /></label>
-        <div className={trackClass}><button type="submit" className={pillClass('raised')}><Search />Search stock</button></div>
-      </form>
-      <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} />
+      {paid ? null : (
+        <form method="get" className="flex w-full flex-wrap items-center gap-2 lg:max-w-[20rem] lg:self-end xl:max-w-[22rem]" aria-label="Search retail products at this appointment location">
+          <label className="relative min-w-0 flex-1"><span className="sr-only">Retail product name or SKU</span><Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input name="retailSearch" type="search" defaultValue={retailSearch} maxLength={80} placeholder="Find retail by name or SKU" className={`${inputClass} pl-8`} /></label>
+          <div className={trackClass}><button type="submit" className={pillClass('raised')}>Search stock</button></div>
+        </form>
+      )}
+      <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} showClient={false} />
     </PlatformPage>
   );
 }

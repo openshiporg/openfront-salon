@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adjustSavedInventoryIntent } from '../actions/workspaces';
-import { pillClass, trackClass } from '../../components/pill';
+import { inputClass, pillClass, trackClass } from '../../components/pill';
 import { parseInventoryIntent, submitInventoryIntent, releaseAcknowledgedIntent, type InventoryIntent, type InventoryAcknowledgement } from '../lib/inventoryIntent';
 
 type Props = { actorId: string; productId: string; locations: { id: string; name: string }[]; allowNew: boolean };
@@ -53,13 +53,13 @@ export function InventoryAdjustmentForm({ actorId, productId, locations, allowNe
     {saved && <p className="text-foreground"><span className="font-semibold">Pending</span> {saved.delta > 0 ? '+' : ''}{saved.delta}{' units'}{locations.find(location => location.id === saved.locationId) ? ` at ${locations.find(location => location.id === saved.locationId)!.name}` : ''}. Reason: {saved.reason}.</p>}
     {result?.status === 'acknowledged' ? <p role="status" className="text-emerald-700 dark:text-emerald-400">Stock updated · balance {result.balanceAfter}</p> : <>
       {inputError && <p role="alert">{inputError}</p>}
-      <form action={submit} className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.2fr)_5.5rem_minmax(0,1fr)_auto] sm:items-end">
+      <form action={submit} className="grid grid-cols-[6rem_minmax(0,1fr)] gap-2 sm:items-end">
         {!saved && <>
-          <label className="col-span-2 font-medium sm:col-span-1">Location<select name="locationId" required className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground">{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
-          <label className="font-medium">Change ±<input name="delta" type="number" step="1" required min={-1000000} max={1000000} className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm tabular-nums text-foreground" /></label>
-          <label className="font-medium">Reason<input name="reason" required maxLength={500} className="mt-1 h-9 w-full rounded-lg border bg-background px-2 text-sm text-foreground" /></label>
+          <label className="col-span-2 font-medium">Location<select name="locationId" required className={`${inputClass} mt-1`}>{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
+          <label className="font-medium">Change ±<input name="delta" type="number" step="1" required min={-1000000} max={1000000} placeholder="+12" className={`${inputClass} mt-1 tabular-nums`} /></label>
+          <label className="font-medium">Reason<input name="reason" required maxLength={500} placeholder="Delivery received" className={`${inputClass} mt-1`} /></label>
         </>}
-        <div className={`${trackClass} col-span-2 justify-self-start sm:col-span-1`}><button disabled={busy || (!saved && locations.length === 0)} className={pillClass('primary', 'sm')}>{busy ? 'Saving…' : saved ? 'Retry adjustment' : 'Record'}</button></div>
+        <div className={`${trackClass} col-span-2 justify-self-start`}><button disabled={busy || (!saved && locations.length === 0)} className={pillClass('primary', 'md')}>{busy ? 'Saving…' : saved ? 'Retry adjustment' : 'Record stock'}</button></div>
       </form>
       {result?.status === 'unverified' && <p role="alert">We couldn't confirm this adjustment. Retry it; it won't be applied twice.</p>}
     </>}

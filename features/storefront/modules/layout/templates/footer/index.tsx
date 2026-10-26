@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { StoreBrand } from "@/features/storefront/components/StoreBrand"
 import type { StorefrontBrand } from "@/features/storefront/lib/data/brand"
-import { publishedHours } from "@/features/storefront/lib/hours"
+import { FooterFrame } from "./FooterFrame"
 
 const LINKS = [
   { name: "Services", href: "/services" },
@@ -16,64 +16,37 @@ const LINKS = [
 
 export default function Footer({ brand }: { brand: StorefrontBrand }) {
   const currentYear = new Date().getFullYear()
-  const hours = publishedHours(brand.hours, "short")
+  const copyright = brand.name ? <p className="text-[length:var(--sf-text-xs)]">&copy; {currentYear} {brand.name}</p> : null
 
-  return (
-    <footer className="sf-footer sf-has-book-bar">
-      <div className="sf-container py-[var(--sf-space-2xl)]">
-        <div className="grid gap-[var(--sf-space-xl)] lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-          <div>
-            <span className="sf-footer-bar mb-8 w-40" aria-hidden="true">{[1, 2, 3, 4, 5, 6].map((swatch) => <span key={swatch} className="sf-swatch" data-swatch={swatch} />)}</span>
-            <p className="sf-footer-title">{brand.configured ? "Book a visit" : "Opening soon"}</p>
-            {brand.configured ? (
-              <div className="sf-track mt-8">
-                <Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-8 text-[length:var(--sf-text-sm)] sm:grid-cols-2">
-            <div className="grid content-start gap-5">
-              {brand.addressLine ? (
-                <div>
-                  <p className="sf-eyebrow !text-current opacity-60">Visit</p>
-                  <p className="mt-2 leading-relaxed">{brand.locationName ? <>{brand.locationName}<br /></> : null}{brand.addressLine}</p>
-                </div>
-              ) : null}
-              {brand.phone || brand.email ? (
-                <div className="grid gap-1">
-                  <p className="sf-eyebrow !text-current opacity-60">Contact</p>
-                  {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="mt-1">{brand.phone}</a> : null}
-                  {brand.email ? <a href={`mailto:${brand.email}`} className="break-all">{brand.email}</a> : null}
-                </div>
-              ) : null}
-            </div>
-            {hours.length > 0 ? (
-              <div>
-                <p className="sf-eyebrow !text-current opacity-60">Hours</p>
-                <dl className="mt-2 grid gap-1">
-                  {hours.map((day) => (
-                    <div key={day.key} className="flex justify-between gap-4">
-                      <dt>{day.short}</dt>
-                      <dd className={`tabular-nums ${day.closed ? "opacity-60" : ""}`}>{day.hours}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <hr className="sf-rule my-[var(--sf-space-xl)]" />
-
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2 text-[length:var(--sf-text-sm)]">
-            {LINKS.map((link) => <Link key={link.href} href={link.href}>{link.name}</Link>)}
-          </nav>
-          <p className="text-[length:var(--sf-text-xs)] opacity-60">{brand.name ? <>&copy; {currentYear} {brand.name}</> : null}</p>
-        </div>
+  const full = (
+    <div className="sf-container grid gap-[var(--sf-space-md)] py-[var(--sf-space-lg)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.4fr)]">
+      <div className="grid content-start gap-3 text-[var(--sf-ink)]">
+        <StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
+        {copyright}
       </div>
-    </footer>
+      <div className="grid content-start gap-3">
+        {brand.addressLine ? (
+          <p className="leading-relaxed">{brand.locationName ? <><span className="font-semibold text-[var(--sf-ink)]">{brand.locationName}</span><br /></> : null}{brand.addressLine}</p>
+        ) : null}
+        {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="inline-flex min-h-11 items-center font-semibold text-[var(--sf-ink)]">{brand.phone}</a> : null}
+        {brand.email ? <a href={`mailto:${brand.email}`} className="break-all">{brand.email}</a> : null}
+      </div>
+      <nav aria-label="Footer" className="sf-footer-links grid grid-cols-2 content-start gap-x-6">
+        {LINKS.map((link) => <Link key={link.href} href={link.href}>{link.name}</Link>)}
+      </nav>
+    </div>
   )
+
+  const quiet = (
+    <div className="sf-container flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
+      <div className="text-[var(--sf-ink)]"><StoreBrand name={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} /></div>
+      <nav aria-label="Footer" className="sf-footer-links flex flex-wrap gap-x-5">
+        {brand.phone && brand.phoneHref ? <a href={brand.phoneHref}>{brand.phone}</a> : null}
+        <Link href="/contact">Visit &amp; hours</Link>
+        <Link href="/services">Services</Link>
+      </nav>
+    </div>
+  )
+
+  return <FooterFrame full={full} quiet={quiet} />
 }

@@ -8,7 +8,7 @@ type SearchParams = { service?: string; stylist?: string; client?: string; user?
 export async function StaffBookingPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const [data, params] = await Promise.all([getStaffBookingData(), searchParams ? searchParams : Promise.resolve({} as SearchParams)]);
   return (
-    <PlatformPage width="narrow" breadcrumbs={[{ type: 'link', label: 'Appointments', href: '/platform/appointments' }, { type: 'page', label: 'New appointment' }]}>
+    <PlatformPage breadcrumbs={[{ type: 'link', label: 'Appointments', href: '/platform/appointments' }, { type: 'page', label: 'New appointment' }]}>
       <PageHeader icon={CalendarPlus} title="New appointment" />
       {!data ? <ErrorState id="staff-booking-error" title="Booking data couldn't be loaded" message="Reload the page to try again." action={null} /> : (
         <StaffBookingForm

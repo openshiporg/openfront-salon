@@ -45,14 +45,13 @@ export async function BookingConfirmationPage({ params }: Props) {
   return (
     <div className="sf-page-pad">
       <div className="sf-container-narrow">
-        <div className="sf-ticket overflow-hidden">
-          <div className="p-[var(--sf-space-md)] text-center md:p-[var(--sf-space-lg)]">
-            <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--sf-ink)] text-[var(--sf-accent-ink)]"><Check className="h-6 w-6" aria-hidden="true" /></span>
-            <h1 className="sf-display text-[length:var(--sf-text-display-s)]">Booking received</h1>
-            {client?.email ? <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Account email · <span className="font-semibold text-[var(--sf-ink)]">{client.email}</span></p> : null}
+        <div className="sf-carton" data-band="1" data-selected="true">
+          <div className="sf-carton-band"><span className="inline-flex items-center gap-2"><span className="sf-tick"><Check aria-hidden="true" /></span>Booked</span></div>
+          <div className="px-[var(--sf-space-sm)] pb-3 pt-[var(--sf-space-sm)] md:px-[var(--sf-space-md)]">
+            <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Booking received</h1>
+            {client?.email ? <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Account email: <span className="font-semibold text-[var(--sf-ink)]">{client.email}</span></p> : null}
           </div>
-          <div className="sf-ticket-perf" />
-          <dl className="px-[var(--sf-space-md)] py-2">
+          <dl className="border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-1 md:px-[var(--sf-space-md)]">
             <div className="sf-summary-row"><dt>Service</dt><dd>{appointment.services.map(item => item.name).join(", ") || "Service snapshot unavailable"}</dd></div>
             <div className="sf-summary-row"><dt>Stylist</dt><dd>{stylist?.user?.name || "To be assigned"}</dd></div>
             <div className="sf-summary-row"><dt>Date</dt><dd>{dateLabel}</dd></div>
@@ -60,29 +59,29 @@ export async function BookingConfirmationPage({ params }: Props) {
             <div className="sf-summary-row"><dt>Duration</dt><dd>{appointment.duration} min</dd></div>
             <div className="sf-summary-row"><dt>Price</dt><dd>{appointment.services.length ? formatMenuPrice(appointment.services.reduce((sum, item) => sum + item.basePrice, 0)) : "Price unavailable"}</dd></div>
           </dl>
-          <div className="grid gap-4 border-t border-[var(--sf-rule)] p-[var(--sf-space-md)] text-[length:var(--sf-text-sm)] sm:grid-cols-2">
+          <div className="grid gap-4 border-t border-[var(--sf-rule)] p-[var(--sf-space-sm)] text-[length:var(--sf-text-sm)] sm:grid-cols-2 md:p-[var(--sf-space-md)]">
             <div>
-              <p className="sf-eyebrow mb-1.5">Location</p>
+              <h2 className="mb-1 font-semibold text-[var(--sf-ink-3)]">Location</h2>
               {appointmentLocation ? (
                 <p><span className="font-semibold">{appointmentLocation.name}</span>{appointmentAddress ? <><br /><span className="text-[var(--sf-ink-2)]">{appointmentAddress}</span></> : null}</p>
               ) : <p role="status" className="text-[var(--sf-ink-2)]">No published location. Contact the salon before traveling.</p>}
             </div>
             <div className="min-w-0">
-              <p className="sf-eyebrow mb-1.5">Contact</p>
+              <h2 className="mb-1 font-semibold text-[var(--sf-ink-3)]">Contact</h2>
               {client?.name ? <p className="font-semibold">{client.name}</p> : null}
               {client?.email ? <p className="break-all text-[var(--sf-ink-2)]">{client.email}</p> : null}
               {client?.phone ? <p className="text-[var(--sf-ink-2)]">{client.phone}</p> : null}
             </div>
           </div>
           {appointment.clientNotes ? (
-            <div className="border-t border-[var(--sf-rule)] p-[var(--sf-space-md)]">
-              <p className="sf-eyebrow mb-1.5">Your notes</p>
+            <div className="border-t border-[var(--sf-rule)] p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
+              <h2 className="mb-1 text-[length:var(--sf-text-sm)] font-semibold text-[var(--sf-ink-3)]">Your notes</h2>
               <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{appointment.clientNotes}</p>
             </div>
           ) : null}
         </div>
 
-        <div className="mt-[var(--sf-space-md)] flex justify-center">
+        <div className="mt-[var(--sf-space-md)]">
           <div className="sf-track">
             <Link href="/account" className="sf-btn sf-btn-primary">My appointments</Link>
             <Link href="/book" className="sf-btn sf-btn-quiet">Book another</Link>

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 import { getStorefrontImageSrc } from "../lib/images"
 
 export interface StylistCardData {
@@ -61,7 +62,7 @@ export function StylistPortrait({ stylist, className = "" }: { stylist: StylistC
   )
 }
 
-/** Portrait in an arch frame, level, specialties, working days and a booking pill. */
+/** A stylist carton: ink band with their title, portrait window, working days, Book. */
 export function StylistCard({ stylist, showSpecializations = true, bookHref }: { stylist: StylistCardData; showSpecializations?: boolean; bookHref?: string }) {
   const name = stylist.user?.name || "Stylist"
   const firstName = name.split(" ")[0]
@@ -69,21 +70,23 @@ export function StylistCard({ stylist, showSpecializations = true, bookHref }: {
   const specialties = (stylist.specializations || []).map((service) => service.name).filter(Boolean)
 
   return (
-    <article className="sf-artist">
-      <Link href={`/team/${stylist.id}`} className="group block">
-        <StylistPortrait stylist={stylist} />
-        <h3 className="sf-artist-name group-hover:text-[var(--sf-accent)]">{name}</h3>
-      </Link>
-      {tier ? <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{tier}</p> : null}
-      {showSpecializations && specialties.length > 0 ? (
-        <p className="mt-2 line-clamp-2 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{specialties.slice(0, 3).join(" · ")}</p>
-      ) : null}
-      {stylist.schedules ? <div className="mt-3"><WeekStrip schedules={stylist.schedules} /></div> : null}
-      <div className="mt-4">
-        <div className="sf-track">
-          <Link href={bookHref || `/book?stylist=${stylist.id}`} className="sf-btn sf-btn-sm">Book with {firstName}</Link>
-        </div>
+    <article className="sf-carton" data-band="ink">
+      <div className="sf-carton-band">
+        <span>{tier}</span>
+        <span className="sf-shade" aria-hidden="true" />
       </div>
+      <StylistPortrait stylist={stylist} className="sf-portrait-window" />
+      <div className="sf-carton-body">
+        <h3><Link href={`/team/${stylist.id}`} className="sf-carton-name">{name}</Link></h3>
+        {showSpecializations && specialties.length > 0 ? (
+          <p className="sf-carton-desc line-clamp-2">{specialties.slice(0, 3).join(", ")}</p>
+        ) : null}
+        {stylist.schedules ? <div className="mt-auto pt-2"><WeekStrip schedules={stylist.schedules} /></div> : null}
+      </div>
+      <Link href={bookHref || `/book?stylist=${stylist.id}`} className="sf-carton-action">
+        <span className="min-w-0 truncate">Book with {firstName}</span>
+        <ArrowRight aria-hidden="true" />
+      </Link>
     </article>
   )
 }

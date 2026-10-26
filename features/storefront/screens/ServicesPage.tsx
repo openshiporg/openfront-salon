@@ -1,8 +1,7 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { Search } from "lucide-react"
 import { getServicesGroupedByCategory } from "../lib/data/services"
-import { ServiceMenuRow } from "../components/ServiceCard"
+import { ServiceCarton, bandFor } from "../components/ServiceCard"
 import { PageIntro } from "../components/ui/PageIntro"
 import { storefrontTitle } from "../lib/data/brand"
 
@@ -21,20 +20,18 @@ export async function ServicesPage() {
     <div className="sf-page-pad">
       <div className="sf-container">
         <PageIntro
-          eyebrow={total ? `${total} ${total === 1 ? "service" : "services"}` : undefined}
-          title={<>Service menu</>}
-          size="large"
-          aside={total ? <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div> : null}
+          title="Services"
+          description={total ? `${total} ${total === 1 ? "service" : "services"}, each with its time in the chair and its price.` : undefined}
         />
       </div>
 
       {categories.length > 1 ? (
         <div className="sf-sticky-tabs">
           <div className="sf-container">
-            <nav aria-label="Service categories" className="sf-track sf-track-scroll">
+            <nav aria-label="Service categories" className="sf-track sf-track-scroll !gap-0">
               {categories.map((category, index) => (
-                <a key={category.id} href={`#${category.id}`} className="sf-btn sf-btn-quiet sf-btn-sm !gap-2 shrink-0">
-                  <span className="sf-swatch !h-3.5 !w-3.5" data-swatch={(index % 6) + 1} aria-hidden="true" />
+                <a key={category.id} href={`#${category.id}`} className="sf-tab" data-band={bandFor(index)}>
+                  <span className="sf-shade" aria-hidden="true" />
                   {category.name}
                 </a>
               ))}
@@ -45,32 +42,28 @@ export async function ServicesPage() {
 
       <div className="sf-container">
         {categories.length === 0 ? (
-          <div className="sf-card-quiet flex flex-col items-center px-6 py-[var(--sf-space-2xl)] text-center">
-            <Search className="mb-4 h-7 w-7 text-[var(--sf-ink-3)]" aria-hidden="true" />
-            <h2 className="sf-display mb-6 text-[length:var(--sf-text-2xl)]">No services listed yet</h2>
+          <div className="sf-carton sf-carton-empty mx-auto max-w-md" data-band="ink">
+            <h2 className="sf-display text-[length:var(--sf-text-2xl)]">No services listed yet</h2>
             <div className="sf-track"><Link href="/contact" className="sf-btn">Contact the salon</Link></div>
           </div>
         ) : (
-          <div className="mt-[var(--sf-space-lg)] grid gap-[var(--sf-space-2xl)]">
+          <div className="grid gap-[var(--sf-space-xl)]">
             {categories.map((category, index) => (
-              <section key={category.id} id={category.id} className="scroll-mt-36" aria-labelledby={`category-${category.id}`}>
-                <div className="sf-category-head">
-                  <div className="flex items-center gap-4">
-                    <span className="sf-swatch !h-9 !w-9" data-swatch={(index % 6) + 1} aria-hidden="true" />
-                    <div>
-                      <h2 id={`category-${category.id}`} className="sf-display text-[length:var(--sf-text-3xl)]">{category.name}</h2>
-                      <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">{category.services?.length || 0} {(category.services?.length || 0) === 1 ? "service" : "services"}</p>
-                    </div>
+              <section key={category.id} id={category.id} className="scroll-mt-32" aria-labelledby={`category-${category.id}`} data-band={bandFor(index)}>
+                <div className="sf-shelf-head">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="sf-shade" aria-hidden="true" />
+                    <h2 id={`category-${category.id}`} className="sf-display text-[length:var(--sf-text-3xl)]">{category.name}</h2>
                   </div>
-                  {category.description ? <p className="text-[length:var(--sf-text-sm)] leading-relaxed text-[var(--sf-ink-2)] md:text-right">{category.description}</p> : null}
+                  {category.description ? <p className="max-w-[48ch] text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{category.description}</p> : null}
                 </div>
 
                 {category.services && category.services.length > 0 ? (
-                  <div className="sf-menu">
-                    {category.services.map((service) => <ServiceMenuRow key={service.id} service={service} />)}
+                  <div className="sf-shelf-grid" data-cols="4">
+                    {category.services.map((service) => <ServiceCarton key={service.id} service={service} band={bandFor(index)} bandLabel={category.name} showDescription />)}
                   </div>
                 ) : (
-                  <p className="sf-note text-center">No services in this category yet.</p>
+                  <p className="sf-note">No services in this category yet.</p>
                 )}
               </section>
             ))}

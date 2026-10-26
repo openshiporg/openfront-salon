@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CalendarDays, Layers, Scissors, ShieldCheck, Star, UsersRound } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Layers, Pencil, ShieldCheck, Star, UsersRound } from 'lucide-react';
 import { getServiceDetail, savePricingTiers } from '../actions/serviceDetail';
 import { ActionForm } from '../../components/ActionForm';
-import { Avatar, Chip, Fact, fieldLabelClass, inputClass, labelize, MetricStrip, PageHeader, Panel, PillLink, PlatformPage, TitleStatus, Track, usd } from '../../components/salon-ui';
+import { Avatar, Chip, DataTable, Fact, fieldLabelClass, inputClass, labelize, Notice, PageHeader, Panel, PillLink, PlatformPage, Td, TitleStatus, usd } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
 
 const levels = [{ key: 'junior', label: 'Stylist' }, { key: 'senior', label: 'Senior' }, { key: 'master', label: 'Master' }, { key: 'celebrity', label: 'Celebrity' }];
@@ -21,30 +21,29 @@ export async function ServiceDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <PlatformPage breadcrumbs={[{ type: 'link', label: 'Services & catalog', href: '/platform/catalog' }, { type: 'page', label: service.name }]}>
       <PageHeader
-        icon={Scissors}
         title={service.name}
-        status={<TitleStatus tone={service.status === 'active' ? 'emerald' : 'zinc'}>{service.status === 'active' ? 'Bookable' : labelize(service.status) || 'Inactive'}</TitleStatus>}
-        meta={<><span>{usd(service.price)}</span><span>{service.baseDuration} min</span>{service.category?.name ? <span>{service.category.name}</span> : null}</>}
-        actions={<Track><PillLink href={`/dashboard/platform/catalog#management-service`} variant="quiet">Edit service</PillLink><PillLink href={`/services/${service.id}`} variant="quiet">Storefront</PillLink></Track>}
+        status={<TitleStatus tone={service.status === 'active' && activeSpecialists.length ? 'emerald' : service.status === 'active' ? 'amber' : 'zinc'}>{service.status !== 'active' ? labelize(service.status) || 'Inactive' : activeSpecialists.length ? 'Bookable' : 'No specialist'}</TitleStatus>}
+        meta={<>{service.category?.name ? <span>{service.category.name}</span> : null}<span>{upcomingCount} upcoming</span><span>{completedCount} completed</span>{average ? <span>Rated {average.toFixed(1)} from {approved.length}</span> : null}</>}
+        actions={<>
+          <Link href={`/services/${service.id}`} className="inline-flex h-8 items-center gap-1 px-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">View on storefront<ArrowUpRight className="size-3.5" /></Link>
+          <PillLink href={`/dashboard/platform/catalog#management-service`} variant="raised"><Pencil />Edit service</PillLink>
+        </>}
       />
       {activeSpecialists.length === 0 || service.status !== 'active' ? (
-        <p role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">{service.status !== 'active' ? 'Not bookable: the service is inactive.' : 'Not bookable: no active specialist offers it.'}</p>
+        <Notice title={service.status !== 'active' ? 'Not bookable: the service is inactive' : 'Not bookable: no active specialist offers it'} />
       ) : null}
-      <MetricStrip items={[
-        { label: 'Upcoming bookings', value: upcomingCount, tone: upcomingCount ? 'blue' : undefined },
-        { label: 'Completed visits', value: completedCount },
-        { label: 'Specialists', value: activeSpecialists.length },
-        { label: 'Rating', value: average ? `${average.toFixed(1)} · ${approved.length}` : '—' },
-      ]} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-6">
-          <Panel title="Booking rules" icon={ShieldCheck}>
+          <Panel title="Booking rules and price" icon={ShieldCheck}>
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Fact label="Price">{usd(service.price)}</Fact>
+              <Fact label="Duration">{service.baseDuration} min</Fact>
               <Fact label="Deposit">{service.depositRequired ? usd(service.depositAmount) : 'None'}</Fact>
+              <Fact label="Specialists">{activeSpecialists.length}</Fact>
               <Fact label="Consultation">{service.requiresConsultation ? 'Before booking' : 'Not required'}</Fact>
               <Fact label="Patch test">{service.requiresPatchTest ? 'Required' : 'Not required'}</Fact>
-              <Fact label="Resources">{service.requiredResources.map((resource) => resource.name).join(', ') || 'None'}</Fact>
+              <div className="col-span-2 min-w-0"><dt className="text-xs text-muted-foreground">Resources</dt><dd className="mt-0.5 text-sm font-medium">{service.requiredResources.map((resource) => resource.name).join(', ') || 'None'}</dd></div>
             </dl>
           </Panel>
 
@@ -54,28 +53,31 @@ export async function ServiceDetailPage({ params }: { params: Promise<{ id: stri
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {levels.map((level) => (
                   <label key={level.key} className={fieldLabelClass}>{level.label}
-                    <span className="relative block"><span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span><input name={`tier.${level.key}`} type="number" min="0" step="0.01" inputMode="decimal" defaultValue={typeof service.pricingTier?.[level.key] === 'number' ? (service.pricingTier[level.key] / 100).toFixed(2) : ''} className={`${inputClass} pl-7`} /></span>
+                    <span className="relative block"><span aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span><input name={`tier.${level.key}`} type="number" min="0" step="0.01" inputMode="decimal" placeholder={(service.price / 100).toFixed(2)} defaultValue={typeof service.pricingTier?.[level.key] === 'number' ? (service.pricingTier[level.key] / 100).toFixed(2) : ''} className={`${inputClass} pl-6 tabular-nums`} /></span>
                   </label>
                 ))}
               </div>
             </ActionForm>
           </Panel>
 
-          <Panel title="Upcoming bookings" icon={CalendarDays} padded={false}>
-            {upcoming.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No upcoming bookings.</p> : (
-              <ul className="divide-y">
-                {upcoming.map((appointment) => (
-                  <li key={appointment.id}><Link href={`/dashboard/platform/appointments/${appointment.id}`} className="flex justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/40 md:px-5"><span className="truncate font-medium">{appointment.client?.displayName || 'Client'} · {appointment.stylist?.user?.name || 'Unassigned'}</span><span className="shrink-0 tabular-nums text-muted-foreground">{new Date(appointment.startTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: appointment.location?.timezone || timeZone })}</span></Link></li>
-                ))}
-              </ul>
-            )}
-          </Panel>
+          <section aria-labelledby="upcoming-bookings" className="grid gap-2">
+            <h2 id="upcoming-bookings" className="flex items-center gap-2 text-sm font-semibold"><CalendarDays className="size-3.5 text-muted-foreground" />Upcoming bookings</h2>
+            <DataTable label="Upcoming bookings" head={[{ label: 'When' }, { label: 'Client' }, { label: 'Stylist' }]}>
+              {upcoming.length === 0 ? <tr><Td colSpan={3} className="py-4 text-muted-foreground">No upcoming bookings.</Td></tr> : upcoming.map((appointment) => (
+                <tr key={appointment.id} className="hover:bg-muted/30">
+                  <Td className="whitespace-nowrap"><Link href={`/dashboard/platform/appointments/${appointment.id}`} className="font-medium tabular-nums underline-offset-4 hover:underline">{new Date(appointment.startTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: appointment.location?.timezone || timeZone })}</Link></Td>
+                  <Td>{appointment.client?.displayName || 'Client'}</Td>
+                  <Td className="text-muted-foreground">{appointment.stylist?.user?.name || 'Unassigned'}</Td>
+                </tr>
+              ))}
+            </DataTable>
+          </section>
 
           <Panel title="Reviews" icon={Star} padded={false}>
             {service.reviews.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No reviews yet.</p> : (
               <ul className="divide-y">
                 {service.reviews.slice(0, 8).map((review) => (
-                  <li key={review.id} className="px-4 py-3 text-sm md:px-5"><span className="flex items-center gap-2 font-medium">{'★'.repeat(review.rating)}<TitleStatus tone={review.isApproved ? 'emerald' : 'amber'}>{review.isApproved ? 'Published' : 'Awaiting approval'}</TitleStatus></span>{review.comment ? <p className="mt-1 text-muted-foreground">{review.comment}</p> : null}</li>
+                  <li key={review.id} className="px-4 py-3 text-sm md:px-5"><span className="flex items-center gap-2 font-medium"><span className="tabular-nums">{review.rating} / 5</span><TitleStatus tone={review.isApproved ? 'emerald' : 'amber'}>{review.isApproved ? 'Published' : 'Awaiting approval'}</TitleStatus></span>{review.comment ? <p className="mt-1 text-muted-foreground">{review.comment}</p> : null}</li>
                 ))}
               </ul>
             )}
@@ -84,7 +86,7 @@ export async function ServiceDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <aside className="grid content-start gap-6">
-          {image ? <img src={image} alt="" className="aspect-[4/3] w-full rounded-2xl border object-cover" /> : null}
+          {image ? <img src={image} alt="" className="aspect-[4/3] w-full rounded-[6px] border object-cover" /> : null}
           <Panel title="Specialists" icon={UsersRound} padded={false}>
             {service.specialists.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No specialists assigned.</p> : (
               <ul className="divide-y">

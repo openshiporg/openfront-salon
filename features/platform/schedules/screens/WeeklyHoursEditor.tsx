@@ -44,8 +44,8 @@ export function WeeklyHoursEditor({ stylists }: { stylists: PlatformStylistSched
   if (!stylists.length) return null;
 
   return (
-    <section aria-labelledby="weekly-hours" className="min-w-0 overflow-hidden rounded-2xl border bg-background">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b px-4 py-3 md:px-5">
+    <section aria-labelledby="weekly-hours" className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b bg-muted/30 px-4 py-2.5">
         <h2 id="weekly-hours" className="text-sm font-semibold">Weekly hours</h2>
         <div className="flex flex-wrap gap-3">
           <label className={fieldLabelClass}>Stylist
@@ -63,13 +63,13 @@ export function WeeklyHoursEditor({ stylists }: { stylists: PlatformStylistSched
         </div>
       </div>
       {!stylist?.locations.length ? (
-        <p className="px-4 py-6 text-sm text-muted-foreground md:px-5">Assign a location to this stylist before adding hours.</p>
+        <p className="px-4 py-4 text-sm text-muted-foreground">Assign a location to this stylist before adding hours.</p>
       ) : (
-        <form key={`${stylistId}:${locationId}:${stylist.schedules.map((schedule) => `${schedule.id}@${schedule.revision}`).join(',')}`} onSubmit={(event) => { event.preventDefault(); void submit(event.currentTarget); }} className="grid gap-4 p-4 md:p-5">
+        <form key={`${stylistId}:${locationId}:${stylist.schedules.map((schedule) => `${schedule.id}@${schedule.revision}`).join(',')}`} onSubmit={(event) => { event.preventDefault(); void submit(event.currentTarget); }} className="grid gap-4 p-4">
           <input type="hidden" name="stylistId" value={stylistId} />
           <input type="hidden" name="locationId" value={locationId} />
           <div className="grid gap-2">
-            <div className="hidden grid-cols-[8rem_repeat(4,minmax(0,1fr))] gap-2 px-1 text-xs font-medium text-muted-foreground md:grid">
+            <div className="hidden grid-cols-[7rem_repeat(4,minmax(0,1fr))] gap-2 px-0.5 text-xs font-medium text-muted-foreground md:grid">
               <span>Day</span><span>Start</span><span>End</span><span>Break start</span><span>Break end</span>
             </div>
             {week.map((day) => <DayRow key={day.index} day={day} schedule={byDay.get(day.index)} />)}
@@ -87,9 +87,9 @@ export function WeeklyHoursEditor({ stylists }: { stylists: PlatformStylistSched
 function DayRow({ day, schedule }: { day: { index: number; label: string }; schedule?: PlatformStylistSchedule['schedules'][number] }) {
   const [working, setWorking] = useState(Boolean(schedule && schedule.isAvailable !== false));
   const name = (field: string) => `day.${day.index}.${field}`;
-  const time = 'h-9 w-full min-w-0 rounded-lg border bg-background px-2 text-sm tabular-nums disabled:opacity-40';
+  const time = 'h-9 w-full min-w-0 rounded-[6px] border border-input bg-background px-2 text-sm tabular-nums outline-none hover:border-foreground/25 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-40';
   return (
-    <div className="grid grid-cols-2 items-center gap-2 rounded-xl border p-2 md:grid-cols-[8rem_repeat(4,minmax(0,1fr))] md:border-0 md:p-1">
+    <div className="grid grid-cols-2 items-center gap-2 rounded-[6px] border p-2 md:grid-cols-[7rem_repeat(4,minmax(0,1fr))] md:border-0 md:p-0.5">
       <label className="col-span-2 flex items-center gap-2 text-sm font-medium md:col-span-1">
         <input type="checkbox" checked={working} onChange={(event) => setWorking(event.target.checked)} className="size-4 accent-foreground" />
         {day.label}

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Gift } from 'lucide-react';
 import { PageIntro } from '../components/ui/PageIntro';
 import { storefrontTitle } from '../lib/data/brand';
 import { GiftCardBalance } from '../components/GiftCardBalance';
@@ -10,26 +9,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export async function GiftCardsPage() {
   return <div className="sf-page-pad"><div className="sf-container">
-    <PageIntro title={<>Gift cards</>} size="large" />
-    <section className="sf-ticket max-w-2xl overflow-hidden">
-      <div className="flex items-center gap-5 p-[var(--sf-space-md)] md:p-[var(--sf-space-lg)]">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--sf-accent-soft)] text-[var(--sf-accent-deep)]"><Gift className="h-6 w-6" aria-hidden="true" /></span>
-        <div>
-          <h2 className="sf-display text-[length:var(--sf-text-2xl)]">In-salon purchase only</h2>
-          <p className="mt-1 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Online gift-card checkout is unavailable.</p>
+    <PageIntro title="Gift cards" />
+    <div className="grid gap-[var(--sf-space-md)] md:grid-cols-2">
+      <section className="sf-carton" data-band="1" aria-labelledby="gift-buy">
+        <div className="sf-carton-band"><span>Gift card</span><span className="sf-shade" aria-hidden="true" /></div>
+        <div className="sf-carton-body !gap-3 !p-[var(--sf-space-sm)] md:!p-[var(--sf-space-md)]">
+          <h2 id="gift-buy" className="sf-display text-[length:var(--sf-text-2xl)]">In-salon purchase only</h2>
+          <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Online gift-card checkout is unavailable.</p>
+          <div className="sf-track mt-2">
+            <Link href="/contact" className="sf-btn sf-btn-primary">Contact the salon</Link>
+            <Link href="/book" className="sf-btn sf-btn-quiet">Book an appointment</Link>
+          </div>
         </div>
-      </div>
-      <div className="sf-ticket-perf" />
-      <div className="p-[var(--sf-space-md)] md:px-[var(--sf-space-lg)]">
-        <div className="sf-track">
-          <Link href="/contact" className="sf-btn sf-btn-primary">Contact the salon</Link>
-          <Link href="/book" className="sf-btn sf-btn-quiet">Book an appointment</Link>
-        </div>
-      </div>
-    </section>
-    <section aria-labelledby="gift-balance" className="sf-card mt-[var(--sf-space-lg)] max-w-2xl p-[var(--sf-space-md)] md:p-[var(--sf-space-lg)]">
-      <h2 id="gift-balance" className="sf-display mb-4 text-[length:var(--sf-text-xl)]">Check a balance</h2>
-      <GiftCardBalance />
-    </section>
+      </section>
+      <section aria-labelledby="gift-balance" className="sf-tray-surface p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
+        <h2 id="gift-balance" className="sf-display mb-4 text-[length:var(--sf-text-xl)]">Check a balance</h2>
+        <GiftCardBalance />
+      </section>
+    </div>
   </div></div>;
 }

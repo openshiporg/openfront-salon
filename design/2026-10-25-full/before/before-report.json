@@ -1,0 +1,602 @@
+[
+  {
+    "vp": "desktop",
+    "name": "home",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "services",
+    "route": "/services",
+    "status": 200,
+    "finalPath": "/services",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "stylists",
+    "route": "/stylists",
+    "status": 200,
+    "finalPath": "/team",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "team",
+    "route": "/team",
+    "status": 200,
+    "finalPath": "/team",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "book",
+    "route": "/book",
+    "status": 200,
+    "finalPath": "/book",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "gallery",
+    "route": "/gallery",
+    "status": 200,
+    "finalPath": "/gallery",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "reviews",
+    "route": "/reviews",
+    "status": 200,
+    "finalPath": "/reviews",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "memberships",
+    "route": "/memberships",
+    "status": 200,
+    "finalPath": "/memberships",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "gift-cards",
+    "route": "/gift-cards",
+    "status": 200,
+    "finalPath": "/gift-cards",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "contact",
+    "route": "/contact",
+    "status": 200,
+    "finalPath": "/contact",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "account",
+    "route": "/account",
+    "status": 200,
+    "finalPath": "/account",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-appointments",
+    "route": "/dashboard/platform/appointments",
+    "status": 200,
+    "finalPath": "/dashboard/platform/appointments",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-appointment-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-appointments-new",
+    "route": "/dashboard/platform/appointments/new",
+    "status": 200,
+    "finalPath": "/dashboard/platform/appointments/new",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-checkout",
+    "route": "/dashboard/platform/checkout",
+    "status": 200,
+    "finalPath": "/dashboard/platform/checkout",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-checkout-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-clients",
+    "route": "/dashboard/platform/clients",
+    "status": 200,
+    "finalPath": "/dashboard/platform/clients",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-client-detail",
+    "route": "/dashboard/platform/clients/cmvog906m0000mi01qb9c3uam",
+    "status": 200,
+    "finalPath": "/dashboard/platform/clients/cmvog906m0000mi01qb9c3uam",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-catalog",
+    "route": "/dashboard/platform/catalog",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catalog",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-service-detail",
+    "route": "/dashboard/platform/catalog/cmvobiwl4000jmg13jpfxxl9c",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catalog/cmvobiwl4000jmg13jpfxxl9c",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-schedules",
+    "route": "/dashboard/platform/schedules",
+    "status": 200,
+    "finalPath": "/dashboard/platform/schedules",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-staff",
+    "route": "/dashboard/platform/staff",
+    "status": 404,
+    "finalPath": "/dashboard/platform/staff",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-staff-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-sales",
+    "route": "/dashboard/platform/sales",
+    "status": 200,
+    "finalPath": "/dashboard/platform/sales",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-sale-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-waitlist",
+    "route": "/dashboard/platform/waitlist",
+    "status": 200,
+    "finalPath": "/dashboard/platform/waitlist",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-consultations",
+    "route": "/dashboard/platform/consultations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/consultations",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-commissions",
+    "route": "/dashboard/platform/commissions",
+    "status": 200,
+    "finalPath": "/dashboard/platform/commissions",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-resources",
+    "route": "/dashboard/platform/resources",
+    "status": 200,
+    "finalPath": "/dashboard/platform/resources",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-reviews",
+    "route": "/dashboard/platform/reviews",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reviews",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-gift-cards",
+    "route": "/dashboard/platform/gift-cards",
+    "status": 200,
+    "finalPath": "/dashboard/platform/gift-cards",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-loyalty",
+    "route": "/dashboard/platform/loyalty",
+    "status": 200,
+    "finalPath": "/dashboard/platform/loyalty",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-benefits",
+    "route": "/dashboard/platform/benefits",
+    "status": 200,
+    "finalPath": "/dashboard/platform/benefits",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-inventory",
+    "route": "/dashboard/platform/inventory",
+    "status": 200,
+    "finalPath": "/dashboard/platform/inventory",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-reports",
+    "route": "/dashboard/platform/reports",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reports",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-engagement",
+    "route": "/dashboard/platform/engagement",
+    "status": 200,
+    "finalPath": "/dashboard/platform/engagement",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-administration",
+    "route": "/dashboard/platform/administration",
+    "status": 200,
+    "finalPath": "/dashboard/platform/administration",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-integrations",
+    "route": "/dashboard/platform/integrations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/integrations",
+    "overflowX": 0
+  },
+  {
+    "vp": "desktop",
+    "name": "platform-store-settings",
+    "route": "/dashboard/platform/store-settings",
+    "status": 200,
+    "finalPath": "/dashboard/platform/store-settings",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "home",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "services",
+    "route": "/services",
+    "status": 200,
+    "finalPath": "/services",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "stylists",
+    "route": "/stylists",
+    "status": 200,
+    "finalPath": "/team",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "team",
+    "route": "/team",
+    "status": 200,
+    "finalPath": "/team",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "book",
+    "route": "/book",
+    "status": 200,
+    "finalPath": "/book",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "gallery",
+    "route": "/gallery",
+    "status": 200,
+    "finalPath": "/gallery",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "reviews",
+    "route": "/reviews",
+    "status": 200,
+    "finalPath": "/reviews",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "memberships",
+    "route": "/memberships",
+    "status": 200,
+    "finalPath": "/memberships",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "gift-cards",
+    "route": "/gift-cards",
+    "status": 200,
+    "finalPath": "/gift-cards",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "contact",
+    "route": "/contact",
+    "status": 200,
+    "finalPath": "/contact",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "account",
+    "route": "/account",
+    "status": 200,
+    "finalPath": "/account",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-appointments",
+    "route": "/dashboard/platform/appointments",
+    "status": 200,
+    "finalPath": "/dashboard/platform/appointments",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-appointment-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-appointments-new",
+    "route": "/dashboard/platform/appointments/new",
+    "status": 200,
+    "finalPath": "/dashboard/platform/appointments/new",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-checkout",
+    "route": "/dashboard/platform/checkout",
+    "status": 200,
+    "finalPath": "/dashboard/platform/checkout",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-checkout-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-clients",
+    "route": "/dashboard/platform/clients",
+    "status": 200,
+    "finalPath": "/dashboard/platform/clients",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-client-detail",
+    "route": "/dashboard/platform/clients/cmvog906m0000mi01qb9c3uam",
+    "status": 200,
+    "finalPath": "/dashboard/platform/clients/cmvog906m0000mi01qb9c3uam",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-catalog",
+    "route": "/dashboard/platform/catalog",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catalog",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-service-detail",
+    "route": "/dashboard/platform/catalog/cmvobiwl4000jmg13jpfxxl9c",
+    "status": 200,
+    "finalPath": "/dashboard/platform/catalog/cmvobiwl4000jmg13jpfxxl9c",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-schedules",
+    "route": "/dashboard/platform/schedules",
+    "status": 200,
+    "finalPath": "/dashboard/platform/schedules",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-staff",
+    "route": "/dashboard/platform/staff",
+    "status": 404,
+    "finalPath": "/dashboard/platform/staff",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-staff-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-sales",
+    "route": "/dashboard/platform/sales",
+    "status": 200,
+    "finalPath": "/dashboard/platform/sales",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-sale-detail",
+    "status": "no-detail-link"
+  },
+  {
+    "vp": "phone",
+    "name": "platform-waitlist",
+    "route": "/dashboard/platform/waitlist",
+    "status": 200,
+    "finalPath": "/dashboard/platform/waitlist",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-consultations",
+    "route": "/dashboard/platform/consultations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/consultations",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-commissions",
+    "route": "/dashboard/platform/commissions",
+    "status": 200,
+    "finalPath": "/dashboard/platform/commissions",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-resources",
+    "route": "/dashboard/platform/resources",
+    "status": 200,
+    "finalPath": "/dashboard/platform/resources",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-reviews",
+    "route": "/dashboard/platform/reviews",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reviews",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-gift-cards",
+    "route": "/dashboard/platform/gift-cards",
+    "status": 200,
+    "finalPath": "/dashboard/platform/gift-cards",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-loyalty",
+    "route": "/dashboard/platform/loyalty",
+    "status": 200,
+    "finalPath": "/dashboard/platform/loyalty",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-benefits",
+    "route": "/dashboard/platform/benefits",
+    "status": 200,
+    "finalPath": "/dashboard/platform/benefits",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-inventory",
+    "route": "/dashboard/platform/inventory",
+    "status": 200,
+    "finalPath": "/dashboard/platform/inventory",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-reports",
+    "route": "/dashboard/platform/reports",
+    "status": 200,
+    "finalPath": "/dashboard/platform/reports",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-engagement",
+    "route": "/dashboard/platform/engagement",
+    "status": 200,
+    "finalPath": "/dashboard/platform/engagement",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-administration",
+    "route": "/dashboard/platform/administration",
+    "status": 200,
+    "finalPath": "/dashboard/platform/administration",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-integrations",
+    "route": "/dashboard/platform/integrations",
+    "status": 200,
+    "finalPath": "/dashboard/platform/integrations",
+    "overflowX": 0
+  },
+  {
+    "vp": "phone",
+    "name": "platform-store-settings",
+    "route": "/dashboard/platform/store-settings",
+    "status": 200,
+    "finalPath": "/dashboard/platform/store-settings",
+    "overflowX": 0
+  }
+]

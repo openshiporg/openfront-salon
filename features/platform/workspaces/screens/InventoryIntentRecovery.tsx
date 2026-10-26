@@ -37,7 +37,9 @@ export function InventoryIntentRecovery({ actorId }: { actorId: string }) {
   const snapshot = useSyncExternalStore(subscribe, () => storagePage(actorId, page), () => 'loading');
   const data: { products: string[]; more: boolean; error: boolean } | null = snapshot === 'loading' ? null : JSON.parse(snapshot);
   if (!actorId) return <p role="alert">We couldn't confirm your account. Reload the page and try again.</p>;
-  return <section aria-label="Pending stock adjustments" className="grid gap-3 rounded-2xl border bg-background p-4 text-sm md:p-5">
+  // Nothing pending on the first page: no panel at all.
+  if (!data || (page === 0 && !data.more && !data.error && data.products.length === 0)) return null;
+  return <section aria-label="Pending stock adjustments" className="grid gap-3 rounded-[6px] border border-amber-300 bg-background p-4 text-sm dark:border-amber-900">
     <h2 className="text-sm font-semibold">Pending stock adjustments</h2>
     {!data ? <p role="status">Loading…</p> : <>
       {data.error && <p role="alert">Some pending adjustments couldn't be loaded. Reload the page and try again.</p>}

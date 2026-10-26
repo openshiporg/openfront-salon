@@ -25,40 +25,31 @@ export async function ContactPage() {
     <div className="sf-page-pad">
       <div className="sf-container">
         <PageIntro
-          eyebrow={status ? <span className="sf-status !text-[length:var(--sf-text-sm)] !normal-case !tracking-normal"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : undefined}
-          title={<>Visit &amp; hours</>}
-          size="large"
+          title="Visit & hours"
+          description={status ? <span className="sf-status"><span className="sf-dot" data-tone={status.open ? "open" : undefined} aria-hidden="true" />{status.label}</span> : undefined}
         />
 
         {!brand.configured ? (
           <p role="status" className="sf-note">Visit details not published.</p>
         ) : (
           <div className="grid gap-[var(--sf-space-lg)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="grid content-start gap-4">
+            <div className="grid content-start gap-[var(--sf-space-md)]">
               {brand.addressLine ? (
-                <div className="sf-card p-[var(--sf-space-md)]">
-                  <h2 className="sf-eyebrow mb-3 flex items-center gap-2"><MapPin className="h-4 w-4" aria-hidden="true" />Location</h2>
-                  {brand.locationName ? <p className="sf-display text-[length:var(--sf-text-xl)]">{brand.locationName}</p> : null}
-                  <p className="mt-1 text-[length:var(--sf-text-md)] leading-relaxed text-[var(--sf-ink-2)]">{brand.addressLine}</p>
-                  {mapsHref ? <div className="sf-track mt-4"><a href={mapsHref} target="_blank" rel="noopener noreferrer" className="sf-btn sf-btn-sm">Directions<ArrowUpRight /></a></div> : null}
-                </div>
+                <section aria-labelledby="visit-address">
+                  <h2 id="visit-address" className="sf-display mb-3 flex items-center gap-2 text-[length:var(--sf-text-xl)]"><MapPin className="h-5 w-5" aria-hidden="true" />Address</h2>
+                  <p className="text-[length:var(--sf-text-md)] leading-relaxed">{brand.locationName ? <><span className="font-semibold">{brand.locationName}</span><br /></> : null}{brand.addressLine}</p>
+                  {mapsHref ? <div className="sf-track mt-4"><a href={mapsHref} target="_blank" rel="noopener noreferrer" className="sf-btn sf-btn-quiet">Directions<ArrowUpRight /></a></div> : null}
+                </section>
               ) : null}
 
               {(brand.phone && brand.phoneHref) || brand.email ? (
-                <div className="sf-card grid gap-4 p-[var(--sf-space-md)] sm:grid-cols-2">
-                  {brand.phone && brand.phoneHref ? (
-                    <div>
-                      <h2 className="sf-eyebrow mb-2 flex items-center gap-2"><Phone className="h-4 w-4" aria-hidden="true" />Phone</h2>
-                      <a href={brand.phoneHref} className="sf-link text-[length:var(--sf-text-md)]">{brand.phone}</a>
-                    </div>
-                  ) : null}
-                  {brand.email ? (
-                    <div className="min-w-0">
-                      <h2 className="sf-eyebrow mb-2 flex items-center gap-2"><Mail className="h-4 w-4" aria-hidden="true" />Email</h2>
-                      <a href={`mailto:${brand.email}`} className="sf-link break-all text-[length:var(--sf-text-md)]">{brand.email}</a>
-                    </div>
-                  ) : null}
-                </div>
+                <section aria-labelledby="visit-contact" className="border-t border-[var(--sf-rule)] pt-[var(--sf-space-md)]">
+                  <h2 id="visit-contact" className="sf-display mb-3 text-[length:var(--sf-text-xl)]">Phone &amp; email</h2>
+                  <div className="grid gap-2 text-[length:var(--sf-text-md)]">
+                    {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="sf-link inline-flex min-h-11 items-center gap-2 self-start"><Phone className="h-4 w-4" aria-hidden="true" />{brand.phone}</a> : null}
+                    {brand.email ? <a href={`mailto:${brand.email}`} className="sf-link inline-flex min-h-11 min-w-0 items-center gap-2 self-start break-all"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />{brand.email}</a> : null}
+                  </div>
+                </section>
               ) : null}
 
               {!brand.addressLine && !brand.phone && !brand.email ? <p className="sf-note">Contact details not published.</p> : null}
@@ -66,22 +57,22 @@ export async function ContactPage() {
               <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div>
             </div>
 
-            <div className="sf-card p-[var(--sf-space-md)]">
-              <h2 className="sf-eyebrow mb-3">Hours</h2>
+            <section aria-labelledby="visit-hours" className="sf-tray-surface p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
+              <h2 id="visit-hours" className="sf-display mb-2 text-[length:var(--sf-text-xl)]">Hours</h2>
               {hours.length ? (
-                <dl className="divide-y divide-[var(--sf-rule)]">
+                <dl>
                   {hours.map((schedule) => {
                     const isToday = schedule.key === status?.todayKey
                     return (
-                      <div key={schedule.key} className={`flex justify-between gap-4 py-3 text-[length:var(--sf-text-md)] ${isToday ? "font-semibold text-[var(--sf-ink)]" : "text-[var(--sf-ink-2)]"}`}>
-                        <dt>{schedule.day}{isToday ? <span className="ml-2 text-[length:var(--sf-text-xs)] text-[var(--sf-accent)]">Today</span> : null}</dt>
-                        <dd className={`text-right tabular-nums ${schedule.closed ? "text-[var(--sf-ink-3)]" : ""}`}>{schedule.hours}{bookable && !schedule.closed && bookable[schedule.key] !== schedule.hours ? <span className="block text-[length:var(--sf-text-xs)] font-normal text-[var(--sf-ink-3)]">{bookable[schedule.key] === "No appointments" ? "No appointments" : `Appointments ${bookable[schedule.key]}`}</span> : null}</dd>
+                      <div key={schedule.key} className={`sf-summary-row !text-[length:var(--sf-text-md)] ${isToday ? "font-semibold" : ""}`}>
+                        <dt className={isToday ? "!text-[var(--sf-ink)]" : ""}>{schedule.day}{isToday ? " (today)" : ""}</dt>
+                        <dd className={`tabular-nums ${schedule.closed ? "!font-normal text-[var(--sf-ink-3)]" : ""}`}>{schedule.hours}{bookable && !schedule.closed && bookable[schedule.key] !== schedule.hours ? <span className="block text-[length:var(--sf-text-xs)] font-normal text-[var(--sf-ink-3)]">{bookable[schedule.key] === "No appointments" ? "No appointments" : `Appointments ${bookable[schedule.key]}`}</span> : null}</dd>
                       </div>
                     )
                   })}
                 </dl>
               ) : <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Hours not published.</p>}
-            </div>
+            </section>
           </div>
         )}
       </div>

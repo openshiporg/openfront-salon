@@ -12,29 +12,34 @@ interface BookingStepIndicatorProps {
   onSelect?: (step: number) => void
 }
 
+/** Four labelled cells; every label stays visible on a phone. Done steps carry a tick and can be revisited. */
 export function BookingStepIndicator({ currentStep, steps, onSelect }: BookingStepIndicatorProps) {
+  const current = steps.find((step) => step.number === currentStep)
   return (
-    <ol className="sf-steps sf-track sf-track-scroll" aria-label="Booking steps">
-      {steps.map((step) => {
-        const isCompleted = currentStep > step.number
-        const isCurrent = currentStep === step.number
-        return (
-          <li key={step.number} className="shrink-0">
-            <button
-              type="button"
-              disabled={!isCompleted || !onSelect}
-              onClick={() => onSelect?.(step.number)}
-              aria-current={isCurrent ? "step" : undefined}
-              data-done={isCompleted}
-              className={`sf-btn ${isCurrent ? "" : "sf-btn-quiet"} disabled:!opacity-100`}
-              style={isCurrent ? undefined : { cursor: isCompleted ? "pointer" : "default" }}
-            >
-              <span className="sf-step-num">{isCompleted ? <Check className="!h-3 !w-3" aria-hidden="true" /> : step.number}</span>
-              <span className={isCurrent ? "" : "hidden sm:inline"}>{step.title}</span>
-            </button>
-          </li>
-        )
-      })}
-    </ol>
+    <nav aria-label="Booking steps">
+      <ol className="sf-steps">
+        {steps.map((step) => {
+          const isCompleted = currentStep > step.number
+          const isCurrent = currentStep === step.number
+          return (
+            <li key={step.number} className="min-w-0">
+              <button
+                type="button"
+                disabled={!isCompleted || !onSelect}
+                onClick={() => onSelect?.(step.number)}
+                aria-current={isCurrent ? "step" : undefined}
+                aria-label={`Step ${step.number} of ${steps.length}: ${step.title}${isCompleted ? ", done, go back" : ""}`}
+                data-done={isCompleted && Boolean(onSelect)}
+                className="sf-step"
+              >
+                {isCompleted ? <Check aria-hidden="true" /> : <span className="sf-step-num" aria-hidden="true">{step.number}</span>}
+                <span aria-hidden="true">{step.title}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
+      {current ? <p className="sf-step-label" aria-live="polite">Step {current.number} of {steps.length}</p> : null}
+    </nav>
   )
 }
