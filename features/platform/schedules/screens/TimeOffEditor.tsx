@@ -88,7 +88,7 @@ export function TimeOffEditor({ stylists, entries }: { stylists: PlatformStylist
         </div>
       </form>
       {entries.length === 0 ? <p className="px-4 py-3 text-sm text-muted-foreground">No upcoming time off</p> : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className={tableClass} aria-label="Upcoming time off">
             <thead><tr><th scope="col" className={thClass}>Date</th><th scope="col" className={thClass}>Stylist</th><th scope="col" className={thClass}>Hours</th><th scope="col" className={`${thClass} hidden sm:table-cell`}>Reason</th><th scope="col" className={thClass}>Bookings</th><th scope="col" className={thClass}><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>

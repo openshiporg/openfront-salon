@@ -26,7 +26,7 @@ export const inputClass = 'h-9 w-full min-w-0 rounded-[6px] border border-input 
 export const textareaClass = 'min-h-24 w-full min-w-0 rounded-[6px] border border-input bg-background px-2.5 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 hover:border-foreground/25 focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/30';
 
 /** Dense table parts, for lists an operator scans and acts on. */
-export const tableWrapClass = 'min-w-0 overflow-x-auto rounded-[6px] border bg-background';
+export const tableWrapClass = 'min-w-0 relative overflow-x-auto rounded-[6px] border bg-background';
 export const tableClass = 'w-full border-collapse text-sm';
 export const thClass = 'h-9 whitespace-nowrap border-b bg-muted/40 px-3 text-left align-middle text-xs font-medium text-muted-foreground';
 export const tdClass = 'border-b px-3 py-2.5 align-top [tr:last-child>&]:border-b-0';

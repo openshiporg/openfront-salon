@@ -54,7 +54,7 @@ export function PillLink({ href, children, variant = 'raised', size }: { href: s
 /** Filter tabs: flat underline tabs; the active tab carries a 2px rule. */
 export function SegmentTabs({ label, tabs, active }: { label: string; active: string; tabs: Array<{ value: string; label: string; href: string; count?: number | null }> }) {
   return (
-    <nav aria-label={label} className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
+    <nav aria-label={label} className="-mx-4 relative overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
       <div className="flex min-w-max items-end gap-5 border-b">
         {tabs.map((tab) => {
           const isActive = tab.value === active;

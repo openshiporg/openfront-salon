@@ -85,7 +85,7 @@ export function DayBoard({ appointments, timeZone, now = new Date() }: { appoint
 
   return (
     <section aria-label="Day board" className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
-      <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+      <div className="relative overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
         <div className="relative min-w-[46rem]">
           <div className="flex h-8 border-b bg-muted/40">
             <div className="sticky left-0 z-20 flex w-32 shrink-0 items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground md:w-40">Stylist</div>

@@ -92,7 +92,7 @@ export async function StaffSchedulePage() {
 
           <section aria-labelledby="week-grid" className="grid gap-2">
             <h2 id="week-grid" className="text-sm font-semibold">This week</h2>
-            <div className="min-w-0 overflow-x-auto rounded-[6px] border bg-background">
+            <div className="min-w-0 relative overflow-x-auto rounded-[6px] border bg-background">
               <table className="w-full min-w-[52rem] border-collapse text-sm" aria-label="Weekly hours by stylist">
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground">

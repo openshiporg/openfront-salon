@@ -307,7 +307,7 @@ function IntegrationsView({ data, timeZone }: ViewProps) {
               <ChevronRight aria-hidden="true" className="mr-1.5 size-3.5 transition-transform duration-150 ease-out group-open:rotate-90" />
               Raw events · latest {events.length}{queued + failed > events.length ? ` of ${queued + failed}` : ''}
             </summary>
-            <div className="overflow-x-auto border-t">
+            <div className="relative overflow-x-auto border-t">
               <table className="w-full border-collapse text-sm" aria-label="Raw undelivered events">
                 <thead><tr className="text-left text-xs text-muted-foreground"><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Occurred</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Event</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Record</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Status</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 text-right font-medium">Attempts</th></tr></thead>
                 <tbody>

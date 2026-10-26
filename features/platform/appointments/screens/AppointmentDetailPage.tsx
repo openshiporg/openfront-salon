@@ -79,7 +79,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
         <div className="grid min-w-0 content-start gap-5">
           <Panel title={title(appointment)} icon={Scissors} padded={false}>
             {appointment.lineItems.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full min-w-[30rem] text-sm">
                   <thead className="text-left text-xs text-muted-foreground"><tr className="border-b"><th className="px-5 py-2.5 font-medium">Service</th><th className="px-5 py-2.5 font-medium">Stylist</th><th className="px-5 py-2.5 text-right font-medium">Price</th></tr></thead>
                   <tbody className="divide-y">{appointment.lineItems.map((line) => <tr key={line.id}><td className="px-5 py-3 font-medium">{line.serviceTitle || line.service?.name || 'Service'}</td><td className="px-5 py-3 text-muted-foreground">{line.staff?.user?.name || 'Unassigned'}</td><td className="px-5 py-3 text-right tabular-nums">{usd(line.price)}</td></tr>)}</tbody>

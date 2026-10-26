@@ -207,7 +207,7 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue; 
 
       <section aria-labelledby="wait-order" className="grid gap-2">
         <h2 id="wait-order" className="text-sm font-semibold">Wait order</h2>
-        <div className="min-w-0 overflow-x-auto rounded-[6px] border bg-background">
+        <div className="min-w-0 relative overflow-x-auto rounded-[6px] border bg-background">
           <table className={tableClass} aria-labelledby="wait-order">
             <thead>
               <tr>

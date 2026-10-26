@@ -169,7 +169,7 @@ function Disclosure({ label, children, className }: { label: string; children: R
 function VisitList({ items }: { items: NonNullable<Awaited<ReturnType<typeof getClientProfile>>['client']>['appointments'] }) {
   if (!items.length) return <EmptyState icon={Scissors} title="No visits" />;
   return (
-    <div className="lg:overflow-x-auto">
+    <div className="lg:relative overflow-x-auto">
     <table className={stackTableClass} aria-label="Visits">
       <thead className={stackHeadClass}>
         <tr>

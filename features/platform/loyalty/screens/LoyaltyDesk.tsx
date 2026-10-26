@@ -25,7 +25,7 @@ export function LoyaltyDesk({ points, accounts, timeZone }: { points: PointsReco
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a client by name or email" className={`${inputClass} pl-8`} />
           </label>
         </div>
-        <div className="min-w-0 overflow-x-auto rounded-[6px] border bg-background">
+        <div className="min-w-0 relative overflow-x-auto rounded-[6px] border bg-background">
           <table className={tableClass} aria-labelledby="balances">
             <thead><tr><th scope="col" className={thClass}>Client</th><th scope="col" className={thClass}>Tier</th><th scope="col" className={`${thClass} text-right`}>Points</th><th scope="col" className={`${thClass} hidden md:table-cell`}>Last activity</th><th scope="col" className={`${thClass} w-px`}><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>

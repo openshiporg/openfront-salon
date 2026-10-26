@@ -100,7 +100,7 @@ export function DeskSlotPicker({
             />
           </label>
         </div>
-        <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" aria-busy={today === null}>
+        <div className="-mx-1 relative overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" aria-busy={today === null}>
           <div className="flex min-w-max gap-1.5" role="group" aria-label="Next two weeks">
             {today === null
               ? Array.from({ length: 7 }, (_, index) => <span key={index} aria-hidden="true" className="h-14 w-12 rounded-[6px] border bg-muted/40" />)
