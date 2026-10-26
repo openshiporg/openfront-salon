@@ -645,6 +645,23 @@ body:has(.storefront) {
   border-bottom: 1px solid var(--sf-rule);
 }
 
+.storefront .sf-carton-swatch {
+  display: flex;
+  align-items: flex-end;
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in oklch, var(--band, var(--sf-band-1)) 82%, var(--sf-on-band));
+  color: var(--sf-on-band);
+}
+
+.storefront .sf-carton-swatch span {
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(2.25rem, 9cqi, 3.5rem);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .storefront .sf-carton-window img {
   width: 100%;
   height: 100%;

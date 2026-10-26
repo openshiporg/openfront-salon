@@ -49,7 +49,13 @@ export function ServiceCarton({
         <div className="sf-carton-window">
           <img src={imageSrc} alt={service.image?.altText || ""} loading="lazy" />
         </div>
-      ) : null}
+      ) : (
+        // No photo (or the same photo already shows beside it): the window shows the
+        // carton's own shade at size, printed with its code, like a colour chart swatch.
+        <div className="sf-carton-window sf-carton-swatch" aria-hidden="true">
+          {code ? <span>{code}</span> : null}
+        </div>
+      )}
       <div className="sf-carton-body">
         <h3><Link href={`/services/${service.id}`} className="sf-carton-name">{service.name}</Link></h3>
         {meta ? <p className="sf-carton-meta">{meta}</p> : null}
