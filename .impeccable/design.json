@@ -1,0 +1,702 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T07:45:49+00:00",
+  "title": "Design System: Openfront Salon",
+  "extensions": {
+    "colorMeta": {
+      "carton-paper": {
+        "role": "neutral",
+        "displayName": "Carton Paper",
+        "canonical": "oklch(98.4% 0.005 28)",
+        "hex": "#fdf9f8",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252323",
+          "#423f3e",
+          "#605d5c",
+          "#807c7b",
+          "#a19d9d",
+          "#c7c3c2",
+          "#f0eeed"
+        ],
+        "source": "oklch(98.4% 0.005 var(--sf-theme-hue))"
+      },
+      "carton-paper-2": {
+        "role": "neutral",
+        "displayName": "Carton Paper Shade",
+        "canonical": "oklch(95.8% 0.007 28)",
+        "hex": "#f6efee",
+        "tonalRamp": [
+          "#0d0a0a",
+          "#262323",
+          "#433e3e",
+          "#615c5b",
+          "#817c7b",
+          "#a39d9c",
+          "#c9c2c1",
+          "#f1eded"
+        ],
+        "source": "oklch(95.8% 0.007 var(--sf-theme-hue))"
+      },
+      "aluminium": {
+        "role": "neutral",
+        "displayName": "Aluminium",
+        "canonical": "oklch(91% 0.005 245)",
+        "hex": "#dfe2e4",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#232425",
+          "#3e4042",
+          "#5b5e60",
+          "#7b7e80",
+          "#9c9fa1",
+          "#c1c4c7",
+          "#edeff0"
+        ]
+      },
+      "aluminium-2": {
+        "role": "neutral",
+        "displayName": "Aluminium Edge",
+        "canonical": "oklch(86.5% 0.007 245)",
+        "hex": "#cfd3d7",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#222426",
+          "#3d4043",
+          "#5a5e61",
+          "#7a7e81",
+          "#9b9fa2",
+          "#c0c5c8",
+          "#eceff1"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20% 0.012 250)",
+        "hex": "#12171b",
+        "tonalRamp": [
+          "#090b0e",
+          "#212427",
+          "#3b4046",
+          "#595e64",
+          "#787e84",
+          "#999fa6",
+          "#bec5cc",
+          "#ebeff3"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "oklch(35% 0.012 250)",
+        "hex": "#363b41",
+        "tonalRamp": [
+          "#090b0e",
+          "#212427",
+          "#3b4046",
+          "#595e64",
+          "#787e84",
+          "#999fa6",
+          "#bec5cc",
+          "#ebeff3"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "oklch(45% 0.012 250)",
+        "hex": "#50565c",
+        "tonalRamp": [
+          "#090b0e",
+          "#212427",
+          "#3b4046",
+          "#595e64",
+          "#787e84",
+          "#999fa6",
+          "#bec5cc",
+          "#ebeff3"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline Rule",
+        "canonical": "oklch(85% 0.006 245)",
+        "hex": "#cbced1",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#232426",
+          "#3d4043",
+          "#5b5e61",
+          "#7a7e81",
+          "#9b9fa2",
+          "#c1c4c8",
+          "#eceff1"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Carton Edge",
+        "canonical": "oklch(68% 0.01 245)",
+        "hex": "#93999e",
+        "tonalRamp": [
+          "#090b0e",
+          "#222427",
+          "#3b4045",
+          "#595e63",
+          "#787e83",
+          "#999fa4",
+          "#bfc5ca",
+          "#ebeff2"
+        ]
+      },
+      "on-band": {
+        "role": "neutral",
+        "displayName": "On-Band White",
+        "canonical": "oklch(99% 0.004 28)",
+        "hex": "#fefbfa",
+        "tonalRamp": [
+          "#0c0b0b",
+          "#252423",
+          "#423f3e",
+          "#605d5c",
+          "#807c7c",
+          "#a19d9d",
+          "#c7c3c3",
+          "#f0eeed"
+        ],
+        "source": "oklch(99% 0.004 var(--sf-theme-hue))"
+      },
+      "band-1": {
+        "role": "primary",
+        "displayName": "Merchant Shade (hue +0)",
+        "canonical": "oklch(52% 0.165 28)",
+        "hex": "#b5352d",
+        "tonalRamp": [
+          "#280000",
+          "#490504",
+          "#810000",
+          "#a72721",
+          "#cd4d42",
+          "#f47062",
+          "#ff9687",
+          "#ffd6ca"
+        ],
+        "source": "oklch(52% 0.165 var(--sf-theme-hue))"
+      },
+      "band-2": {
+        "role": "primary",
+        "displayName": "Shade Two (hue +150)",
+        "canonical": "oklch(51% 0.13 178)",
+        "hex": "#007d66",
+        "tonalRamp": [
+          "#00140b",
+          "#002f24",
+          "#005440",
+          "#00745e",
+          "#00957d",
+          "#00b89e",
+          "#4cdfc4",
+          "#b5ffee"
+        ],
+        "source": "oklch(51% 0.13 calc(var(--sf-theme-hue) + 150))"
+      },
+      "band-3": {
+        "role": "primary",
+        "displayName": "Shade Three (hue +230)",
+        "canonical": "oklch(50% 0.15 258)",
+        "hex": "#2460b7",
+        "tonalRamp": [
+          "#000530",
+          "#03224e",
+          "#003a8c",
+          "#1d5ab0",
+          "#3f7cd5",
+          "#609efa",
+          "#85c5ff",
+          "#c9f1ff"
+        ],
+        "source": "oklch(50% 0.15 calc(var(--sf-theme-hue) + 230))"
+      },
+      "band-4": {
+        "role": "primary",
+        "displayName": "Shade Four (hue +55)",
+        "canonical": "oklch(53% 0.14 83)",
+        "hex": "#926100",
+        "tonalRamp": [
+          "#1b0400",
+          "#371e00",
+          "#623300",
+          "#835300",
+          "#a57300",
+          "#c89513",
+          "#f0bb4b",
+          "#ffeaae"
+        ],
+        "source": "oklch(53% 0.14 calc(var(--sf-theme-hue) + 55))"
+      },
+      "band-5": {
+        "role": "primary",
+        "displayName": "Shade Five (hue +300)",
+        "canonical": "oklch(50% 0.15 328)",
+        "hex": "#8f3d8e",
+        "tonalRamp": [
+          "#1c001d",
+          "#3a0f39",
+          "#661466",
+          "#883787",
+          "#ab58aa",
+          "#cf7acd",
+          "#f8a0f5",
+          "#ffdaff"
+        ],
+        "source": "oklch(50% 0.15 calc(var(--sf-theme-hue) + 300))"
+      },
+      "band-6": {
+        "role": "primary",
+        "displayName": "Shade Six (hue +105)",
+        "canonical": "oklch(51% 0.12 133)",
+        "hex": "#4a7423",
+        "tonalRamp": [
+          "#011000",
+          "#152b01",
+          "#244c00",
+          "#416b19",
+          "#608c3d",
+          "#81ae5e",
+          "#a5d583",
+          "#dcfac8"
+        ],
+        "source": "oklch(51% 0.12 calc(var(--sf-theme-hue) + 105))"
+      },
+      "focus": {
+        "role": "status",
+        "displayName": "Focus Outline",
+        "canonical": "oklch(48% 0.17 28)",
+        "hex": "#a9231e",
+        "tonalRamp": [
+          "#290000",
+          "#4a0303",
+          "#830000",
+          "#a9231e",
+          "#cf4a3f",
+          "#f66e60",
+          "#ff9484",
+          "#ffd5c8"
+        ],
+        "source": "oklch(48% 0.17 var(--sf-theme-hue))"
+      },
+      "open": {
+        "role": "status",
+        "displayName": "Open Green",
+        "canonical": "oklch(52% 0.14 150)",
+        "hex": "#0a7e3a",
+        "tonalRamp": [
+          "#001300",
+          "#002e0a",
+          "#00520c",
+          "#00722e",
+          "#2e944e",
+          "#54b66e",
+          "#7cdd93",
+          "#c7ffd1"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Warn Amber",
+        "canonical": "oklch(60% 0.14 70)",
+        "hex": "#b46e00",
+        "tonalRamp": [
+          "#1f0100",
+          "#3c1900",
+          "#6b2a00",
+          "#8e4a00",
+          "#b16b00",
+          "#d58d25",
+          "#feb354",
+          "#ffe5b1"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger Red",
+        "canonical": "oklch(48% 0.17 27)",
+        "hex": "#a92321",
+        "tonalRamp": [
+          "#290000",
+          "#4a0304",
+          "#830000",
+          "#a92321",
+          "#cf4a42",
+          "#f66d62",
+          "#ff9487",
+          "#ffd5ca"
+        ]
+      },
+      "desk-status-confirmed": {
+        "role": "status",
+        "displayName": "Confirmed (emerald-500)",
+        "canonical": "#10b981",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#10b981",
+          "#6ee7b7",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "desk-status-pending": {
+        "role": "status",
+        "displayName": "Pending (amber-500)",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#f59e0b",
+          "#fcd34d",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "desk-status-in-chair": {
+        "role": "status",
+        "displayName": "In chair (blue-500)",
+        "canonical": "#3b82f6",
+        "tonalRamp": [
+          "#172554",
+          "#1e3a8a",
+          "#1e40af",
+          "#1d4ed8",
+          "#3b82f6",
+          "#93c5fd",
+          "#bfdbfe",
+          "#eff6ff"
+        ]
+      },
+      "desk-status-completed": {
+        "role": "status",
+        "displayName": "Completed (zinc-400)",
+        "canonical": "#a1a1aa",
+        "tonalRamp": [
+          "#09090b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#a1a1aa",
+          "#d4d4d8",
+          "#e4e4e7",
+          "#fafafa"
+        ]
+      },
+      "desk-status-cancelled": {
+        "role": "status",
+        "displayName": "Cancelled (rose-500)",
+        "canonical": "#f43f5e",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#f43f5e",
+          "#fda4af",
+          "#fecdd3",
+          "#fff1f2"
+        ]
+      },
+      "desk-status-no-show": {
+        "role": "status",
+        "displayName": "No-show (orange-500)",
+        "canonical": "#f97316",
+        "tonalRamp": [
+          "#431407",
+          "#7c2d12",
+          "#9a3412",
+          "#c2410c",
+          "#f97316",
+          "#fdba74",
+          "#fed7aa",
+          "#fff7ed"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The salon name in the home name band."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles over a 3px ink rule."
+      },
+      "section-title": {
+        "displayName": "Section title",
+        "purpose": "Shelf and section heads over a 1px ink rule."
+      },
+      "carton-name": {
+        "displayName": "Carton name",
+        "purpose": "Service, stylist and offer names in condensed caps; mobile menu and tray."
+      },
+      "figures": {
+        "displayName": "Figures",
+        "purpose": "Duration and price in wide tabular numerals, sized to the carton with container units."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, carton actions, nav links, tabs; uppercase, wdth 74-78."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text at normal width; leads at 1.0625rem, 60ch."
+      },
+      "desk-title": {
+        "displayName": "Desk title",
+        "purpose": "Platform page title line (1.25rem to 1.375rem)."
+      },
+      "desk-body": {
+        "displayName": "Desk body",
+        "purpose": "Platform table cells, buttons and inputs."
+      },
+      "desk-label": {
+        "displayName": "Desk label",
+        "purpose": "Platform table headers, field labels, tab counts."
+      }
+    },
+    "shadows": [
+      {
+        "name": "selected-ring",
+        "value": "inset 0 0 0 1px oklch(20% 0.012 250)",
+        "purpose": "Inset ink ring on a selected carton or stylist pick; the system has no drop shadows."
+      },
+      {
+        "name": "field-focus",
+        "value": "0 0 0 1px oklch(20% 0.012 250)",
+        "purpose": "Storefront field focus ring paired with an ink border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "sf-ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Press, carton lift, tray dock, mobile sheet."
+      },
+      {
+        "name": "sf-ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Defined for two-way moves."
+      },
+      {
+        "name": "sf-dur-press",
+        "value": "140ms",
+        "purpose": "Button, date and slot press (scale 0.97)."
+      },
+      {
+        "name": "sf-dur-short",
+        "value": "180ms",
+        "purpose": "Colour, border and underline transitions; mobile sheet."
+      },
+      {
+        "name": "carton-pull",
+        "value": "150ms transform; hover translateY(-3px), press translateY(-1px) scale(0.985)",
+        "purpose": "Pulling a carton; fine pointers only, still under reduced motion."
+      },
+      {
+        "name": "sf-dur-dock",
+        "value": "280ms",
+        "purpose": "Tray slides up from translateY(100%)."
+      },
+      {
+        "name": "desk-press",
+        "value": "150ms ease-out; scale(0.98)",
+        "purpose": "Platform buttons; board blocks scale(0.99)."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition and animation durations 0.01ms",
+        "purpose": "Every storefront motion collapses under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "wall-4",
+        "value": "1100px"
+      }
+    ],
+    "shapes": {
+      "notch": "1.25rem top-right clip on a selected carton or pick (0.625rem on a selected slot)",
+      "shellRadius": "dashboard --radius 0.625rem (10px); salon platform states 6px and 4px explicitly"
+    },
+    "themeHue": {
+      "variable": "--sf-theme-hue",
+      "default": 28,
+      "note": "Set inline from store settings in MainLayout; all hue-bearing tokens rotate from it."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Storefront primary action: ink fill, condensed caps, square.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Book</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.75rem;padding:0 1.125rem;border:1px solid #12171b;border-radius:2px;font-family:Archivo, system-ui, sans-serif;font-variation-settings:'wdth' 78;font-size:.9375rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:background-color 180ms ease,color 180ms ease,border-color 180ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}.ds-btn-primary{background:#12171b;color:#fdf9f8}.ds-btn-primary:hover{background:#363b41;border-color:#363b41}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:2px solid #a9231e;outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Default storefront button: carton-paper face, ink edge, aluminium hover.",
+      "html": "<button class=\"ds-btn-outline\">Services</button>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;justify-content:center;min-height:2.75rem;padding:0 1.125rem;border:1px solid #12171b;border-radius:2px;background:#fdf9f8;color:#12171b;font-family:Archivo, system-ui, sans-serif;font-variation-settings:'wdth' 78;font-size:.9375rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:background-color 180ms ease,transform 140ms cubic-bezier(.23,1,.32,1)}.ds-btn-outline:hover{background:#dfe2e4}.ds-btn-outline:active{transform:scale(.97)}.ds-btn-outline:focus-visible{outline:2px solid #a9231e;outline-offset:2px}"
+    },
+    {
+      "name": "Service Carton",
+      "kind": "card",
+      "refersTo": "carton",
+      "description": "The colour-tube carton: shade band with code chip, swatch window, condensed name, wide figures, Book strip. Lifts 3px when pulled.",
+      "html": "<article class=\"ds-carton\"><div class=\"ds-carton-band\"><span class=\"ds-shade\">H2</span></div><div class=\"ds-carton-swatch\"><span>H2</span></div><div class=\"ds-carton-body\"><a href=\"#\" class=\"ds-carton-name\">Balayage</a><p class=\"ds-carton-figures\"><span class=\"ds-dur\">180<small>min</small></span><span class=\"ds-price\"><small>from</small>$240</span></p></div><a href=\"#\" class=\"ds-carton-action\">Book <svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></article>",
+      "css": ".ds-carton{--band:#b5352d;display:flex;flex-direction:column;width:15rem;background:#fdf9f8;border:1px solid #93999e;border-radius:2px;color:#12171b;font-family:Archivo, system-ui, sans-serif;transition:transform 150ms cubic-bezier(.23,1,.32,1)}.ds-carton:hover{transform:translateY(-3px)}.ds-carton:active{transform:translateY(-1px) scale(.985)}.ds-carton-band{display:flex;justify-content:flex-end;align-items:flex-start;min-height:3.75rem;padding:.625rem .75rem;background:var(--band)}.ds-shade{min-width:1.75rem;padding:.125rem .3125rem;background:color-mix(in oklch,var(--band) 45%,#fefbfa);outline:1px solid color-mix(in oklch,#fefbfa 60%,transparent);color:#12171b;font-variation-settings:'wdth' 80;font-size:.8125rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}.ds-carton-swatch{aspect-ratio:2/1;display:flex;align-items:flex-end;padding:.5rem .75rem;background:color-mix(in oklch,var(--band) 82%,#fefbfa);color:#fefbfa;border-bottom:1px solid #cbced1}.ds-carton-swatch span{font-variation-settings:'wdth' 125;font-size:3rem;font-weight:800;line-height:.9;letter-spacing:-.02em}.ds-carton-body{display:flex;flex-direction:column;gap:.5rem;padding:.75rem .75rem .875rem}.ds-carton-name{font-variation-settings:'wdth' 68;font-size:1.375rem;font-weight:800;line-height:.95;text-transform:uppercase;color:inherit;text-decoration:none}.ds-carton-name:hover{text-decoration:underline;text-decoration-thickness:2px;text-decoration-color:var(--band)}.ds-carton-figures{display:flex;justify-content:space-between;align-items:baseline;margin:0;padding-top:.5rem}.ds-dur,.ds-price{font-variation-settings:'wdth' 125;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.02em;line-height:1}.ds-dur{font-size:2.25rem}.ds-price{font-size:1.125rem}.ds-carton small{font-variation-settings:'wdth' 85;font-size:.42em;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 .2em}.ds-carton-action{display:flex;align-items:center;justify-content:space-between;min-height:2.75rem;padding:0 .75rem;border-top:1px solid #12171b;color:#12171b;font-variation-settings:'wdth' 78;font-size:.9375rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;transition:background-color 180ms ease,color 180ms ease}.ds-carton-action:hover{background:#12171b;color:#fdf9f8}.ds-carton-action svg{transition:transform 180ms cubic-bezier(.23,1,.32,1)}.ds-carton-action:hover svg{transform:translateX(3px)}.ds-carton-action:focus-visible{outline:2px solid #a9231e;outline-offset:2px}"
+    },
+    {
+      "name": "Selected Carton (notch and tick)",
+      "kind": "custom",
+      "refersTo": "carton",
+      "description": "Selection is a mark: ink edge, inset ring, cut top-right corner, ink tick in the band.",
+      "html": "<div class=\"ds-pick\"><div class=\"ds-pick-band\"><span class=\"ds-tick\"><svg viewBox=\"0 0 24 24\" width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg></span></div><div class=\"ds-pick-body\">Root colour</div></div>",
+      "css": ".ds-pick{width:15rem;background:#fdf9f8;border:1px solid #12171b;box-shadow:inset 0 0 0 1px #12171b;clip-path:polygon(0 0,calc(100% - 1.25rem) 0,100% 1.25rem,100% 100%,0 100%);font-family:Archivo, system-ui, sans-serif}.ds-pick-band{display:flex;justify-content:flex-end;min-height:3.75rem;padding:.625rem 2rem .625rem .75rem;background:#007d66}.ds-tick{display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;background:#12171b;color:#fdf9f8}.ds-pick-body{padding:.75rem;font-variation-settings:'wdth' 68;font-size:1.25rem;font-weight:800;text-transform:uppercase;color:#12171b}"
+    },
+    {
+      "name": "Booking Tray",
+      "kind": "custom",
+      "refersTo": "tray",
+      "description": "Phone booking tray: the chosen carton docks at the bottom with a band spine, figures and Continue.",
+      "html": "<div class=\"ds-tray\"><div class=\"ds-tray-carton\"><div><div class=\"ds-tray-name\">Balayage</div><div class=\"ds-tray-meta\">Thu 30 Oct · 10:30</div></div></div><button class=\"ds-tray-go\">Continue</button></div>",
+      "css": ".ds-tray{display:flex;align-items:center;gap:.75rem;max-width:24rem;padding:.625rem 1rem;background:#dfe2e4;border-top:3px solid #12171b;font-family:Archivo, system-ui, sans-serif;color:#12171b;animation:ds-dock 280ms cubic-bezier(.23,1,.32,1)}@keyframes ds-dock{from{transform:translateY(100%)}}.ds-tray-carton{display:flex;flex:1;min-width:0;gap:.625rem}.ds-tray-carton::before{content:'';width:.5rem;background:#b5352d}.ds-tray-name{font-variation-settings:'wdth' 68;font-size:1.0625rem;font-weight:800;text-transform:uppercase;line-height:1}.ds-tray-meta{margin-top:.25rem;font-size:.8125rem;color:#363b41}.ds-tray-go{min-height:2.75rem;padding:0 1.125rem;border:1px solid #12171b;border-radius:2px;background:#12171b;color:#fdf9f8;font:inherit;font-variation-settings:'wdth' 78;font-size:.9375rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer}.ds-tray-go:hover{background:#363b41}.ds-tray-go:active{transform:scale(.97)}.ds-tray-go:focus-visible{outline:2px solid #a9231e;outline-offset:2px}"
+    },
+    {
+      "name": "Storefront Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Square field with a hairline edge; focus is an ink edge plus a 1px ink ring.",
+      "html": "<label class=\"ds-field\">Phone<input class=\"ds-input\" placeholder=\"(415) 555-0100\"></label>",
+      "css": ".ds-field{display:grid;gap:.375rem;font-family:Archivo, system-ui, sans-serif;font-size:.9375rem;font-weight:600;color:#12171b}.ds-input{min-height:2.875rem;padding:.625rem .75rem;border:1px solid #93999e;border-radius:2px;background:#fdf9f8;color:#12171b;font:inherit;font-size:1rem;font-weight:400;transition:border-color 180ms ease,box-shadow 180ms ease}.ds-input::placeholder{color:#50565c}.ds-input:hover{border-color:#50565c}.ds-input:focus{outline:none;border-color:#12171b;box-shadow:0 0 0 1px #12171b}"
+    },
+    {
+      "name": "Storefront Nav",
+      "kind": "nav",
+      "description": "Sticky nav over a 1px ink rule; condensed caps links with a 3px underline, band 1 on the current page.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-brand\">Morrow &amp; Mane</span><a class=\"ds-nav-link\" aria-current=\"page\" href=\"#\">Services</a><a class=\"ds-nav-link\" href=\"#\">Stylists</a><a class=\"ds-nav-link\" href=\"#\">Reviews</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:.25rem;min-height:3.75rem;padding:0 1rem;background:#fdf9f8;border-bottom:1px solid #12171b;font-family:Archivo, system-ui, sans-serif;color:#12171b}.ds-brand{margin-right:auto;font-variation-settings:'wdth' 66;font-size:1.375rem;font-weight:800;text-transform:uppercase}.ds-nav-link{display:inline-flex;align-items:center;min-height:2.75rem;padding:0 .75rem;border-bottom:3px solid transparent;color:inherit;font-variation-settings:'wdth' 74;font-size:.9375rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;transition:border-color 180ms ease}.ds-nav-link:hover{border-bottom-color:#93999e}.ds-nav-link[aria-current=page]{border-bottom-color:#b5352d}.ds-nav-link:focus-visible{outline:2px solid #a9231e;outline-offset:2px}"
+    },
+    {
+      "name": "Desk Primary Button",
+      "kind": "button",
+      "refersTo": "desk-button-primary",
+      "description": "Platform primary: filled shell foreground, explicit 6px corners (the shell radius is 10px).",
+      "html": "<button class=\"ds-desk-btn ds-desk-primary\">New appointment</button> <button class=\"ds-desk-btn ds-desk-raised\">Check in</button>",
+      "css": ".ds-desk-btn{display:inline-flex;align-items:center;height:2rem;padding:0 .75rem;border-radius:6px;font-family:system-ui,sans-serif;font-size:.875rem;font-weight:500;cursor:pointer;transition:color 150ms ease-out,background-color 150ms ease-out,border-color 150ms ease-out,transform 150ms ease-out}.ds-desk-primary{border:0;background:#0a0a0a;color:#fff}.ds-desk-primary:hover{background:rgba(10,10,10,.85)}.ds-desk-raised{border:1px solid #e5e5e5;background:#fff;color:#0a0a0a}.ds-desk-raised:hover{border-color:rgba(10,10,10,.25);background:rgba(245,245,245,.6)}.ds-desk-btn:active{transform:scale(.98)}.ds-desk-btn:focus-visible{outline:none;box-shadow:0 0 0 1px #fff,0 0 0 3px #a3a3a3}"
+    },
+    {
+      "name": "Desk Underline Tabs",
+      "kind": "nav",
+      "description": "Platform filter tabs: flat, 2px foreground rule on the active tab, counts in tabular figures.",
+      "html": "<nav class=\"ds-tabs\"><a class=\"ds-tab\" aria-current=\"page\" href=\"#\">Today <span>14</span></a><a class=\"ds-tab\" href=\"#\">To confirm <span>3</span></a><a class=\"ds-tab\" href=\"#\">Upcoming <span>41</span></a></nav>",
+      "css": ".ds-tabs{display:flex;gap:1.25rem;border-bottom:1px solid #e5e5e5;font-family:system-ui,sans-serif}.ds-tab{margin-bottom:-1px;display:inline-flex;align-items:center;gap:.375rem;height:2.25rem;border-bottom:2px solid transparent;color:#737373;font-size:.875rem;font-weight:500;text-decoration:none;transition:color 150ms,border-color 150ms}.ds-tab span{font-size:.75rem;font-variant-numeric:tabular-nums;opacity:.8}.ds-tab:hover{border-bottom-color:#e5e5e5;color:#0a0a0a}.ds-tab[aria-current=page]{border-bottom-color:#0a0a0a;color:#0a0a0a}.ds-tab:focus-visible{outline:2px solid #a3a3a3}"
+    },
+    {
+      "name": "Desk Table with Status Cell",
+      "kind": "custom",
+      "refersTo": "desk-table-header",
+      "description": "Dense operator table: 36px muted header, hairline rows, status as dot plus word.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Time</th><th>Client</th><th>Status</th></tr></thead><tbody><tr><td>10:30</td><td>Ana Ruiz</td><td><span class=\"ds-status\"><i class=\"ds-dot ds-amber\"></i>Pending</span></td></tr><tr><td>11:00</td><td>Lee Park</td><td><span class=\"ds-status\"><i class=\"ds-dot ds-emerald\"></i>Confirmed</span></td></tr></tbody></table>",
+      "css": ".ds-table{width:24rem;border-collapse:collapse;border:1px solid #e5e5e5;border-radius:6px;font-family:system-ui,sans-serif;font-size:.875rem;color:#0a0a0a}.ds-table th{height:2.25rem;padding:0 .75rem;border-bottom:1px solid #e5e5e5;background:rgba(245,245,245,.4);text-align:left;font-size:.75rem;font-weight:500;color:#737373}.ds-table td{padding:.625rem .75rem;border-bottom:1px solid #e5e5e5;font-variant-numeric:tabular-nums}.ds-table tr:last-child td{border-bottom:0}.ds-table tbody tr:hover{background:rgba(245,245,245,.5)}.ds-status{display:inline-flex;align-items:center;gap:.375rem;font-size:13px;font-weight:500}.ds-dot{display:inline-block;width:8px;height:8px;border-radius:50%}.ds-amber{background:#f59e0b;outline:3px solid #fef3c7;outline-offset:-1px}.ds-emerald{background:#10b981;outline:3px solid #d1fae5;outline-offset:-1px}"
+    },
+    {
+      "name": "Day Board Lane",
+      "kind": "custom",
+      "refersTo": "desk-board-block",
+      "description": "One stylist lane: sticky name column, shaded working window, 4px status-toned blocks placed by time, rose now-line.",
+      "html": "<div class=\"ds-lane\"><div class=\"ds-lane-name\">Priya<small>9:00–17:00</small></div><div class=\"ds-lane-track\"><span class=\"ds-win\"></span><a class=\"ds-block ds-b-emerald\" href=\"#\" style=\"left:10%;width:22%\"><b>Ana Ruiz</b><small>10:30 · Balayage</small></a><a class=\"ds-block ds-b-blue\" href=\"#\" style=\"left:40%;width:14%\"><b>Lee Park</b><small>12:00 · Cut</small></a><span class=\"ds-now\" style=\"left:47%\"></span></div></div>",
+      "css": ".ds-lane{display:flex;width:36rem;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;color:#0a0a0a}.ds-lane-name{display:flex;flex-direction:column;justify-content:center;width:8rem;padding:0 .75rem;border-right:1px solid #e5e5e5;font-size:.875rem;font-weight:500}.ds-lane-name small{font-size:11px;font-weight:400;color:#737373}.ds-lane-track{position:relative;flex:1;height:52px}.ds-win{position:absolute;inset:0 10% 0 0;background:rgba(245,245,245,.7)}.ds-block{position:absolute;top:4px;height:40px;display:flex;flex-direction:column;justify-content:center;padding:0 .375rem;border:1px solid;border-radius:4px;overflow:hidden;line-height:1.2;text-decoration:none;transition:border-color 150ms ease-out,transform 150ms ease-out}.ds-block b{font-size:12px;font-weight:600}.ds-block small{font-size:11px;opacity:.75}.ds-block:active{transform:scale(.99)}.ds-block:focus-visible{outline:2px solid #a3a3a3}.ds-b-emerald{border-color:#6ee7b7;background:#ecfdf5;color:#022c22}.ds-b-emerald:hover{border-color:#10b981}.ds-b-blue{border-color:#93c5fd;background:#eff6ff;color:#172554}.ds-b-blue:hover{border-color:#3b82f6}.ds-now{position:absolute;top:0;bottom:0;width:1px;background:#f43f5e}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Colour Room and the Book",
+    "overview": "The client storefront is the salon's colour room: a wall of professional colour-tube cartons on carton-board white, each service a carton with a solid shade band across its top, its name in condensed caps, its duration and price in wide heavy numerals, and a Book control along its foot. Clients pull a carton and are booking within one tap. Stylists, reviews and the gallery are other shelves of the same room, named by their plain names. Everything is square, hairline-edged and literally labelled; the only saturated colour is the band, and the band owns real area.\n\nThe operator platform is the front desk's book. It lives inside the shared dashboard shell and borrows the shell's neutral palette and sans; its own character comes from structure, not colour: a title line with one truthful status and the primary action at right, underline filter tabs with counts, dense tables with a status column, and on Appointments a day board with a lane per stylist and a now-line. Status colour appears only where it carries meaning, as a dot beside a word.\n\nThe storefront refuses the dark-luxury editorial salon (plum ground, Didone display, arched portraits) and the cream spa page. The platform refuses the SaaS tile-and-card template (metric tiles over pill tabs over a card list). The merchant's name, logo and hue come from store settings; every storefront colour except the neutrals rotates from that hue, so the room works for any salon.",
+    "keyCharacteristics": [
+      "One family, Archivo, driven along its width axis: condensed for names, wide for numerals, normal for body.",
+      "Category shade bands are the only saturated colour; a category keeps one shade on every page.",
+      "Square corners (2px) on the storefront; 6px controls and 4px board blocks on the platform; nothing pill-shaped.",
+      "State is a mark, not a hue: notched and ticked selection, struck-through unavailability, dot plus word for status.",
+      "Aluminium-grey trays (footer, book bar, booking tray, slot well) are the second neutral.",
+      "The shared dashboard shell is never restyled."
+    ],
+    "rules": [
+      {
+        "name": "The Band Owns The Colour Rule",
+        "body": "On the storefront the category band is the only saturated colour, and it owns area (a 60px band, or a full shade swatch window when there is no photo), never a dot-sized accent.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shade Belongs To The Category Rule",
+        "body": "A band shade is assigned by category rank, never by grid position. Two cartons of the same category always match; the shade chip prints a literal code (category initial plus number, \"H2\").",
+        "section": "colors"
+      },
+      {
+        "name": "The Shell Palette Rule",
+        "body": "Platform screens use the shell's neutral tokens (`foreground`, `background`, `muted`, `border`, `ring`) and add colour only through the status tones.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "The storefront uses Archivo only. Change width and weight, never the family.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Kicker Rule",
+        "body": "No eyebrows or kicker labels above headings. Shelves carry their plain name at section-title size; meta lines sit under a name, not over it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Rule Weight Rule",
+        "body": "Hierarchy between regions is a thicker ink rule (1px or 3px), never a shadow or a tinted card.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** give every service a carton with band, shade chip code, window or swatch, name, figures and a Book action linking to /book with that service.",
+      "**Do** derive every band from `--sf-theme-hue` and the category's rank, so any merchant hue and catalogue order produce a consistent room.",
+      "**Do** set names in condensed caps (`wdth` 66-68, 800) and figures in wide numerals (`wdth` 125, 800, tabular).",
+      "**Do** show selection as a notch plus a tick, and unavailability as strike-through.",
+      "**Do** keep storefront corners at 2px and state platform radii explicitly as 6px (4px for chips and board blocks).",
+      "**Do** show platform status as a dot plus a word in a status column.",
+      "**Do** open every platform page on the title line, underline tabs with counts, then the work table."
+    ],
+    "donts": [
+      "**Don't** add a second saturated colour, gradient or tinted card to the storefront; colour belongs to the bands.",
+      "**Don't** assign band shades by grid position.",
+      "**Don't** use pill shapes, `rounded-full` controls or the shell's `rounded-md`/`rounded-lg` (8-10px here) on salon UI; circles are for dots and avatars only.",
+      "**Don't** put eyebrows or kicker labels over headings.",
+      "**Don't** bring back the plum ground, Didone display or arched portraits.",
+      "**Don't** build platform pages from metric tiles over pill tabs over card lists.",
+      "**Don't** edit the shared dashboard shell (`features/dashboard/**`, `proxy.ts`, `app/dashboard/**` outside platform routes, `app/dashboard/globals.css`); salon styling lives in `features/platform/**` only."
+    ]
+  }
+}
