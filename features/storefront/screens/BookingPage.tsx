@@ -588,10 +588,16 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                 <span className="sf-shade !h-5 !w-5" aria-hidden="true" />
               </div>
               {summary}
-              <div className="flex items-baseline justify-between gap-3 border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3">
-                <span className="sf-num text-[length:var(--sf-text-2xl)]">{service ? <>{service.baseDuration}<small>min</small></> : "—"}</span>
-                <span className="sf-num text-[length:var(--sf-text-xl)]">{service ? formatMenuPrice(service.basePrice) : "—"}</span>
-              </div>
+              {service ? (
+                <div className="flex items-baseline justify-between gap-3 border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3">
+                  <span className="sf-num text-[length:var(--sf-text-2xl)]">{service.baseDuration}<small>min</small></span>
+                  <span className="sf-num text-[length:var(--sf-text-xl)]">{formatMenuPrice(service.basePrice)}</span>
+                </div>
+              ) : (
+                <p className="border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">
+                  Choose a service to see its time and price.
+                </p>
+              )}
             </div>
           </aside>
         </div>
