@@ -1,6 +1,10 @@
+<!-- logo -->
+
 ![Openfront Salon](https://openship.org/og/openfront-salon.png)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-salon&env=DATABASE_URL%2CSESSION_SECRET)
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/openfront-salon)
 
 Openfront Salon is a self-hostable booking and salon-operations application. Clients can explore services and stylists, book appointments, and manage their visits. Salon teams use the dashboard for scheduling, client history, checkout, retail inventory, memberships, packages, and commissions.
 
@@ -10,12 +14,10 @@ Openfront Salon is a self-hostable booking and salon-operations application. Cli
 
 ![Interior image used by the Salon storefront](public/images/salon/interior.webp)
 
-Explore the application locally using the setup instructions below.
-
 | | |
 |---|---|
-| **Public application** | `/` on your development URL |
-| **Dashboard** | `/dashboard` on your development URL |
+| **Storefront** | [salon.openship.org](https://salon.openship.org) |
+| **Dashboard** | [salon.openship.org/dashboard](https://salon.openship.org/dashboard) |
 
 [Learn more →](https://openship.org/products/openfront-salon)
 
