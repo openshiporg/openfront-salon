@@ -85,7 +85,7 @@ export interface CreateAppointmentInput {
 }
 
 export type CreateAppointmentResult =
-  | { status: "accepted"; appointmentId: string }
+  | { status: "accepted"; appointmentId: string; depositAmount?: number; depositAccessToken?: string }
   | { status: "rejected"; error: string }
   | { status: "unresolved" }
 
@@ -207,6 +207,8 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
         success
         appointmentId
         error
+        depositAmount
+        depositAccessToken
       }
     }
   `
@@ -230,7 +232,7 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
     if (outcome.status === "unresolved") return outcome
     if (outcome.status === "rejected") return outcome
 
-    return { status: "accepted", appointmentId: outcome.appointmentId }
+    return outcome
   } catch (error) {
     console.error("Error creating appointment:", error)
     return { status: "unresolved" }

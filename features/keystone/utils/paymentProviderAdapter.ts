@@ -1,5 +1,6 @@
 import {
   getPaymentAdapter,
+  type CreateCheckoutInput,
   type CreatePaymentSessionInput,
   type PaymentOperationInput,
   type PaymentProviderConfig,
@@ -8,6 +9,18 @@ import {
 
 export async function createProviderPaymentSession(input: CreatePaymentSessionInput) {
   return (await getPaymentAdapter(input.provider)).createSession(input);
+}
+
+export async function createProviderCheckout(input: CreateCheckoutInput) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.createCheckout) throw new Error("Provider does not take online payments");
+  return adapter.createCheckout(input);
+}
+
+export async function retrieveProviderCheckout(input: { provider: PaymentProviderConfig; providerReference: string }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.retrieveCheckout) throw new Error("Provider does not take online payments");
+  return adapter.retrieveCheckout(input);
 }
 
 export async function confirmProviderPayment(input: PaymentOperationInput) {

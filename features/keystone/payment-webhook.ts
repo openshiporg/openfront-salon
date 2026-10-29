@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Context } from ".keystone/types";
 import { canTransitionPayment, paymentRecordStatus, type PaymentLifecycleStatus } from "./payment-lifecycle";
+import { applyObservation, SESSION_QUERY } from "./depositCheckout";
 import { parseProviderWebhook, paymentProviderFromRecord } from "./utils/paymentProviderAdapter";
 
 export type PaymentWebhookOutcome = {
@@ -55,7 +56,7 @@ export async function reconcilePaymentWebhook(
     if (existing?.payloadHash !== undefined && existing.payloadHash !== payloadHash) throw new Error("Webhook replay payload does not match the original event");
     if (existing?.status === "processed") return { replayed: true, processed: true, status: existing.status };
 
-    const sessions = event.providerReference
+    let sessions = event.providerReference
       ? await sudo.query.PaymentSession.findMany({
           where: {
             providerReference: { equals: event.providerReference },
@@ -65,12 +66,45 @@ export async function reconcilePaymentWebhook(
           query: "id status amount currency idempotencyKey data payment { id status refundedAmount } appointment { id status }",
         })
       : [];
+    // Charge/refund/intent events name the PaymentIntent; a Checkout deposit remembers it once observed.
+    if (!sessions[0] && event.providerReference?.startsWith("pi_")) {
+      const byIntent = await transactionContext.prisma.paymentSession.findFirst({
+        where: { providerId: provider.id, data: { path: ["paymentIntent"], equals: event.providerReference } },
+        select: { id: true },
+      });
+      if (byIntent) sessions = await sudo.query.PaymentSession.findMany({
+        where: { id: { equals: byIntent.id } }, take: 1,
+        query: "id status amount currency idempotencyKey data payment { id status refundedAmount } appointment { id status }",
+      });
+    }
     const session = sessions[0];
+    const isCheckoutDeposit = Boolean(session && (session.data as any)?.checkout && (session.data as any)?.purpose === "appointment_deposit");
     // Let the provider retry an early event; do not permanently acknowledge a
     // money event before its locally committed session can be reconciled.
-    if (!session && event.providerReference && event.status) throw new Error("Payment session is not yet available; retry webhook");
+    if (!session && event.providerReference && event.status && event.type.startsWith("checkout.session.")) throw new Error("Payment session is not yet available; retry webhook");
     if (session && event.currency && event.currency.toLowerCase() !== session.currency.toLowerCase()) throw new Error("Webhook currency does not match payment session");
     if (session && event.status === "completed" && event.amount !== session.amount) throw new Error("Webhook amount does not match payment session");
+    if (isCheckoutDeposit && session && event.status) {
+      // Same settlement rules as the return page: amount and currency asserted, refunds observed from the provider's total.
+      const fresh = await sudo.query.PaymentSession.findOne({ where: { id: session.id }, query: SESSION_QUERY });
+      const refundEvent = event.status === "refunded";
+      const plan = await applyObservation(sudo, fresh, {
+        status: event.status === "completed" || refundEvent ? "completed" : event.status === "cancelled" || event.status === "failed" ? "cancelled" : "pending",
+        providerReference: event.providerReference || "",
+        paymentIntentId: (event.data as any)?.paymentIntent || (event.providerReference?.startsWith("pi_") ? event.providerReference : null),
+        amount: refundEvent ? session.amount : event.amount ?? null,
+        currency: event.currency || session.currency,
+        refundedAmount: refundEvent ? Number(event.amount || 0) : 0,
+      } as any);
+      const checkoutData = {
+        provider: { connect: { id: provider.id } }, replayKey, eventId: event.eventId,
+        type: event.type, providerReference: event.providerReference || "", payloadHash,
+        status: plan.changed ? "processed" : "ignored", data: event.data || {}, processedAt: new Date().toISOString(),
+      };
+      if (existing) await (sudo.query as any).PaymentWebhookEvent.updateOne({ where: { id: existing.id }, data: checkoutData, query: "id" });
+      else await (sudo.query as any).PaymentWebhookEvent.createOne({ data: checkoutData, query: "id" });
+      return { replayed: false, processed: plan.changed, status: checkoutData.status };
+    }
     const refundTotal = session && event.status === "refunded" ? Math.max(Number(session.payment?.refundedAmount || 0), Number(event.amount || 0)) : null;
     if (refundTotal !== null && (refundTotal <= 0 || refundTotal > session.amount)) throw new Error("Webhook refund total is invalid");
     let eventStatus: "processed" | "ignored" = "ignored";

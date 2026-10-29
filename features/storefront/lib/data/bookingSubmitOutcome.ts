@@ -1,5 +1,5 @@
 export type BookingSubmitOutcome =
-  | { status: "accepted"; appointmentId: string }
+  | { status: "accepted"; appointmentId: string; depositAmount?: number; depositAccessToken?: string }
   | { status: "rejected"; error: string }
   | { status: "unresolved" };
 
@@ -26,7 +26,12 @@ export function resolveBookingSubmitOutcome(value: unknown): BookingSubmitOutcom
       && value.appointmentId.trim().length > 0
       && value.appointmentId === value.appointmentId.trim()
       && value.appointmentId.toLowerCase() !== "pending"
-      ? { status: "accepted", appointmentId: value.appointmentId }
+      ? {
+        status: "accepted",
+        appointmentId: value.appointmentId,
+        ...(typeof value.depositAmount === "number" && Number.isSafeInteger(value.depositAmount) && value.depositAmount > 0 ? { depositAmount: value.depositAmount } : {}),
+        ...(typeof value.depositAccessToken === "string" && value.depositAccessToken ? { depositAccessToken: value.depositAccessToken } : {}),
+      }
       : { status: "unresolved" };
   }
   if (typeof value.error !== "string" || !value.error.trim()) return { status: "unresolved" };

@@ -10,6 +10,7 @@ import { captureServiceSnapshot } from "../serviceSnapshot";
 import { bookingPolicy, hasCurrentBookingPolicyAffirmation } from "../bookingPolicy";
 import { isActiveServiceStatus } from "../serviceStatus";
 import { BOOKING_OUTCOME_UNRESOLVED, BOOKING_REQUEST_KEY_CONFLICT, recoverBookingByIdempotency } from "../bookingRecovery";
+import { bookingDepositOffer } from "../depositCheckout";
 import { computeStylistAvailability, getRuntimeLocation, zonedDateKey, type AvailabilitySlot } from "../scheduling/availability";
 
 const CAPACITY_RECHECK_DELAYS_MS = [0, 50, 150] as const;
@@ -20,12 +21,18 @@ const BookAppointmentResult = graphql.object<{
   success: boolean;
   appointmentId: string | null;
   error: string | null;
+  depositAmount?: number | null;
+  depositAccessToken?: string | null;
 }>()({
   name: "BookAppointmentResult",
   fields: {
     success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
     appointmentId: graphql.field({ type: graphql.ID }),
     error: graphql.field({ type: graphql.String }),
+    /** Deposit due now, in cents. */
+    depositAmount: graphql.field({ type: graphql.Int }),
+    /** Present only when online deposits are available; proves access to this booking's deposit checkout. */
+    depositAccessToken: graphql.field({ type: graphql.String }),
   },
 });
 
@@ -457,7 +464,7 @@ export const bookAppointment = graphql.field({
         return { appointmentId: appointment.id, duration, services, stylistName, timezone: location.timezone, replayed: false };
       });
 
-      if (booking.replayed || !clientEmail) return { success: true, appointmentId: booking.appointmentId, error: null };
+      if (booking.replayed || !clientEmail) return { success: true, appointmentId: booking.appointmentId, error: null, ...(isOperator ? {} : await bookingDepositOffer(context, booking.appointmentId)) };
       try {
         const dateStr = start.toLocaleDateString("en-US", {
           timeZone: booking.timezone,
@@ -491,7 +498,7 @@ export const bookAppointment = graphql.field({
         console.error("Failed to send appointment confirmation email:", emailError);
       }
 
-      return { success: true, appointmentId: booking.appointmentId, error: null };
+      return { success: true, appointmentId: booking.appointmentId, error: null, ...(isOperator ? {} : await bookingDepositOffer(context, booking.appointmentId)) };
     } catch (error) {
       // Authority failures never fall through to idempotent recovery or capacity rechecks.
       if (error instanceof BookingOperatorDenied) return { success: false, appointmentId: null, error: error.message };
@@ -507,7 +514,7 @@ export const bookAppointment = graphql.field({
         }
       }
       const recovered = await recoverBookingByIdempotency(context, requestKey, requestHash);
-      if (recovered.status === "accepted") return { success: true, appointmentId: recovered.appointmentId, error: null };
+      if (recovered.status === "accepted") return { success: true, appointmentId: recovered.appointmentId, error: null, ...(isOperator ? {} : await bookingDepositOffer(context, recovered.appointmentId)) };
       if (recovered.status === "conflict") return { success: false, appointmentId: null, error: BOOKING_REQUEST_KEY_CONFLICT };
       if (recovered.status === "unresolved") return { success: false, appointmentId: null, error: BOOKING_OUTCOME_UNRESOLVED };
 

@@ -12,6 +12,9 @@ export async function getPaymentAdapter(provider: PaymentProviderConfig): Promis
 }
 
 export type {
+  CheckoutObservation,
+  CheckoutResult,
+  CreateCheckoutInput,
   CreatePaymentSessionInput,
   PaymentAdapter,
   PaymentAdapterStatus,

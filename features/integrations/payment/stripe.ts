@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import type { PaymentAdapter, PaymentAdapterStatus } from "./types";
+import type { CheckoutObservation, PaymentAdapter, PaymentAdapterStatus } from "./types";
 
 function stripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -15,7 +15,57 @@ function mapStatus(status: Stripe.PaymentIntent.Status): PaymentAdapterStatus {
   return "pending";
 }
 
+export function stripeConfigured() {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+const id = (value: string | { id: string } | null | undefined) => (typeof value === "string" ? value : value?.id ?? null);
+
 export const stripePaymentAdapter: PaymentAdapter = {
+  /** Hosted Stripe Checkout. Card data never reaches this server. */
+  async createCheckout({ amount, currency, idempotencyKey, description, successUrl, cancelUrl, customerEmail, metadata }) {
+    if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Payment amount must be a positive whole number of cents");
+    const session = await stripeClient().checkout.sessions.create(
+      {
+        mode: "payment",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        ...(customerEmail ? { customer_email: customerEmail } : {}),
+        line_items: [{ quantity: 1, price_data: { currency: currency.toLowerCase(), unit_amount: amount, product_data: { name: description } } }],
+        metadata,
+        payment_intent_data: { metadata },
+      },
+      { idempotencyKey },
+    );
+    if (!session.url) throw new Error("Stripe did not open a checkout");
+    return {
+      status: "pending",
+      providerReference: session.id,
+      url: session.url,
+      expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+    };
+  },
+  /** Reads the Checkout back from Stripe, including refunds made outside the app (charge.amount_refunded). */
+  async retrieveCheckout({ providerReference }) {
+    const stripe = stripeClient();
+    const session = await stripe.checkout.sessions.retrieve(providerReference);
+    const paymentIntentId = id(session.payment_intent);
+    let refundedAmount = 0;
+    if (paymentIntentId) {
+      const charges = await stripe.charges.list({ payment_intent: paymentIntentId, limit: 20 });
+      refundedAmount = charges.data.reduce((sum, charge) => sum + (charge.amount_refunded || 0), 0);
+    }
+    const paid = session.payment_status === "paid" || session.payment_status === "no_payment_required";
+    const observation: CheckoutObservation = {
+      status: paid ? "completed" : session.status === "expired" ? "cancelled" : "pending",
+      providerReference: session.id,
+      paymentIntentId,
+      amount: session.amount_total,
+      currency: session.currency,
+      refundedAmount,
+    };
+    return observation;
+  },
   async createSession({ amount, currency, idempotencyKey, metadata }) {
     const intent = await stripeClient().paymentIntents.create(
       {
@@ -59,7 +109,25 @@ export const stripePaymentAdapter: PaymentAdapter = {
     const signature = headers["stripe-signature"];
     if (!secret || !signature) throw new Error("Stripe webhook verification is not configured");
     const event = stripeClient().webhooks.constructEvent(payload, signature, secret);
-    const resource = event.data.object as Stripe.PaymentIntent | Stripe.Refund | Stripe.Charge;
+    const resource = event.data.object as Stripe.PaymentIntent | Stripe.Refund | Stripe.Charge | Stripe.Checkout.Session;
+    if (resource.object === "checkout.session") {
+      const paid = resource.payment_status === "paid" || resource.payment_status === "no_payment_required";
+      const status: PaymentAdapterStatus | null =
+        event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded"
+          ? (paid ? "completed" : null)
+          : event.type === "checkout.session.async_payment_failed" ? "failed"
+          : event.type === "checkout.session.expired" ? "cancelled" : null;
+      return {
+        isValid: true,
+        eventId: event.id,
+        type: event.type,
+        providerReference: resource.id,
+        status,
+        amount: resource.amount_total ?? undefined,
+        currency: resource.currency ?? undefined,
+        data: { livemode: event.livemode, checkoutSessionId: resource.id, paymentIntent: id(resource.payment_intent), sessionKey: resource.metadata?.depositKey || null },
+      };
+    }
     const paymentIntent = "payment_intent" in resource ? resource.payment_intent : null;
     const providerReference = paymentIntent
       ? typeof paymentIntent === "string" ? paymentIntent : paymentIntent.id
@@ -92,7 +160,7 @@ export const stripePaymentAdapter: PaymentAdapter = {
       status,
       amount,
       currency: resource.currency,
-      data: { livemode: event.livemode },
+      data: { livemode: event.livemode, sessionKey: ("metadata" in resource && resource.metadata?.depositKey) || null },
     };
   },
 };

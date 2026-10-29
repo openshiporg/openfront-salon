@@ -2,6 +2,7 @@ import { graphql } from "@keystone-6/core";
 import { assertCurrentWorkflowAuthority } from "./currentWorkflowAuthority";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
+import { reconcileDepositSessionTransaction } from "../depositCheckout";
 import { refundAppointmentDeposit } from "./depositRefund";
 import { assertPaymentTransition, paymentRecordStatus, type PaymentLifecycleStatus } from "../payment-lifecycle";
 import {
@@ -218,6 +219,12 @@ export const confirmPayment = graphql.field({
   async resolve(source, { paymentSessionId }, context: Context) {
     if (!paymentOperator(context)) return { success: false, error: "You must have payment authority", status: null };
     try {
+      // Online (Stripe Checkout) deposits are confirmed by reading the Checkout back from the provider.
+      const online = await context.sudo().query.PaymentSession.findOne({ where: { id: paymentSessionId }, query: "data provider { adapter }" });
+      if (online?.provider?.adapter === "stripe" && (online.data as any)?.checkout) {
+        const plan = await reconcileDepositSessionTransaction(context, paymentSessionId);
+        return { success: true, error: null, status: plan.status };
+      }
       return await paymentTransaction(context, [`session:${paymentSessionId}`], async (sudo) => {
       const session = await loadSession(sudo, paymentSessionId);
       if (!session?.provider || !session.providerReference || !session.payment) throw new Error("Payment session not found");
@@ -225,7 +232,7 @@ export const confirmPayment = graphql.field({
       if (sessionData.purpose !== "appointment_deposit") throw new Error("Use the purpose-built settlement confirmation workflow");
       if (session.status === "completed") return { success: true, error: null, status: "completed" };
       assertPaymentTransition(session.status as PaymentLifecycleStatus, "completed");
-      if (session.provider.adapter !== "manual") throw new Error("Online deposit confirmation requires the provider reconciliation workflow");
+      if (session.provider.adapter !== "manual") throw new Error("Payment provider cannot confirm this deposit here; reconcile it with the provider");
       const result = await confirmProviderPayment({ provider: paymentProviderFromRecord(session.provider as { code: string; adapter: string; config?: unknown }), providerReference: session.providerReference, amount: session.amount, idempotencyKey: `${session.idempotencyKey}:confirm` });
       assertPaymentTransition(session.status as PaymentLifecycleStatus, result.status);
       if (result.status !== "completed") throw new Error("Provider has not completed the payment");

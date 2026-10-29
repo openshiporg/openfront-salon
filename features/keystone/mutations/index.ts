@@ -3,6 +3,7 @@ import { registerSalonCustomer } from "./registerSalonCustomer";
 import redirectToInit from "./redirectToInit";
 import { paymentMutations } from "./processPayment";
 import { giftCardMutations } from "./purchaseGiftCard";
+import { confirmDepositCheckout, startDepositCheckout } from "./depositCheckoutMutations";
 import { bookAppointment } from "./bookAppointment";
 import { checkAvailability } from "../extendGraphqlSchema/checkAvailability";
 import { calculateCommission } from "../extendGraphqlSchema/calculateCommission";
@@ -51,6 +52,8 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
   mutation: {
     registerSalonCustomer,
     bookAppointment,
+    startDepositCheckout,
+    confirmDepositCheckout,
     processPayment: paymentMutations.processPayment,
     confirmPayment: paymentMutations.confirmPayment,
     refundPayment: paymentMutations.refundPayment,

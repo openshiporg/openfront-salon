@@ -5,6 +5,7 @@ import { isPolicyDeadlineOpen } from "../bookingPolicy";
 import { paymentRecordStatus } from "../payment-lifecycle";
 import { createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { serializableWorkflow } from "./serializableWorkflow";
+import { startDepositCheckoutTransaction } from "../depositCheckout";
 import { assertServiceDayOpen, assertStartPassed } from "../appointmentTiming";
 
 type AppointmentTransition = "confirmed" | "in_progress" | "cancelled" | "no_show";
@@ -126,7 +127,7 @@ export const transitionAppointment = graphql.field({
 
 type DepositResult = {
   success: boolean; appointmentId: string | null; paymentId: string | null;
-  paymentSessionId: string | null; status: string | null; error: string | null;
+  paymentSessionId: string | null; status: string | null; error: string | null; checkoutUrl?: string | null;
 };
 
 export async function processAppointmentDepositTransaction(
@@ -142,6 +143,11 @@ export async function processAppointmentDepositTransaction(
   }
 
   try {
+    // An online provider collects the deposit through hosted checkout; only the manual provider records collected tender.
+    if (args.providerCode) {
+      const chosen = (await context.sudo().query.PaymentProvider.findMany({ where: { code: { equals: args.providerCode }, isInstalled: { equals: true } }, take: 1, query: "adapter" }))[0];
+      if (chosen?.adapter === "stripe") return await collectDepositOnline(context, args.appointmentId);
+    }
     // Match checkout's appointment lock so a deposit cannot be created across settlement.
     return await serializableWorkflow(context, "salon-domain-resource", [
       `appointment:${args.appointmentId}`,
@@ -181,7 +187,7 @@ export async function processAppointmentDepositTransaction(
       });
       const provider = providers[0];
       if (!provider) throw new Error("Payment provider is unavailable");
-      if (provider.adapter !== "manual") throw new Error("Integrated online deposit collection is not available; record an externally collected deposit with the manual provider");
+      if (provider.adapter !== "manual") throw new Error("Payment provider cannot record a collected deposit; use the manual provider");
       const result = await createProviderPaymentSession({
         provider: paymentProviderFromRecord(provider as { code: string; adapter: string; config?: unknown }),
         amount,
@@ -225,6 +231,17 @@ export async function processAppointmentDepositTransaction(
   }
 }
 
+/** Staff-initiated online deposit: opens the same Stripe Checkout the client would, and hands staff the link. */
+async function collectDepositOnline(context: Context, appointmentId: string): Promise<DepositResult> {
+  const started = await startDepositCheckoutTransaction(context, { appointmentId });
+  if (!started.success) return { success: false, appointmentId: null, paymentId: null, paymentSessionId: null, status: null, error: started.error };
+  const session = (await context.sudo().query.PaymentSession.findMany({
+    where: { appointment: { id: { equals: appointmentId } }, status: { in: ["pending", "requires_action", "authorized"] } },
+    orderBy: { createdAt: "desc" }, take: 1, query: "id status payment { id }",
+  }))[0];
+  return { success: true, appointmentId, paymentId: session?.payment?.id || null, paymentSessionId: session?.id || null, status: session?.status || "pending", error: null, checkoutUrl: started.url };
+}
+
 const depositResult = graphql.object<DepositResult>()({
   name: "ProcessAppointmentDepositResult",
   fields: {
@@ -232,6 +249,7 @@ const depositResult = graphql.object<DepositResult>()({
     appointmentId: graphql.field({ type: graphql.ID }), paymentId: graphql.field({ type: graphql.ID }),
     paymentSessionId: graphql.field({ type: graphql.ID }), status: graphql.field({ type: graphql.String }),
     error: graphql.field({ type: graphql.String }),
+    checkoutUrl: graphql.field({ type: graphql.String }),
   },
 });
 

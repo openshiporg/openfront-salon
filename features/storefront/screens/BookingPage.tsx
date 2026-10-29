@@ -14,6 +14,7 @@ import type { BookingContextRead, BookingSelectionRead } from "../lib/data/booki
 import { serviceTags } from "../components/ServiceCard"
 import { categoryBand, serviceCodes, type CategoryBands } from "../lib/bands"
 import { StylistPortrait, stylistTitle } from "../components/StylistCard"
+import { PayDepositButton } from "../components/PayDepositButton"
 import { TimeSlotPicker } from "../components/TimeSlotPicker"
 import { joinWaitlistForDay } from "../lib/data/waitlist"
 import { BookingStepIndicator } from "../components/BookingStepIndicator"
@@ -86,6 +87,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [bookingOutcomeUnresolved, setBookingOutcomeUnresolved] = useState(false)
   const [bookingId, setBookingId] = useState<string | null>(null)
+  const [deposit, setDeposit] = useState<{ amount: number; token: string } | null>(null)
+  const [depositDue, setDepositDue] = useState<number | null>(null)
   const [bookingContextRead, setBookingContextRead] = useState<BookingContextRead | null>(null)
   const [bookingContextAttempt, setBookingContextAttempt] = useState(0)
   const bookingContext = bookingContextRead?.status === "available" ? bookingContextRead.data : null
@@ -291,6 +294,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
         // A confirmed booking is still confirmed if browser storage is unavailable.
       }
       setBookingId(result.appointmentId)
+      setDepositDue(result.depositAmount ?? null)
+      setDeposit(result.depositAmount && result.depositAccessToken ? { amount: result.depositAmount, token: result.depositAccessToken } : null)
       setBookingSuccess(true)
     } catch {
       setBookingOutcomeUnresolved(true)
@@ -362,6 +367,14 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
               <div className="sf-summary-row"><dt>Reference</dt><dd className="font-mono !text-[length:var(--sf-text-xs)]">{bookingId}</dd></div>
             </dl>
             <div className="grid gap-4 border-t border-[var(--sf-rule)] p-[var(--sf-space-sm)]">
+              {deposit && bookingId ? (
+                <div className="grid gap-1">
+                  <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">This service takes a deposit to hold your time. Pay it now by card, or at the salon.</p>
+                  <PayDepositButton appointmentId={bookingId} accessToken={deposit.token} amount={deposit.amount} />
+                </div>
+              ) : depositDue ? (
+                <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">A {formatMenuPrice(depositDue / 100)} deposit is due. Pay it at the salon.</p>
+              ) : null}
               {bookingContext?.client ? <Link className="sf-link self-start text-[length:var(--sf-text-sm)]" href={`/booking/${bookingId}`}>View your saved appointment</Link> : <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">To change this booking, contact the salon.</p>}
               <div className="sf-track">
                 <Link href="/" className="sf-btn sf-btn-primary">Home</Link>

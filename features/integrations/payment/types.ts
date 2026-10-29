@@ -61,7 +61,41 @@ export interface PaymentWebhookResult {
   data?: Record<string, unknown>;
 }
 
+export interface CreateCheckoutInput {
+  provider: PaymentProviderConfig;
+  amount: number;
+  currency: string;
+  idempotencyKey: string;
+  description: string;
+  successUrl: string;
+  cancelUrl: string;
+  customerEmail?: string | null;
+  metadata: Record<string, string>;
+}
+
+export interface CheckoutResult {
+  status: PaymentAdapterStatus;
+  /** The provider's hosted-checkout id (Stripe `cs_…`). */
+  providerReference: string;
+  url: string;
+  expiresAt: string | null;
+}
+
+/** What the provider reports for a hosted checkout, read straight from the provider. */
+export interface CheckoutObservation {
+  status: "pending" | "completed" | "cancelled";
+  providerReference: string;
+  paymentIntentId: string | null;
+  amount: number | null;
+  currency: string | null;
+  /** Total refunded across every charge of the payment, in minor units. */
+  refundedAmount: number;
+}
+
 export interface PaymentAdapter {
+  /** Hosted checkout for online payments. Adapters that cannot take online payments leave these undefined. */
+  createCheckout?(input: CreateCheckoutInput): Promise<CheckoutResult>;
+  retrieveCheckout?(input: { provider: PaymentProviderConfig; providerReference: string }): Promise<CheckoutObservation>;
   createSession(input: CreatePaymentSessionInput): Promise<PaymentSessionResult>;
   confirm(input: PaymentOperationInput): Promise<PaymentOperationResult>;
   refund(input: PaymentOperationInput): Promise<PaymentOperationResult>;
