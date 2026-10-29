@@ -154,3 +154,45 @@ test('webhook parsing reports checkout completion with amount and currency, and 
   assert.equal(refunded.providerReference, 'pi_1');
   await assert.rejects(() => adapter.parseWebhook({ provider: {}, payload: '{}', headers: {} }), /not configured/);
 });
+
+// The webhook handler against an in-memory Keystone context: durable dedupe, amount and currency assertions.
+function webhookHarness(eventOverrides = {}) {
+  const store = { events: [], session: { id: 's1', status: 'pending', amount: 5000, currency: 'usd', idempotencyKey: 'k', data: { purpose: 'appointment_deposit', checkout: true }, payment: { id: 'p1', status: 'pending', refundedAmount: 0 }, appointment: { id: 'a1', status: 'pending', transaction: null } }, writes: [] };
+  const sudo = { query: {
+    PaymentProvider: { findMany: async () => [{ id: 'prov', code: 'pp_stripe', adapter: 'stripe', config: {} }] },
+    PaymentSession: { findMany: async () => [store.session], findOne: async () => store.session, updateOne: async ({ data }) => { store.writes.push(['session', data.status]); Object.assign(store.session, { status: data.status ?? store.session.status }); return {}; } },
+    Payment: { updateOne: async ({ data }) => { store.writes.push(['payment', data.status]); return {}; } },
+    Appointment: { updateOne: async ({ data }) => { store.writes.push(['appointment', data.depositPaid]); return {}; } },
+    PaymentWebhookEvent: {
+      findMany: async ({ where }) => store.events.filter((e) => e.replayKey === where.replayKey.equals),
+      createOne: async ({ data }) => { store.events.push({ id: `e${store.events.length}`, ...data }); return {}; },
+      updateOne: async () => ({}),
+    },
+  } };
+  const tx = { prisma: { $executeRawUnsafe: async () => 1, paymentSession: { findFirst: async () => null } }, sudo: () => sudo };
+  const context = { sudo: () => sudo, transaction: async (fn) => fn(tx) };
+  const event = { isValid: true, eventId: 'evt_1', type: 'checkout.session.completed', providerReference: 'cs_1', status: 'completed', amount: 5000, currency: 'usd', data: { paymentIntent: 'pi_1' }, ...eventOverrides };
+  const mod = load('features/keystone/payment-webhook.ts', { './utils/paymentProviderAdapter': { parseProviderWebhook: async () => event, paymentProviderFromRecord: (r) => r } });
+  return { store, run: () => mod.reconcilePaymentWebhook(context, 'pp_stripe', '{"x":1}', {}) };
+}
+
+test('a Checkout completion webhook captures the deposit once and a duplicate delivery is a no-op', async () => {
+  const { store, run } = webhookHarness();
+  const first = await run();
+  assert.deepEqual({ ...first }, { replayed: false, processed: true, status: 'processed' });
+  assert.deepEqual(store.writes.map((w) => w.join(':')), ['session:completed', 'payment:completed', 'appointment:true']);
+  const writes = store.writes.length;
+  const second = await run();
+  assert.equal(second.replayed, true);
+  assert.equal(store.writes.length, writes);
+  assert.equal(store.events.length, 1);
+});
+
+test('a webhook whose amount or currency differs from the deposit is rejected before any write', async () => {
+  for (const override of [{ amount: 4999 }, { currency: 'eur' }, { amount: undefined }]) {
+    const { store, run } = webhookHarness(override);
+    await assert.rejects(run, /amount|currency/i);
+    assert.equal(store.writes.length, 0);
+    assert.equal(store.events.length, 0);
+  }
+});

@@ -84,6 +84,8 @@ export async function reconcilePaymentWebhook(
     if (!session && event.providerReference && event.status && event.type.startsWith("checkout.session.")) throw new Error("Payment session is not yet available; retry webhook");
     if (session && event.currency && event.currency.toLowerCase() !== session.currency.toLowerCase()) throw new Error("Webhook currency does not match payment session");
     if (session && event.status === "completed" && event.amount !== session.amount) throw new Error("Webhook amount does not match payment session");
+    // A stored checkout event was fully handled (failures throw before storing), so a duplicate is a no-op.
+    if (existing && isCheckoutDeposit) return { replayed: true, processed: existing.status === "processed", status: existing.status };
     if (isCheckoutDeposit && session && event.status) {
       // Same settlement rules as the return page: amount and currency asserted, refunds observed from the provider's total.
       const fresh = await sudo.query.PaymentSession.findOne({ where: { id: session.id }, query: SESSION_QUERY });
