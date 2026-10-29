@@ -86,7 +86,9 @@ export function planCheckoutSettlement(
   let status: PaymentLifecycleStatus = current;
   if (current === "pending" || current === "requires_action" || current === "authorized") status = "completed";
   if (refunded > 0 && (status === "completed" || status === "partially_refunded")) status = refunded >= session.amount ? "refunded" : "partially_refunded";
-  if (!canTransitionPayment(current, status) && status !== current) status = current;
+  // An open session that is observed already refunded passed through "completed" first.
+  const from: PaymentLifecycleStatus = OPEN_STATUSES.includes(current) ? "completed" : current;
+  if (status !== current && !canTransitionPayment(from, status)) status = current;
   return { status, refundedAmount: refunded, changed: status !== current || refunded !== recorded };
 }
 
