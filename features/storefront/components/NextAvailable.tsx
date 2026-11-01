@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { findNextOpenings, type NextOpening, type OpeningQuery } from "../lib/data/next-available"
-import { bookHref, dayLabel } from "../lib/picker-dates"
+import { bookHref, openingLabel, openingPill } from "../lib/picker-dates"
 import { useWide } from "../lib/use-wide"
 
 export type { OpeningQuery }
@@ -79,7 +79,7 @@ export function NextAvailableLink({ query, name, photo, showPhoto, className, st
         <span className="block truncate text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]" aria-live="polite">
           {read.status === "loading" ? "Checking…" : opening ? "Next available" : "See times"}
         </span>
-        {showPhoto && opening && first ? <span className="sf-next-when truncate">{dayLabel(opening.date)} at {first.label}</span> : null}
+        {opening && first ? <span className="sf-next-when">{openingLabel(opening.date, first.label)}</span> : null}
       </span>
     </Link>
   )
@@ -89,5 +89,6 @@ export function NextAvailableLink({ query, name, photo, showPhoto, className, st
 export function NextAvailableChip({ query }: { query: OpeningQuery | null }) {
   const read = useNextOpening(query)
   if (read.status !== "ready" || !read.opening) return null
-  return <span className="sf-chip !min-h-6 !px-2 !text-[0.6875rem]" title="Next available">{dayLabel(read.opening.date).split(", ")[1]}</span>
+  const first = read.opening.slots[0]
+  return <span className="sf-tile-pill" title="Next available">{first ? openingPill(read.opening.date, first.label) : null}</span>
 }

@@ -40,6 +40,16 @@ export function dayLabel(key: string) {
   return atNoon(key).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })
 }
 
+/** "Mon, Nov 2 · 1:30 PM": one line for a next-opening. */
+export function openingLabel(key: string, slotLabel: string) {
+  return `${dayLabel(key)} · ${slotLabel}`
+}
+
+/** "Nov 2 · 1:30 PM": the short pill form. */
+export function openingPill(key: string, slotLabel: string) {
+  return `${shortDate(key)} · ${slotLabel}`
+}
+
 /** "10:00 AM" -> ["10:00", "AM"] */
 export function splitSlotLabel(label: string): [string, string | null] {
   const match = label.trim().match(/^(.*?)\s*([AaPp]\.?[Mm]\.?)$/)

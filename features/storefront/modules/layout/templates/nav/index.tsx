@@ -85,7 +85,7 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
             </Link>
             <Link href="/account" aria-current={isActive("/account") ? "page" : undefined} className="sf-account-link lg:hidden">
               <span aria-hidden="true"><UserRound /></span>
-              <span className="max-[419px]:sr-only">My Account</span>
+              <span className="max-[374px]:sr-only">My Account</span>
             </Link>
             <button
               type="button"

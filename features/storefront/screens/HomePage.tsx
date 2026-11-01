@@ -182,12 +182,12 @@ export async function HomePage() {
           </div>
         </section>
 
-        <div className="sf-container grid grid-cols-[minmax(0,1fr)] gap-5 pb-8">
+        <div className="sf-container grid grid-cols-[minmax(0,1fr)] gap-3 pb-8">
           {phoneRows.length ? (
-            <section className="sf-panel -mt-1 px-4 py-3" aria-label="Book a stylist">
+            <section className="sf-panel -mt-1 px-3.5 py-2.5" aria-label="Book a stylist">
               {phoneRows.map((row, rowIndex) => (
-                <div key={rowIndex} className={rowIndex ? "mt-2 border-t border-[var(--sf-rule)] pt-3" : ""}>
-                  <p className="mb-2 text-[length:var(--sf-text-md)]">{rowIndex === 0 ? "Select your stylist" : "Select your time"}</p>
+                <div key={rowIndex} className={rowIndex ? "mt-1.5 border-t border-[var(--sf-rule)] pt-2" : ""}>
+                  <p className="mb-1 text-[length:var(--sf-text-md)]">{rowIndex === 0 ? "Select your stylist" : "Select your time"}</p>
                   <div className="sf-next-row">
                     {row.map((stylist, index) => (
                       <NextAvailableLink
@@ -197,9 +197,16 @@ export async function HomePage() {
                         photo={getStorefrontImageSrc(stylist.photo)}
                         showPhoto={index === 0}
                         className="sf-next no-underline"
-                        style={index === 1 ? { gridColumn: 2 } : undefined}
                       />
                     ))}
+                    {row.length === 1 ? (
+                      <Link href="/book" className="sf-next no-underline">
+                        <span className="min-w-0">
+                          <span className="block truncate text-[length:var(--sf-text-md)]">Any stylist</span>
+                          <span className="block truncate text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">First open time</span>
+                        </span>
+                      </Link>
+                    ) : null}
                     <Link href={bookHref({ stylistId: row[row.length - 1].id })} aria-label="See all times" className="col-start-3 inline-flex h-11 w-8 items-center justify-center text-[var(--sf-ink-3)]"><ChevronRight className="h-5 w-5" aria-hidden="true" /></Link>
                   </div>
                 </div>
@@ -209,7 +216,7 @@ export async function HomePage() {
 
           {menu.length ? (
             <section aria-labelledby="home-services-m">
-              <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="mb-0.5 flex items-center justify-between gap-3">
                 <h2 id="home-services-m" className="text-[length:var(--sf-text-lg)]">Services</h2>
                 <Link href="/services" className="sf-more !text-[length:var(--sf-text-sm)] !text-[var(--sf-sage-ink)]">View all<ChevronRight aria-hidden="true" /></Link>
               </div>
@@ -219,8 +226,8 @@ export async function HomePage() {
                   return (
                     <Link key={service.id} href={`/book?service=${service.id}`} className="sf-service-chip">
                       <span className="sf-icon-tile" aria-hidden="true"><Icon /></span>
-                      <span className="min-w-0 flex-1 truncate text-[length:var(--sf-text-md)]">{service.name}</span>
-                      <span className="shrink-0 text-[length:var(--sf-text-lg)] tabular-nums text-[var(--sf-sage)]">{formatMenuPrice(service.basePrice)}</span>
+                      <span className="whitespace-nowrap">{service.name}</span>
+                      <span className="ml-auto shrink-0 pl-1 text-[0.9375rem] tabular-nums text-[var(--sf-sage)]">{formatMenuPrice(service.basePrice)}</span>
                     </Link>
                   )
                 })}
@@ -230,7 +237,7 @@ export async function HomePage() {
 
           {active.length ? (
             <section aria-labelledby="home-stylists-m">
-              <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="mb-0.5 flex items-center justify-between gap-3">
                 <h2 id="home-stylists-m" className="text-[length:var(--sf-text-lg)]">Our stylists</h2>
                 <Link href="/team" className="sf-more !text-[length:var(--sf-text-sm)] !text-[var(--sf-sage-ink)]">View all<ChevronRight aria-hidden="true" /></Link>
               </div>
@@ -241,8 +248,8 @@ export async function HomePage() {
                   return (
                     <Link key={stylist.id} href={`/team/${stylist.id}`} className="sf-stylist-tile">
                       <span className="sf-arch block">{photo ? <img src={photo} alt={stylist.photo?.altText || name} loading="lazy" /> : <span className="sf-arch-placeholder" aria-hidden="true">{name.charAt(0)}</span>}</span>
-                      <span className="flex items-center justify-between gap-1 px-1">
-                        <span className="min-w-0 truncate text-[length:var(--sf-text-md)]">{name.split(" ")[0]}</span>
+                      <span className="flex items-center justify-between gap-1 px-0.5">
+                        <span className="min-w-0 truncate text-[0.8125rem]">{name.split(" ")[0]}</span>
                         <NextAvailableChip query={openingQuery(stylist)} />
                       </span>
                     </Link>
