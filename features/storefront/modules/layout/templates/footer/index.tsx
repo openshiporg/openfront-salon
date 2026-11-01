@@ -26,9 +26,9 @@ export default function Footer({ brand }: { brand: StorefrontBrand }) {
       </div>
       <div className="grid content-start gap-3">
         {brand.addressLine ? (
-          <p className="leading-relaxed">{brand.locationName ? <><span className="font-semibold text-[var(--sf-ink)]">{brand.locationName}</span><br /></> : null}{brand.addressLine}</p>
+          <p className="leading-relaxed">{brand.locationName ? <><span className="text-[var(--sf-ink)]">{brand.locationName}</span><br /></> : null}{brand.addressLine}</p>
         ) : null}
-        {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="inline-flex min-h-11 items-center font-semibold text-[var(--sf-ink)]">{brand.phone}</a> : null}
+        {brand.phone && brand.phoneHref ? <a href={brand.phoneHref} className="inline-flex min-h-11 items-center text-[var(--sf-ink)]">{brand.phone}</a> : null}
         {brand.email ? <a href={`mailto:${brand.email}`} className="break-all">{brand.email}</a> : null}
       </div>
       <nav aria-label="Footer" className="sf-footer-links grid grid-cols-2 content-start gap-x-6">

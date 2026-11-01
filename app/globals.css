@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source not "../audits";
+@source not "../design";
+@source not "../docs";
 
 @theme inline {
   --color-background: oklch(100% 0 0);

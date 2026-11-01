@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Check, ChevronRight, ChevronLeft, ShieldCheck } from "lucide-react"
 import type { Service } from "../lib/data/services"
@@ -48,6 +48,9 @@ interface BookingPageProps {
   preselectedStylistServiceIds?: string[] | null
   /** Category shades ranked over the whole catalogue, shared with home and /services. */
   categoryBands?: CategoryBands | null
+  /** A day (YYYY-MM-DD) and slot start picked on the home booking picker; used once if still open. */
+  preferredDate?: string | null
+  preferredTime?: string | null
 }
 
 type StylistReadState =
@@ -61,7 +64,7 @@ function formatNotice(minutes?: number | null) {
   return `${value} minutes`
 }
 
-export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null, categoryBands = null }: BookingPageProps) {
+export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null, categoryBands = null, preferredDate = null, preferredTime = null }: BookingPageProps) {
 
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<string | null>(preselectedService)
@@ -150,6 +153,30 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   useEffect(() => {
     if (step === 2 && selectedStylist && stylistRead.status === "available") setStep(3)
   }, [step, selectedStylist, stylistRead.status])
+
+  // A day and time carried from the home picker: applied once, when the time step first opens with that stylist.
+  const preference = useRef(preferredDate && /^\d{4}-\d{2}-\d{2}$/.test(preferredDate) ? { date: preferredDate, time: preferredTime, stage: "date" as "date" | "time" | "done" } : null)
+  useEffect(() => {
+    const wanted = preference.current
+    if (!wanted || wanted.stage !== "date" || step !== 3 || !selectedStylist || selectedStylist !== preselectedStylist) return
+    const [year, month, day] = wanted.date.split("-").map(Number)
+    const date = new Date(year, month - 1, day)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (date < today) {
+      wanted.stage = "done"
+      return
+    }
+    wanted.stage = wanted.time ? "time" : "done"
+    setSelectedDate(date)
+  }, [step, selectedStylist, preselectedStylist])
+  useEffect(() => {
+    const wanted = preference.current
+    if (!wanted || wanted.stage !== "time" || loadingSlots || !selectedDate || localDateKey(selectedDate) !== wanted.date) return
+    if (availableSlots.length === 0) return
+    wanted.stage = "done"
+    if (availableSlots.some((slot) => slot.startTime === wanted.time)) setSelectedTime(wanted.time)
+  }, [availableSlots, loadingSlots, selectedDate])
 
   // Fetch and validate service-qualified stylists; ignore stale responses after a service change.
   useEffect(() => {
@@ -559,7 +586,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                     </div>
 
                     {selectedTime && bookingContext?.policy && new Date(selectedTime).getTime() - Date.now() < Math.min(bookingContext.policy.cancellationNoticeMinutes, bookingContext.policy.rescheduleNoticeMinutes) * 60_000 ? (
-                      <p role="status" className="sf-note !text-[length:var(--sf-text-sm)]">This time is inside the notice window, so it can't be cancelled or rescheduled online. Contact the salon to change it.</p>
+                      <p role="status" className="sf-note !text-[length:var(--sf-text-sm)]">This time is inside the notice window, so it can&apos;t be cancelled or rescheduled online. Contact the salon to change it.</p>
                     ) : null}
                     <label className="sf-tray-surface flex cursor-pointer items-start gap-3 p-4 text-[length:var(--sf-text-sm)]">
                       <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--sf-ink)]" />
