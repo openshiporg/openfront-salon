@@ -54,6 +54,8 @@ test('the panel no longer prints the provider-settings tip', () => {
 test('phones: the header carries the assistant button and the floating one hides', () => {
   assert.match(read('features/dashboard/components/PageBreadcrumbs.tsx'), /<AssistantHeaderButton \/>/);
   assert.match(read('features/dashboard/components/AssistantHeaderButton.tsx'), /data-assistant-header=""[\s\S]*md:hidden/);
-  assert.match(read('features/dashboard/components/DashboardLayout.tsx'), /data-assistant-floating=""/);
-  assert.match(read('app/dashboard/globals.css'), /body:has\(\[data-assistant-header\]\) \[data-assistant-floating\]\s*\{\s*display: none;/);
+  // The hide rule is a utility class on the button itself (dealership dbe8c73), not a globals.css :has() rule.
+  const layout = read('features/dashboard/components/DashboardLayout.tsx');
+  assert.match(layout, /data-assistant-floating=""[\s\S]*max-md:\[body:has\(\[data-assistant-header\]\)_&\]:hidden/);
+  assert.doesNotMatch(read('app/dashboard/globals.css'), /data-assistant-floating/);
 });
