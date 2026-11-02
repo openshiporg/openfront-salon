@@ -105,3 +105,9 @@ test('Cancel appointment asks first with an AlertDialog on both the detail page 
   assert.equal((src.match(/void cancel\(\)/g) || []).length, 2);
   assert.equal((src.match(/<ConfirmCancel label=\{label\} onConfirm=\{\(\) => void cancel\(\)\}>/g) || []).length, 2);
 });
+
+test('the cancel confirm does not promise a client message the app never sends', () => {
+  const src = fs.readFileSync(path.join(root, 'features/platform/appointments/screens/AppointmentActions.tsx'), 'utf8');
+  const mail = fs.readFileSync(path.join(root, 'features/keystone/lib/mail.ts'), 'utf8');
+  if (!/cancel/i.test(mail)) assert.match(src, /No message goes to the client/);
+});

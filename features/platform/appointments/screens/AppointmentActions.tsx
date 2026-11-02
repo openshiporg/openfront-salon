@@ -166,7 +166,7 @@ function ConfirmCancel({ label, onConfirm, children }: { label?: string; onConfi
         <AlertDialogHeader>
           <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
           <AlertDialogDescription>
-            {label ? <>{label}. </> : null}The time goes back on the book and the client is told it&rsquo;s cancelled. A paid card deposit is not refunded by this; refund it from the Deposit panel.
+            {label ? <>{label}. </> : null}The time opens up for other bookings. No message goes to the client, so let them know. A paid card deposit is not refunded by this; refund it from the Deposit panel.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
