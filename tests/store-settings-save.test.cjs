@@ -43,8 +43,8 @@ test('custom SVG kept, unsafe SVG rejected', () => {
   assert.equal(sanitizeStoreLogoSvg(`  ${svg}\n`), svg);
   assert.equal(sanitizeStoreLogoSvg('<svg onload="x()"></svg>'), '');
 });
-test('the storefront never draws the platform placeholder', () => {
-  assert.equal(storeOwnMark(''), '');
-  assert.equal(storeOwnMark(DEFAULT_STORE_LOGO_ICON), '');
+test('the storefront always draws an icon beside the name', () => {
+  assert.ok(storeOwnMark(''));
+  assert.equal(storeOwnMark(DEFAULT_STORE_LOGO_ICON), storeOwnMark(''));
   assert.match(storeOwnMark(LOGO_ICONS[1].lightSvg), /^<svg/);
 });
