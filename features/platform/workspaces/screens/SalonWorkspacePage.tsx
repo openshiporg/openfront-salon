@@ -192,7 +192,7 @@ function ReportsView({ data, timeZone, range, serviceTakings }: ViewProps & { ra
           {data.records.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No payments recorded in this period.</Td></tr> : data.records.map((record) => (
             <tr key={record.id}>
               <Td className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDate(record.occurredAt, timeZone) || '—'}</Td>
-              <Td className="font-medium">{record.title}</Td>
+              <Td className="min-w-[12rem] !whitespace-normal font-medium">{record.title}</Td>
               <Td className="hidden text-muted-foreground md:table-cell">{record.subtitle}</Td>
               <Td><StatusCell tone={statusTone(record.status)}>{labelize(record.status)}</StatusCell></Td>
               <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground sm:table-cell">{record.detail}</Td>
@@ -279,7 +279,7 @@ function IntegrationsView({ data, timeZone }: ViewProps) {
         <DataTable label="Payment providers" head={[{ label: 'Provider' }, { label: 'Adapter', className: 'hidden sm:table-cell' }, { label: 'Status' }]}>
           {providers.length === 0 ? <tr><Td colSpan={3} className="py-4 text-muted-foreground">No payment providers configured.</Td></tr> : providers.map((record) => (
             <tr key={record.id}>
-              <Td className="font-medium">{record.title}</Td>
+              <Td className="min-w-[12rem] !whitespace-normal font-medium">{record.title}</Td>
               <Td className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{record.subtitle}</Td>
               <Td><StatusCell tone={record.status === 'Not installed' ? 'rose' : 'emerald'}>{record.status}</StatusCell></Td>
             </tr>
@@ -315,7 +315,7 @@ function IntegrationsView({ data, timeZone }: ViewProps) {
                     <tr key={record.id}>
                       <Td className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDate(record.occurredAt, timeZone) || '—'}</Td>
                       <Td>{record.title}</Td>
-                      <Td className="break-all font-mono text-xs text-muted-foreground">{record.subtitle}</Td>
+                      <Td className="!whitespace-normal break-all font-mono text-xs text-muted-foreground">{record.subtitle}</Td>
                       <Td className="whitespace-nowrap">{labelize(record.status)}</Td>
                       <Td className="text-right tabular-nums">{record.metric ?? 0}</Td>
                     </tr>
@@ -333,7 +333,7 @@ function IntegrationsView({ data, timeZone }: ViewProps) {
           {webhooks.length === 0 ? <tr><Td colSpan={4} className="py-4 text-muted-foreground">No webhooks received.</Td></tr> : webhooks.map((record) => (
             <tr key={record.id}>
               <Td className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDate(record.occurredAt, timeZone) || '—'}</Td>
-              <Td className="font-medium">{record.title}</Td>
+              <Td className="min-w-[12rem] !whitespace-normal font-medium">{record.title}</Td>
               <Td className="hidden text-muted-foreground sm:table-cell">{record.subtitle}</Td>
               <Td><StatusCell tone={statusTone(record.status)}>{labelize(record.status)}</StatusCell></Td>
             </tr>
@@ -383,7 +383,7 @@ function EngagementView({ data, timeZone }: ViewProps) {
           {messages.length === 0 ? <tr><Td colSpan={4} className="py-4 text-muted-foreground">No messages sent yet.</Td></tr> : messages.map((record) => (
             <tr key={record.id}>
               <Td className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDate(record.occurredAt, timeZone) || '—'}</Td>
-              <Td className="font-medium">{record.title}</Td>
+              <Td className="min-w-[12rem] !whitespace-normal font-medium">{record.title}</Td>
               <Td className="hidden sm:table-cell">{record.subtitle}</Td>
               <Td><StatusCell tone={statusTone(record.status)}>{labelize(record.status)}</StatusCell></Td>
             </tr>

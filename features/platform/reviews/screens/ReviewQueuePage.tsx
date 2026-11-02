@@ -57,7 +57,7 @@ function ReviewRow({ review, timeZone }: { review: PlatformReview; timeZone?: st
         {/* Below sm the status column is hidden, so the status rides second, under the client. */}
         <span className="mt-1 block font-normal sm:hidden"><StatusCell tone={review.isApproved ? 'emerald' : 'amber'}>{review.isApproved ? 'Published' : 'Awaiting'}</StatusCell></span>
       </Td>
-      <Td className="min-w-[14rem] max-w-xl">
+      <Td className="min-w-[14rem] max-w-xl !whitespace-normal">
         {review.comment ? <p className="line-clamp-3 whitespace-pre-line">{review.comment}</p> : <span className="text-muted-foreground">Rating only</span>}
         <span className="mt-0.5 block text-xs text-muted-foreground lg:hidden">{[review.service?.name, review.stylist?.user?.name, visit].filter(Boolean).join(' · ')}</span>
       </Td>

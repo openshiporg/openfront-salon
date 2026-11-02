@@ -29,7 +29,9 @@ export const textareaClass = 'min-h-24 w-full min-w-0 rounded-[6px] border borde
 export const tableWrapClass = 'min-w-0 relative overflow-x-auto rounded-[6px] border bg-background';
 export const tableClass = 'w-full border-collapse text-sm';
 export const thClass = 'h-9 whitespace-nowrap border-b bg-muted/40 px-3 text-left align-middle text-xs font-medium text-muted-foreground';
-export const tdClass = 'border-b px-3 py-2.5 align-top [tr:last-child>&]:border-b-0';
+// On phones tables scroll sideways in their wrap: keep figures and labels on one line
+// and give the leading (name) column room instead of wrapping every cell word by word.
+export const tdClass = 'border-b px-3 py-2.5 align-top [tr:last-child>&]:border-b-0 max-sm:[&:not(:first-child)]:whitespace-nowrap max-sm:[&:first-child]:min-w-[10rem]';
 
 /** Stored enum values to merchant labels: "nail_tech" → "Nail tech". */
 export function labelize(value?: string | null) {
