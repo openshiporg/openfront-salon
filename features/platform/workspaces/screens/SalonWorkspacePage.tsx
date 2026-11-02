@@ -5,6 +5,8 @@ import { SalonRecordManager, type RecordExtra } from './SalonRecordManager';
 import { InventoryIntentRecovery } from './InventoryIntentRecovery';
 import { StockDesk, type StockProduct } from './StockDesk';
 import { getServiceTakings, type ServiceTakingsRow } from '../lib/serviceTakings';
+import { getStripeSetupStatus, type StripeSetupStatus } from '../actions/paymentProviders';
+import { SetUpStripe } from '../components/SetUpStripe';
 import { formatInZone, getSalonTimezone } from '../../lib/salonTimezone';
 import { DataTable, EmptyState, inputClass, labelize, Notice, PageHeader, pillClass, PillLink, PlatformPage, SegmentTabs, StatusCell, Td, TitleStatus, Track, usd, type Tone } from '../../components/salon-ui';
 
@@ -46,10 +48,11 @@ export async function SalonWorkspacePage({ section, searchParams }: { section: W
     clients: ['client'], catalog: ['service', 'category'], inventory: ['product'], administration: ['staff', 'location', 'resource'],
   };
   const timeZone = await getSalonTimezone();
-  const [data, management, serviceTakings] = await Promise.all([
+  const [data, management, serviceTakings, stripeSetup] = await Promise.all([
     getSalonWorkspace(section, section === 'reports' ? range : undefined),
     Promise.all((kinds[section] || []).map(async (kind) => ({ kind, data: await getSalonManagementWorkspace(kind) }))),
     section === 'reports' ? getServiceTakings(range, timeZone) : Promise.resolve(null),
+    section === 'integrations' ? getStripeSetupStatus() : Promise.resolve(null),
   ]);
   const managed = Object.fromEntries(management.map((item) => [item.kind, item.data])) as Partial<Record<SalonManagementKind, SalonManagementData>>;
   const props = { data, managed, timeZone };
@@ -60,7 +63,7 @@ export async function SalonWorkspacePage({ section, searchParams }: { section: W
         : section === 'inventory' ? <InventoryView {...props} />
         : section === 'administration' ? <AdministrationView {...props} />
         : section === 'reports' ? <ReportsView {...props} range={range} serviceTakings={serviceTakings} />
-        : section === 'integrations' ? <IntegrationsView {...props} />
+        : section === 'integrations' ? <IntegrationsView {...props} stripeSetup={stripeSetup} />
         : section === 'engagement' ? <EngagementView {...props} />
         : <GenericView {...props} section={section} />}
     </PlatformPage>
@@ -238,7 +241,7 @@ function ServiceTakingsTable({ rows }: { rows: ServiceTakingsRow[] | null }) {
 }
 
 /* Integrations: the real exception first, events grouped by type, raw list on demand. */
-function IntegrationsView({ data, timeZone }: ViewProps) {
+function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeSetup?: StripeSetupStatus | null }) {
   const providers = data.records.filter((record) => record.id.startsWith('provider:'));
   const events = data.records.filter((record) => record.id.startsWith('event:'));
   const webhooks = data.records.filter((record) => record.id.startsWith('webhook:'));
@@ -276,12 +279,17 @@ function IntegrationsView({ data, timeZone }: ViewProps) {
 
       <section aria-labelledby="providers" className="grid gap-2">
         <h2 id="providers" className="text-sm font-semibold">Payment providers</h2>
-        <DataTable label="Payment providers" head={[{ label: 'Provider' }, { label: 'Adapter', className: 'hidden sm:table-cell' }, { label: 'Status' }]}>
-          {providers.length === 0 ? <tr><Td colSpan={3} className="py-4 text-muted-foreground">No payment providers configured.</Td></tr> : providers.map((record) => (
+        <DataTable label="Payment providers" head={[{ label: 'Provider' }, { label: 'Adapter', className: 'hidden sm:table-cell' }, { label: 'Status' }, { label: 'Action', className: 'text-right' }]}>
+          {providers.length === 0 ? <tr><Td colSpan={4} className="py-4 text-muted-foreground">No payment providers configured.</Td></tr> : providers.map((record) => (
             <tr key={record.id}>
               <Td className="min-w-[12rem] !whitespace-normal font-medium">{record.title}</Td>
               <Td className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{record.subtitle}</Td>
               <Td><StatusCell tone={record.status === 'Not installed' ? 'rose' : 'emerald'}>{record.status}</StatusCell></Td>
+              <Td className="text-right">
+                {record.status === 'Not installed' && record.subtitle?.startsWith('stripe ') && stripeSetup?.canManagePayments
+                  ? stripeSetup.keyConfigured ? <SetUpStripe /> : <span className="text-xs text-muted-foreground">Needs STRIPE_SECRET_KEY</span>
+                  : null}
+              </Td>
             </tr>
           ))}
         </DataTable>

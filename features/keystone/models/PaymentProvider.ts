@@ -3,16 +3,28 @@ import { checkbox, json, relationship, select, text } from "@keystone-6/core/fie
 import { permissions } from "../access";
 import { trackingFields } from "./trackingFields";
 import { workflowOwned } from "../privacy";
+import { stripeConfigured } from "../../integrations/payment/stripe";
+import { providerUpdateProblem } from "../utils/paymentProviderActivation";
+
+// Everything except isInstalled is set by onboarding and code, never from the dashboard.
+const codeOwned = { update: () => false };
 
 export const PaymentProvider = list({
   access: {
     operation: {
       query: permissions.canManageIntegrations,
-      // Provider activation is intentionally code/operator controlled until the
-      // refund and reconciliation lifecycle is externally verified.
+      // Providers come from onboarding; staff with payment authority may only switch an
+      // existing one on or off (isInstalled). Adapter wiring and config stay in code.
       create: () => false,
-      update: () => false,
+      update: permissions.canManagePayments,
       delete: () => false,
+    },
+  },
+  hooks: {
+    validateInput: ({ operation, inputData, item, addValidationError }) => {
+      if (operation !== "update") return;
+      const problem = providerUpdateProblem({ inputData, item: item as any, stripeKeyConfigured: stripeConfigured() });
+      if (problem) addValidationError(problem);
     },
   },
   ui: { hideCreate: true, hideDelete: true,
@@ -21,8 +33,9 @@ export const PaymentProvider = list({
     },
   },
   fields: {
-    name: text({ validation: { isRequired: true } }),
+    name: text({ validation: { isRequired: true }, access: codeOwned }),
     code: text({
+      access: codeOwned,
       isIndexed: "unique",
       validation: {
         isRequired: true,
@@ -33,6 +46,7 @@ export const PaymentProvider = list({
       },
     }),
     adapter: select({
+      access: codeOwned,
       type: "enum",
       validation: { isRequired: true },
       options: [
@@ -41,8 +55,9 @@ export const PaymentProvider = list({
       ],
     }),
     isInstalled: checkbox({ defaultValue: false }),
-    isDefault: checkbox({ defaultValue: false }),
+    isDefault: checkbox({ defaultValue: false, access: codeOwned }),
     config: json({
+      access: codeOwned,
       defaultValue: {},
       ui: {
         description: "Non-secret provider configuration only. API keys and webhook secrets are read from environment variables by the adapter.",
