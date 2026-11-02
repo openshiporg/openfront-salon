@@ -122,7 +122,7 @@ export function BookingPicker({
                 )
               })}
             </div>
-            <div className="mt-5 min-h-[5.5rem]">
+            <div className="mt-3.5 min-h-[5.5rem]">
               {!day && !settled ? (
                 <p role="status" className="text-[length:var(--sf-text-md)] text-[var(--sf-ink-3)]">Checking times…</p>
               ) : failed ? (
@@ -134,7 +134,7 @@ export function BookingPicker({
                   <Link href={handoff()} className="text-[length:var(--sf-text-md)] text-[var(--sf-sage-ink)] no-underline hover:underline">
                     {slots.length} {slots.length === 1 ? "time" : "times"} available
                   </Link>
-                  <ul className="mt-3 grid grid-cols-2 gap-3">
+                  <ul className="mt-2.5 grid grid-cols-2 gap-3">
                     {slots.slice(0, timesShown).map((slot) => {
                       const [clock, period] = splitSlotLabel(slot.label)
                       return (

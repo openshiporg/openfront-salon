@@ -79,7 +79,7 @@ export function NextAvailableLink({ query, name, photo, showPhoto, className, st
         <span className="block truncate text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]" aria-live="polite">
           {read.status === "loading" ? "Checking…" : opening ? "Next available" : "See times"}
         </span>
-        {opening && first ? <span className="sf-next-when">{openingLabel(opening.date, first.label)}</span> : null}
+        {opening && first ? <span className="sf-next-when"><span className="max-[429px]:hidden">{openingLabel(opening.date, first.label)}</span><span className="min-[430px]:hidden">{openingPill(opening.date, first.label)}</span></span> : null}
       </span>
     </Link>
   )
