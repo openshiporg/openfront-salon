@@ -210,7 +210,7 @@ export function StaffBookingForm({ data, initial }: { data: StaffBookingData; in
                 {matches.length === 0 ? <li className="px-3 py-3 text-sm text-muted-foreground">No matching clients</li> : matches.map((item) => (
                   <li key={item.id}>
                     <button type="button" aria-pressed={clientId === item.id} onClick={() => setClientId(item.id)} className={cn('flex min-h-10 w-full min-w-0 items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring', clientId === item.id ? 'bg-muted' : 'hover:bg-muted/50')}>
-                      <span className="min-w-0"><span className="block truncate font-medium">{item.name}</span><span className="block truncate text-xs text-muted-foreground">{[formatPhone(item.phone), item.email].filter(Boolean).join(' · ')}</span></span>
+                      <span className="min-w-0"><span className="block truncate font-medium">{item.name}</span><span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{[formatPhone(item.phone), item.email].filter(Boolean).join(' · ')}</span></span>
                       {clientId === item.id ? <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium"><span aria-hidden="true" className="size-1.5 rounded-full bg-foreground" />Selected</span> : null}
                     </button>
                   </li>
