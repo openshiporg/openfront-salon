@@ -3,19 +3,22 @@
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { ExternalLink, Save } from 'lucide-react';
-import { LogoPicker } from '../components/LogoPicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StoreLogoField } from '../components/StoreLogoField';
+import { StoreSettingsSaveBar } from '../components/StoreSettingsSaveBar';
 import { savePlatformStoreSettings, type PlatformStoreSettings, type SaveStoreSettingsState, type StoreSettingsLocation } from '../actions/store-settings';
 import { fieldLabelClass, inputClass, pillClass, textareaClass, trackClass } from '../../components/pill';
 
 const initial: SaveStoreSettingsState = { status: 'idle', message: null };
 function Submit({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
-  return <div className={trackClass}><button type="submit" disabled={disabled || pending} className={pillClass('primary')}><Save />{pending ? 'Saving…' : 'Save storefront settings'}</button></div>;
+  return <StoreSettingsSaveBar isSaving={pending} label="Save storefront settings" button={<div className={trackClass}><button type="submit" disabled={disabled || pending} className={pillClass('primary')}><Save />{pending ? 'Saving…' : 'Save storefront settings'}</button></div>} />;
 }
 
 export function StoreSettingsPageClient({ initialSettings, locations }: { initialSettings: PlatformStoreSettings | null; locations: StoreSettingsLocation[] }) {
   const [state, action] = useActionState(savePlatformStoreSettings, initial);
   const [name, setName] = useState(initialSettings?.name || '');
+  const [locationId, setLocationId] = useState(initialSettings?.primaryLocation?.id || locations[0]?.id || '');
   const configured = Boolean(initialSettings?.id && initialSettings.primaryLocation?.id);
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-5 px-4 pt-5 pb-24 md:px-6 md:pt-6">
@@ -35,15 +38,22 @@ export function StoreSettingsPageClient({ initialSettings, locations }: { initia
           <label htmlFor="storefront-tagline" className={fieldLabelClass}>Tagline · optional, small under the name in the header<input id="storefront-tagline" name="tagline" defaultValue={initialSettings?.tagline || ''} maxLength={24} placeholder="SALON" className={inputClass} /></label>
           </div>
         </section>
-        <LogoPicker initialIcon={initialSettings?.logoIcon} initialColor={initialSettings?.logoColor} name={name} />
+        <section className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
+          <h2 className="flex min-h-10 items-center border-b bg-muted/30 px-4 py-1.5 text-[13px] font-semibold">Logo</h2>
+          <div className="grid gap-4 p-4">
+            <StoreLogoField initialIcon={initialSettings?.logoIcon || ''} initialColor={initialSettings?.logoColor || '0'} />
+          </div>
+        </section>
         <section className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
           <h2 className="flex min-h-10 items-center border-b bg-muted/30 px-4 py-1.5 text-[13px] font-semibold">Primary location</h2>
           <div className="grid gap-4 p-4">
           <label htmlFor="primary-location" className={fieldLabelClass}>Location shown · address, hours, booking
-            <select id="primary-location" name="primaryLocationId" defaultValue={initialSettings?.primaryLocation?.id || locations[0]?.id || ''} required className={inputClass}>
-              {!locations.length ? <option value="">No active location</option> : null}
-              {locations.map(location => <option key={location.id} value={location.id}>{location.name} — {location.city}, {location.state}</option>)}
-            </select>
+            <Select name="primaryLocationId" value={locationId} onValueChange={setLocationId} required disabled={!locations.length}>
+              <SelectTrigger id="primary-location" className="h-10 w-full text-sm"><SelectValue placeholder="No active location" /></SelectTrigger>
+              <SelectContent>
+                {locations.map(location => <SelectItem key={location.id} value={location.id}>{location.name} — {location.city}, {location.state}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </label>
           </div>
         </section>
