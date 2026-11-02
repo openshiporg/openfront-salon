@@ -643,10 +643,9 @@ body:has(.storefront) {
   color: #fff;
 }
 
+/* Rigel prints no colour-chart codes: a photo-less card shows a plain sage swatch. */
 .storefront .sf-carton-swatch span {
-  font-family: var(--sf-font-display);
-  font-size: clamp(2rem, 9cqi, 3rem);
-  line-height: 1;
+  display: none;
 }
 
 .storefront .sf-carton-window img {
