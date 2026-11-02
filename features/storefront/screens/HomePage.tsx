@@ -248,7 +248,7 @@ export async function HomePage() {
                   return (
                     <Link key={stylist.id} href={`/team/${stylist.id}`} className="sf-stylist-tile">
                       <span className="sf-arch block">{photo ? <img src={photo} alt={stylist.photo?.altText || name} loading="lazy" /> : <span className="sf-arch-placeholder" aria-hidden="true">{name.charAt(0)}</span>}</span>
-                      <span className="flex flex-col items-start gap-0.5 px-0.5">
+                      <span className="flex items-center justify-between gap-1 px-0.5">
                         <span className="min-w-0 truncate text-[0.8125rem]">{name.split(" ")[0]}</span>
                         <NextAvailableChip query={openingQuery(stylist)} />
                       </span>

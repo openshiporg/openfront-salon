@@ -23,6 +23,7 @@ interface PublicStorefrontSettingsRecord {
   configured: boolean
   name: string | null
   description: string | null
+  tagline: string | null
   themeHue: number
   primaryLocation: {
     id: string
@@ -44,6 +45,7 @@ export interface StorefrontBrand {
   configured: boolean
   name: string | null
   description: string | null
+  tagline: string | null
   themeHue: number
   locationId: string | null
   locationName: string | null
@@ -72,6 +74,7 @@ function unconfiguredBrand(): StorefrontBrand {
     logoColor: "0",
     name: null,
     description: null,
+    tagline: null,
     themeHue: 0,
     locationId: null,
     locationName: null,
@@ -96,6 +99,7 @@ export const getStorefrontBrand = cache(async function (): Promise<StorefrontBra
           configured
           name
           description
+          tagline
           themeHue logoIcon logoColor
           primaryLocation {
             id name address city state zipCode phone email hours timezone
@@ -122,6 +126,7 @@ export const getStorefrontBrand = cache(async function (): Promise<StorefrontBra
       logoColor: normalizeStoreLogoColor(settings.logoColor),
       name,
       description: clean(settings.description),
+      tagline: clean(settings.tagline),
       themeHue: storeLogoHue(settings.logoColor),
       locationId: location.id,
       locationName: clean(location.name),

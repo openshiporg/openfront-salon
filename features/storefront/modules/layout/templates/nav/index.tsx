@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 
 interface NavProps {
   brandName: string | null
+  tagline?: string | null
   logoIcon?: string
   logoColor?: string
 }
@@ -44,7 +45,7 @@ const tabs = [
 // The booking flow docks its own tray at the bottom of a phone screen; the tab bar would compete.
 const NO_TAB_BAR = ["/book", "/booking"]
 
-export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
+export default function Nav({ brandName, tagline, logoIcon, logoColor }: NavProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -60,7 +61,7 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
     <>
       <header className="sf-nav">
         <div className="sf-container sf-nav-inner">
-          <StoreBrand name={brandName} logoIcon={logoIcon} logoColor={logoColor} />
+          <StoreBrand name={brandName} tagline={tagline} logoIcon={logoIcon} logoColor={logoColor} />
 
           <nav className="hidden min-w-0 lg:block" aria-label="Main">
             <ul className="flex items-center">

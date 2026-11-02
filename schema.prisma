@@ -775,6 +775,7 @@ model StoreSettings {
   scope             String    @unique @default("storefront")
   name              String    @default("")
   description       String    @default("")
+  tagline           String    @default("")
   themeHue          Int
   logoIcon          String    @default("")
   logoColor         String    @default("0")

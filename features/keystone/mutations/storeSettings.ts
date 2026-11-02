@@ -10,6 +10,7 @@ type StoreSettingsMutationResult = {
   id: string;
   name: string;
   description: string | null;
+  tagline: string | null;
   themeHue: number;
   primaryLocationId: string;
 };
@@ -20,6 +21,7 @@ const resultType = graphql.object<StoreSettingsMutationResult>()({
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     name: graphql.field({ type: graphql.nonNull(graphql.String) }),
     description: graphql.field({ type: graphql.String }),
+    tagline: graphql.field({ type: graphql.String }),
     themeHue: graphql.field({ type: graphql.nonNull(graphql.Int) }),
     primaryLocationId: graphql.field({ type: graphql.nonNull(graphql.ID) }),
   },
@@ -34,7 +36,7 @@ function boundedText(value: unknown, label: string, max: number, required = fals
 
 export async function upsertSalonStoreSettingsTransaction(
   context: Context,
-  input: { name: string; description?: string | null; themeHue: number; primaryLocationId: string; logoIcon?: string | null; logoColor?: string | null },
+  input: { name: string; description?: string | null; tagline?: string | null; themeHue: number; primaryLocationId: string; logoIcon?: string | null; logoColor?: string | null },
 ): Promise<StoreSettingsMutationResult> {
   if (!context.session || context.session.data?.role?.canManageSalon !== true) {
     throw new Error("You do not have permission to manage storefront settings");
@@ -42,6 +44,7 @@ export async function upsertSalonStoreSettingsTransaction(
 
   const name = boundedText(input.name, "Storefront name", 120, true);
   const description = boundedText(input.description, "Storefront description", 240);
+  const tagline = input.tagline == null ? undefined : boundedText(input.tagline, "Storefront tagline", 24);
   const themeHue = input.logoColor == null ? parseStorefrontHue(input.themeHue) : storeLogoHue(input.logoColor);
   const primaryLocationId = boundedText(input.primaryLocationId, "Primary location", 200, true);
 
@@ -74,19 +77,21 @@ export async function upsertSalonStoreSettingsTransaction(
       scope: STOREFRONT_SETTINGS_SCOPE,
       name,
       description: description || null,
+      ...(tagline === undefined ? {} : { tagline: tagline || "" }),
       themeHue,
       ...(logoIcon === undefined ? {} : { logoIcon }),
       ...(logoColor === undefined ? {} : { logoColor }),
       primaryLocation: { connect: { id: primaryLocationId } },
     };
     const record = existing[0]
-      ? await sudo.query.StoreSettings.updateOne({ where: { id: existing[0].id }, data, query: "id name description themeHue primaryLocation { id }" })
-      : await sudo.query.StoreSettings.createOne({ data, query: "id name description themeHue primaryLocation { id }" });
+      ? await sudo.query.StoreSettings.updateOne({ where: { id: existing[0].id }, data, query: "id name description tagline themeHue primaryLocation { id }" })
+      : await sudo.query.StoreSettings.createOne({ data, query: "id name description tagline themeHue primaryLocation { id }" });
 
     return {
       id: record.id,
       name: record.name,
       description: record.description || null,
+      tagline: record.tagline || null,
       themeHue: record.themeHue,
       primaryLocationId: record.primaryLocation?.id || primaryLocationId,
     };
@@ -98,6 +103,7 @@ export const upsertSalonStoreSettings = graphql.field({
   args: {
     name: graphql.arg({ type: graphql.nonNull(graphql.String) }),
     description: graphql.arg({ type: graphql.String }),
+    tagline: graphql.arg({ type: graphql.String }),
     themeHue: graphql.arg({ type: graphql.nonNull(graphql.Int) }),
     primaryLocationId: graphql.arg({ type: graphql.nonNull(graphql.ID) }),
     logoIcon: graphql.arg({ type: graphql.String }),

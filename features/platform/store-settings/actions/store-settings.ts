@@ -9,6 +9,7 @@ export interface PlatformStoreSettings {
   id: string;
   name: string;
   description?: string | null;
+  tagline?: string | null;
   themeHue: number;
   logoIcon: string;
   logoColor: string;
@@ -40,7 +41,7 @@ export async function getPlatformStoreSettings(): Promise<StoreSettingsData> {
   }>(`
     query PlatformStoreSettings {
       storeSettings {
-        id name description themeHue logoIcon logoColor
+        id name description tagline themeHue logoIcon logoColor
         primaryLocation { id name }
       }
       locations(
@@ -66,6 +67,7 @@ export async function savePlatformStoreSettings(
   try {
     const name = formData.get('name')?.toString().trim() || '';
     const description = formData.get('description')?.toString().trim() || '';
+    const tagline = formData.get('tagline')?.toString().trim() || '';
     const primaryLocationId = formData.get('primaryLocationId')?.toString() || '';
     const rawLogo = formData.get('logoIcon')?.toString() || '';
     const logoIcon = sanitizeStoreLogoSvg(rawLogo);
@@ -75,6 +77,7 @@ export async function savePlatformStoreSettings(
 
     if (!name || name.length > 120) throw new Error('Storefront name must be between 1 and 120 characters');
     if (description.length > 240) throw new Error('Description must be 240 characters or fewer');
+    if (tagline.length > 24) throw new Error('Tagline must be 24 characters or fewer');
     if (!primaryLocationId) throw new Error('Choose an active primary location');
 
     const response = await keystoneClient<{
@@ -83,6 +86,7 @@ export async function savePlatformStoreSettings(
       mutation UpsertSalonStoreSettings(
         $name: String!
         $description: String
+        $tagline: String
         $themeHue: Int!
         $primaryLocationId: ID!
         $logoIcon: String
@@ -91,6 +95,7 @@ export async function savePlatformStoreSettings(
         upsertSalonStoreSettings(
           name: $name
           description: $description
+          tagline: $tagline
           themeHue: $themeHue
           primaryLocationId: $primaryLocationId
           logoIcon: $logoIcon
@@ -99,7 +104,7 @@ export async function savePlatformStoreSettings(
           id name themeHue primaryLocationId
         }
       }
-    `, { name, description: description || null, themeHue, primaryLocationId, logoIcon, logoColor });
+    `, { name, description: description || null, tagline, themeHue, primaryLocationId, logoIcon, logoColor });
 
     if (!response.success) throw new Error(response.error || 'Unable to save storefront settings');
     revalidatePath('/dashboard/platform/store-settings');

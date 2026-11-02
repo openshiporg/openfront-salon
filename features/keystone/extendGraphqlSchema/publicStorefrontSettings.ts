@@ -23,6 +23,7 @@ type PublicStorefrontSettingsResult = {
   configured: boolean;
   name: string | null;
   description: string | null;
+  tagline: string | null;
   themeHue: number;
   logoIcon: string;
   logoColor: string;
@@ -51,6 +52,7 @@ const publicStorefrontSettingsType = graphql.object<PublicStorefrontSettingsResu
     configured: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
     name: graphql.field({ type: graphql.String }),
     description: graphql.field({ type: graphql.String }),
+    tagline: graphql.field({ type: graphql.String }),
     themeHue: graphql.field({ type: graphql.nonNull(graphql.Int) }),
     logoIcon: graphql.field({ type: graphql.nonNull(graphql.String) }),
     logoColor: graphql.field({ type: graphql.nonNull(graphql.String) }),
@@ -62,6 +64,7 @@ const unconfigured = (): PublicStorefrontSettingsResult => ({
   configured: false,
   name: null,
   description: null,
+  tagline: null,
   themeHue: UNCONFIGURED_STOREFRONT_HUE,
   logoIcon: "",
   logoColor: "0",
@@ -79,6 +82,7 @@ export const publicStorefrontSettings = graphql.field({
         id
         name
         description
+        tagline
         themeHue logoIcon logoColor
         primaryLocation {
           id name address city state zipCode phone email hours timezone isActive
@@ -96,6 +100,7 @@ export const publicStorefrontSettings = graphql.field({
       configured: true,
       name,
       description: typeof settings.description === "string" && settings.description.trim() ? settings.description.trim() : null,
+      tagline: typeof settings.tagline === "string" && settings.tagline.trim() ? settings.tagline.trim() : null,
       themeHue: storeLogoHue(settings.logoColor),
       logoIcon: sanitizeStoreLogoSvg(settings.logoIcon || ""),
       logoColor: normalizeStoreLogoColor(settings.logoColor),

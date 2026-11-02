@@ -43,6 +43,10 @@ export const StoreSettings = list({
       validation: { length: { max: 240 } },
       ui: { displayMode: "textarea", description: "Short public storefront description" },
     }),
+    tagline: text({
+      validation: { length: { max: 24 } },
+      ui: { description: "Optional short line under the storefront name, e.g. SALON" },
+    }),
     themeHue: integer({
       validation: { isRequired: true, min: STOREFRONT_HUE_MIN, max: STOREFRONT_HUE_MAX },
       ui: { description: "Public storefront theme hue from 0 through 359" },
