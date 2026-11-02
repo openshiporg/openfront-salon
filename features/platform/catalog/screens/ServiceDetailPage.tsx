@@ -91,7 +91,7 @@ export async function ServiceDetailPage({ params }: { params: Promise<{ id: stri
             {service.specialists.length === 0 ? <p className="p-5 text-sm text-muted-foreground">No specialists assigned.</p> : (
               <ul className="divide-y">
                 {service.specialists.map((stylist) => (
-                  <li key={stylist.id}><Link href={`/dashboard/platform/staff/${stylist.id}`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/40 md:px-5"><Avatar name={stylist.user?.name} className="size-8 text-[11px]" /><span className="min-w-0"><span className="block truncate font-medium">{stylist.user?.name || 'Stylist'}</span><span className="block text-xs text-muted-foreground">{[labelize(stylist.tier), labelize(stylist.role)].filter(Boolean).join(' · ')}</span></span>{stylist.status !== 'active' ? <Chip>{labelize(stylist.status)}</Chip> : null}</Link></li>
+                  <li key={stylist.id}><Link href={`/dashboard/platform/staff/${stylist.id}`} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/40 md:px-5"><Avatar name={stylist.user?.name} className="size-8 text-xs" /><span className="min-w-0"><span className="block truncate font-medium">{stylist.user?.name || 'Stylist'}</span><span className="block text-xs text-muted-foreground">{[labelize(stylist.tier), labelize(stylist.role)].filter(Boolean).join(' · ')}</span></span>{stylist.status !== 'active' ? <Chip>{labelize(stylist.status)}</Chip> : null}</Link></li>
                 ))}
               </ul>
             )}

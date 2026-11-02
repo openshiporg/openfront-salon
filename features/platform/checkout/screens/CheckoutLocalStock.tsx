@@ -9,7 +9,7 @@ export async function CheckoutLocalStock({ appointment, page, search }: { appoin
     <section aria-label="Appointment-location retail stock" className="overflow-hidden rounded-[6px] border bg-background">
       <div className="flex items-baseline justify-between gap-2 border-b bg-muted/40 px-3 py-2">
         <h4 className="text-xs font-semibold">Retail · {stock.location.name}</h4>
-        <span className="text-[11px] text-muted-foreground">Changing pages clears quantities</span>
+        <span className="text-xs text-muted-foreground">Changing pages clears quantities</span>
       </div>
       {stock.products.length === 0 ? <p className="p-3 text-xs text-muted-foreground">No active products match.</p> : (
         <ul className="divide-y">

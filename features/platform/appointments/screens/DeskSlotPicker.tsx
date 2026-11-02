@@ -115,7 +115,7 @@ export function DeskSlotPicker({
                     onClick={() => onDateSelect(day)}
                     className={cn(choiceClass, 'h-14 w-12 flex-col gap-0.5 leading-none', selected ? choiceOn : choiceIdle)}
                   >
-                    <span className={cn('text-[10px] font-medium uppercase', selected ? 'text-background/75' : 'text-muted-foreground')}>{index === 0 ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                    <span className={cn('text-xs font-medium uppercase', selected ? 'text-background/75' : 'text-muted-foreground')}>{index === 0 ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
                     <span className="text-base font-semibold tabular-nums">{day.getDate()}</span>
                   </button>
                 );
@@ -143,7 +143,7 @@ export function DeskSlotPicker({
           <div className="grid gap-3">
             {groups.map((group) => (
               <div key={group.label} className="grid gap-1.5">
-                {groups.length > 1 || group.label !== 'Times' ? <span className="text-[11px] font-medium text-muted-foreground">{group.label}</span> : null}
+                {groups.length > 1 || group.label !== 'Times' ? <span className="text-xs font-medium text-muted-foreground">{group.label}</span> : null}
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5" role="group" aria-label={`${group.label} times`}>
                   {group.slots.map((slot) => {
                     const selected = time === slot.startTime;

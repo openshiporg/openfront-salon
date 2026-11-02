@@ -79,7 +79,7 @@ export async function StaffSchedulePage() {
               <ul className="divide-y sm:flex sm:flex-wrap sm:divide-x sm:divide-y-0">
                 {workingToday.map(({ stylist, shift, off }) => (
                   <li key={stylist.id} className="flex min-w-0 items-center gap-2.5 px-4 py-2.5 sm:min-w-[14rem]">
-                    <Avatar name={stylist.user?.name} className="size-7 text-[10px]" />
+                    <Avatar name={stylist.user?.name} className="size-7 text-xs" />
                     <div className="min-w-0 text-sm">
                       <Link href={`/dashboard/platform/staff/${stylist.id}`} className="block truncate font-medium underline-offset-4 hover:underline">{stylist.user?.name || 'Unnamed stylist'}</Link>
                       {off ? <StatusCell tone="rose">Off {off.startTime === '00:00' && off.endTime === '23:59' ? 'all day' : `${hhmm(off.startTime)}–${hhmm(off.endTime)}`}</StatusCell> : <span className="block tabular-nums text-xs text-muted-foreground">{hhmm(shift.startTime)}–{hhmm(shift.endTime)}{shift.breakStart && shift.breakEnd ? ` · break ${hhmm(shift.breakStart)}` : ''}</span>}
@@ -151,7 +151,7 @@ function RosterRow({ stylist, today }: { stylist: PlatformStylistSchedule; today
     <tr className="align-top hover:bg-muted/20">
       <th scope="row" className="sticky left-0 z-10 border-b bg-background px-3 py-2.5 text-left font-normal [tr:last-child>&]:border-b-0">
         <div className="flex items-center gap-2.5">
-          <Avatar name={name} className="size-7 text-[10px]" />
+          <Avatar name={name} className="size-7 text-xs" />
           <div className="min-w-0">
             <Link href={`/dashboard/platform/staff/${stylist.id}`} className="block truncate font-medium underline-offset-4 hover:underline">{name}</Link>
             <div className="truncate text-xs text-muted-foreground">{roleLabel(stylist.role, stylist.tier)}</div>

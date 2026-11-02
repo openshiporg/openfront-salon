@@ -104,7 +104,7 @@ export function DayBoard({ appointments, timeZone, now = new Date(), shifts = nu
             <div className="sticky left-0 z-20 flex w-32 shrink-0 items-center border-r bg-muted px-3 text-xs font-medium text-muted-foreground md:w-40">Stylist</div>
             <div className="relative flex-1" aria-hidden="true">
               {hours.map((hour) => (
-                <span key={hour} className="absolute top-0 flex h-full -translate-x-1/2 items-center text-[11px] tabular-nums text-muted-foreground first:translate-x-0 last:-translate-x-full" style={{ left: pct(hour * 60) }}>
+                <span key={hour} className="absolute top-0 flex h-full -translate-x-1/2 items-center text-xs tabular-nums text-muted-foreground first:translate-x-0 last:-translate-x-full" style={{ left: pct(hour * 60) }}>
                   <span className="px-1">{hourLabel(hour)}</span>
                 </span>
               ))}
@@ -116,7 +116,7 @@ export function DayBoard({ appointments, timeZone, now = new Date(), shifts = nu
               <div className="sticky left-0 z-20 flex w-32 shrink-0 items-center border-r bg-background px-3 text-sm font-medium md:w-40">
                 <span className="min-w-0">
                   <span className="block truncate">{lane.name}</span>
-                  {lane.windows.length ? <span className="block truncate text-[11px] font-normal tabular-nums text-muted-foreground">{lane.windows.map((window) => `${clock(window.start)}–${clock(window.end)}`).join(', ')}</span> : null}
+                  {lane.windows.length ? <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">{lane.windows.map((window) => `${clock(window.start)}–${clock(window.end)}`).join(', ')}</span> : null}
                 </span>
                 <span className="ml-auto pl-2 text-xs tabular-nums text-muted-foreground" aria-label={`${lane.placed.length} ${lane.placed.length === 1 ? 'appointment' : 'appointments'}`}>{lane.placed.length}</span>
               </div>
@@ -149,7 +149,7 @@ export function DayBoard({ appointments, timeZone, now = new Date(), shifts = nu
                       style={{ left: `calc(${pct(start)} + 1px)`, width: `calc(${((end - start) / total) * 100}% - 2px)`, top: row * ROW + 4, height: ROW - 4 }}
                     >
                       <span className="truncate text-xs font-semibold">{contact.name}</span>
-                      <span className="truncate text-[11px] tabular-nums opacity-75">{time}{services ? ` · ${services}` : ''}</span>
+                      <span className="truncate text-xs tabular-nums opacity-75">{time}{services ? ` · ${services}` : ''}</span>
                     </Link>
                   );
                 })}
@@ -160,7 +160,7 @@ export function DayBoard({ appointments, timeZone, now = new Date(), shifts = nu
           {showNow ? (
             <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-32 right-0 md:left-40">
               <div className="absolute inset-y-0 w-px bg-rose-500" style={{ left: pct(nowMinutes) }}>
-                <span className="absolute top-1.5 -translate-x-1/2 rounded-[4px] bg-rose-500 px-1 text-[10px] font-semibold leading-4 text-white">Now</span>
+                <span className="absolute top-1.5 -translate-x-1/2 rounded-[4px] bg-rose-500 px-1 text-xs font-semibold leading-4 text-white">Now</span>
               </div>
             </div>
           ) : null}

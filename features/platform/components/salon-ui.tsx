@@ -181,7 +181,7 @@ export function initials(name?: string | null) {
 }
 
 export function Avatar({ name, className }: { name?: string | null; className?: string }) {
-  return <span aria-hidden="true" className={cn('flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground', className)}>{initials(name)}</span>;
+  return <span aria-hidden="true" className={cn('flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground', className)}>{initials(name)}</span>;
 }
 
 /** Dense operator table. Columns are declared by the caller; rows are plain <tr>s using `tdClass`. */
