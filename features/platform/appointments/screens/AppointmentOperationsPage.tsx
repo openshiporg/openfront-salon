@@ -194,7 +194,7 @@ function AppointmentRow({ appointment, showDay }: { appointment: PlatformAppoint
       </td>
       <td className={cn(stackCellClass, 'col-span-2 pt-1 lg:w-px lg:pt-2')}>
         <div className="flex flex-wrap items-start gap-1.5 lg:flex-nowrap lg:justify-end">
-          <AppointmentActions id={appointment.id} status={appointment.status} size="sm" gates={lifecycleGates(appointment.startTime, timezone)} />
+          <AppointmentActions id={appointment.id} status={appointment.status} size="sm" label={`${contact.name} · ${zoned(appointment.startTime, timezone, { weekday: 'short', month: 'short', day: 'numeric' })}, ${timeOf(appointment.startTime, timezone)}`} gates={lifecycleGates(appointment.startTime, timezone)} />
           <Track className="flex-nowrap">
             <PillLink href={href} size="sm" variant="quiet">Open<ArrowUpRight /></PillLink>
             {closed ? null : <PillLink href={`/dashboard/platform/checkout/${appointment.id}`} size="sm" variant="quiet"><ReceiptText />Checkout</PillLink>}

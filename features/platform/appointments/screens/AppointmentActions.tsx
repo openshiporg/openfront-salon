@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Ban, Check, LogIn, UserX, X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { cancelAppointmentFromQueue, transitionAppointmentStatus } from '../actions/appointments';
 import { inputClass, pillClass, trackClass } from '../../components/pill';
 import type { LifecycleGates } from '../lib/lifecycleGates';
@@ -21,6 +32,7 @@ export function AppointmentActions({
   size = 'md',
   cancellationReason,
   gates = { checkIn: null, noShow: null },
+  label,
 }: {
   id: string;
   status?: string | null;
@@ -29,6 +41,8 @@ export function AppointmentActions({
   gates?: LifecycleGates;
   /** Fixed reason (detail page). When omitted, the operator types one. */
   cancellationReason?: string;
+  /** Who and when, for the cancel confirm (e.g. "Ava Lee · Tue, Nov 3, 10:00 AM"). */
+  label?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -94,17 +108,23 @@ export function AppointmentActions({
             <UserX />{busy === 'no_show' ? 'Saving…' : 'No-show'}
           </button>
         )}
-        {status !== 'in_progress' && (
+        {status !== 'in_progress' && (cancellationReason ? (
+          <ConfirmCancel label={label} onConfirm={() => void cancel()}>
+            <button type="button" disabled={pending} className={pillClass('danger', size)}>
+              <Ban />{busy === 'cancelled' ? 'Cancelling…' : 'Cancel'}
+            </button>
+          </ConfirmCancel>
+        ) : (
           <button
             type="button"
             disabled={pending}
-            aria-expanded={cancellationReason ? undefined : cancelling}
-            onClick={() => (cancellationReason ? void cancel() : setCancelling((value) => !value))}
+            aria-expanded={cancelling}
+            onClick={() => setCancelling((value) => !value)}
             className={pillClass(cancelling ? 'quiet' : 'danger', size)}
           >
             {cancelling ? <X /> : <Ban />}{busy === 'cancelled' ? 'Cancelling…' : cancelling ? 'Keep' : 'Cancel'}
           </button>
-        )}
+        ))}
       </div>
       {status === 'confirmed' && gates.checkIn && size === 'md' ? <p className="text-xs text-muted-foreground">{gates.checkIn}</p> : null}
 
@@ -119,9 +139,11 @@ export function AppointmentActions({
             className={`${inputClass} h-9`}
           />
           <div className={trackClass}>
-            <button type="button" disabled={pending} onClick={() => void cancel()} className={pillClass('danger', 'sm')}>
-              {busy === 'cancelled' ? 'Cancelling…' : 'Cancel visit'}
-            </button>
+            <ConfirmCancel label={label} onConfirm={() => void cancel()}>
+              <button type="button" disabled={pending} className={pillClass('danger', 'sm')}>
+                {busy === 'cancelled' ? 'Cancelling…' : 'Cancel visit'}
+              </button>
+            </ConfirmCancel>
           </div>
         </div>
       ) : null}
@@ -132,5 +154,26 @@ export function AppointmentActions({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Cancel asks first, the same AlertDialog pattern as Refund deposit. */
+function ConfirmCancel({ label, onConfirm, children }: { label?: string; onConfirm: () => void; children: ReactNode }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {label ? <>{label}. </> : null}The time goes back on the book and the client is told it&rsquo;s cancelled. A paid card deposit is not refunded by this; refund it from the Deposit panel.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep appointment</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive text-white hover:bg-destructive/90">Cancel appointment</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
