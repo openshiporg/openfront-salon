@@ -1,4 +1,5 @@
 'use client'
+import { RelativeTime } from '@/features/dashboard/components/RelativeTime';
 
 import React, { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
@@ -146,7 +147,7 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue; 
     <div className="grid gap-5">
       <WaitlistHeader
         waiting={waiting}
-        meta={entries.length ? <span>{notified} notified{longestWaiting ? ` · longest wait ${formatTimeAgo(longestWaiting.createdAt).replace(' ago', '')}` : ''}</span> : null}
+        meta={entries.length ? <span>{notified} notified{longestWaiting ? <> · longest wait <RelativeTime format={() => formatTimeAgo(longestWaiting.createdAt).replace(' ago', '')} /></> : ''}</span> : null}
         actions={<>
           <button type="button" onClick={refresh} disabled={refreshing} className={pillClass('quiet')}>
             <RefreshCw className={refreshing ? 'animate-spin' : ''} />{refreshing ? 'Refreshing…' : 'Refresh'}
@@ -241,7 +242,7 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue; 
                         <span aria-hidden="true" className={`inline-block size-2 rounded-full ${entry.notifiedAt ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                         {entry.notifiedAt ? 'Notified' : 'Waiting'}
                       </span>
-                      <span className="block text-xs tabular-nums text-muted-foreground">{formatTimeAgo(entry.createdAt)}</span>
+                      <span className="block text-xs tabular-nums text-muted-foreground"><RelativeTime format={() => formatTimeAgo(entry.createdAt)} /></span>
                     </td>
                     <td className={`${tdClass} text-right`}>
                       <div className="inline-flex flex-wrap justify-end gap-1.5" role="group" aria-label="Waitlist entry actions">
