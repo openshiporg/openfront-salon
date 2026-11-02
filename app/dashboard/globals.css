@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* Notes and design drafts quote class names (e.g. text-[var(--sf-text-*)]) that are not valid CSS. */
+@source not "../../audits";
+@source not "../../design";
+@source not "../../docs";
 
 @plugin "tailwindcss-animate";
 
