@@ -1052,7 +1052,7 @@ body:has(.storefront) {
   color: var(--sf-ink-3);
   font-size: 0.75rem;
   line-height: 1;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   white-space: nowrap;
 }

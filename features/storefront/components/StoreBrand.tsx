@@ -13,7 +13,7 @@ export function StoreBrand({ name, tagline, logoIcon, logoColor, onClick, size =
     {mark ? <span aria-hidden="true" className={`block shrink-0 [&>svg]:block [&>svg]:size-full ${size === 'lg' ? 'size-9' : 'size-6 lg:size-7'}`} style={{ filter: `hue-rotate(${normalizeStoreLogoColor(logoColor)}deg)` }} dangerouslySetInnerHTML={{ __html: mark }} /> : null}
     {name ? (
       <span className="flex min-w-0 flex-col items-center">
-        <span className={`sf-brand-name min-w-0 max-w-full ${size === 'lg' ? 'truncate text-[1.75rem]' : 'line-clamp-2 text-[1.25rem] min-[360px]:line-clamp-1 lg:text-[1.625rem]'}`}>{name}</span>
+        <span className={`sf-brand-name min-w-0 max-w-full ${size === 'lg' ? 'truncate text-[1.75rem]' : 'line-clamp-2 text-[1rem] min-[360px]:line-clamp-1 sm:text-[1.125rem] lg:text-[1.625rem]'}`}>{name}</span>
         {tagline ? <span className="sf-brand-tagline">{tagline}</span> : null}
       </span>
     ) : <span className="sr-only">Home</span>}
