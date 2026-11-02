@@ -59,10 +59,49 @@ test('wiring: confirm dialog, existing refund mutation, refund-permission gate',
   assert.match(action, /refundPayment\(paymentSessionId: \$id, idempotencyKey: \$key, reason: \$reason\)/);
   const detail = read('features/platform/appointments/actions/appointmentDetail.ts');
   assert.match(detail, /refunds: manager \|\| role\?\.canIssueRefunds === true/);
-  assert.match(detail, /capabilities\.refunds && Number\(appointment\.depositAmount/);
+  assert.match(detail, /\(capabilities\.refunds \|\| capabilities\.payments\) && Number\(appointment\.depositAmount/, 'refund or payment staff load deposit sessions; the refund button stays gated on refunds');
   assert.doesNotMatch(detail, /,\s*,/, 'no array holes in the Promise.all that would shift depositSessions');
   const page = read('features/platform/appointments/screens/AppointmentDetailPage.tsx');
   assert.match(page, /capabilities\.refunds \? refundableDeposit\(depositSessions/);
   const workflow = read('features/keystone/mutations/depositRefund.ts');
   assert.match(workflow, /refundProviderPayment\(\{[^}]*providerReference,/, 'the provider refund uses the resolved PaymentIntent');
+});
+
+test('"Check payment with Stripe" targets only an open online card checkout', () => {
+  const open = (over = {}) => card({ status: 'pending', providerReference: 'cs_test_1', payment: { status: 'pending', refundedAmount: 0 }, ...over });
+  assert.equal(lib.pendingOnlineDeposit(null), null);
+  assert.deepEqual({ ...lib.pendingOnlineDeposit([open()]) }, { id: 's1' });
+  assert.deepEqual({ ...lib.pendingOnlineDeposit([open({ status: 'requires_action' })]) }, { id: 's1' });
+  assert.equal(lib.pendingOnlineDeposit([open({ status: 'completed' })]), null, 'already paid');
+  assert.equal(lib.pendingOnlineDeposit([open({ status: 'failed' })]), null);
+  assert.equal(lib.pendingOnlineDeposit([open({ provider: { adapter: 'manual' } })]), null, 'desk deposits have nothing to check');
+  assert.equal(lib.pendingOnlineDeposit([open({ providerReference: null })]), null, 'checkout never opened');
+  assert.equal(lib.pendingOnlineDeposit([open({ data: { purpose: 'appointment_deposit' } })]), null, 'not a hosted checkout');
+});
+
+test('Stripe check feedback says what Stripe reported', () => {
+  assert.deepEqual({ ...lib.depositCheckFeedback({ success: true, status: 'completed' }, '$50.00') }, { ok: true, text: 'Stripe shows the $50.00 deposit paid. Marked paid.' });
+  assert.match(lib.depositCheckFeedback({ success: true, status: 'pending' }, '$50.00').text, /no payment yet/);
+  assert.match(lib.depositCheckFeedback({ success: true, status: 'cancelled' }, '$50.00').text, /expired unpaid/);
+  assert.match(lib.depositCheckFeedback({ success: true, status: 'refunded' }, '$50.00').text, /refunded/);
+  assert.deepEqual({ ...lib.depositCheckFeedback({ success: false, error: 'You must have payment authority' }, '$50.00') }, { ok: false, text: 'You must have payment authority' });
+});
+
+test('the button calls confirmPayment and shows only while the deposit is unpaid', () => {
+  const action = fs.readFileSync(path.join(root, 'features/platform/appointments/actions/depositCheck.ts'), 'utf8');
+  assert.match(action, /confirmPayment\(paymentSessionId: \$id\) \{ success error status \}/);
+  const page = fs.readFileSync(path.join(root, 'features/platform/appointments/screens/AppointmentDetailPage.tsx'), 'utf8');
+  assert.match(page, /capabilities\.payments && !appointment\.depositPaid \? pendingOnlineDeposit\(depositSessions\)/);
+  assert.match(page, /<CheckDepositButton paymentSessionId=\{openOnlineDeposit\.id\}/);
+  assert.match(fs.readFileSync(path.join(root, 'features/platform/appointments/components/CheckDepositButton.tsx'), 'utf8'), /Check payment with Stripe/);
+});
+
+test('Cancel appointment asks first with an AlertDialog on both the detail page and the queue', () => {
+  const src = fs.readFileSync(path.join(root, 'features/platform/appointments/screens/AppointmentActions.tsx'), 'utf8');
+  assert.match(src, /from '@\/components\/ui\/alert-dialog'/);
+  assert.match(src, /AlertDialogTitle>Cancel this appointment\?/);
+  assert.match(src, /AlertDialogCancel>Keep appointment/);
+  // cancel() only ever runs from the dialog's action.
+  assert.equal((src.match(/void cancel\(\)/g) || []).length, 2);
+  assert.equal((src.match(/<ConfirmCancel label=\{label\} onConfirm=\{\(\) => void cancel\(\)\}>/g) || []).length, 2);
 });

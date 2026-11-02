@@ -5,7 +5,8 @@ import { recordDeposit, transitionSegment } from '../actions/appointmentWork';
 import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
 import { RefundDepositButton } from '../components/RefundDepositButton';
-import { depositRefundState, refundableDeposit } from '../lib/depositRefund';
+import { CheckDepositButton } from '../components/CheckDepositButton';
+import { depositRefundState, pendingOnlineDeposit, refundableDeposit } from '../lib/depositRefund';
 import { paymentSessionRows, type SessionRow } from '../lib/paymentSessionRows';
 import { lifecycleGates } from '../lib/lifecycleGates';
 import { appointmentContact } from '../../lib/appointmentContact';
@@ -57,6 +58,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   const appliedAtCheckout = Boolean(paymentBoundary?.transactions.length);
   const cardDeposit = capabilities.refunds ? refundableDeposit(depositSessions, { hasCheckout: appliedAtCheckout }) : null;
   const depositRefund = depositRefundState(depositSessions);
+  const openOnlineDeposit = capabilities.payments && !appointment.depositPaid ? pendingOnlineDeposit(depositSessions) : null;
   // The Deposit card shows the deposit whenever one is due, so Payment lists everything else.
   const depositCardShown = capabilities.payments && Number(appointment.depositAmount || 0) > 0;
   const sessionRows = paymentSessionRows(paymentBoundary?.sessions, paymentBoundary?.payments.map((payment) => payment.id), { depositShownElsewhere: depositCardShown });
@@ -85,7 +87,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
         </Notice>
       ) : null}
 
-      {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" gates={lifecycleGates(appointment.startTime, appointment.location?.timezone)} /> : null}
+      {capabilities.appointments ? <AppointmentActions id={appointment.id} status={status} cancellationReason="Cancelled from appointment detail" label={`${contact.name} · ${appointment.startTime ? formatSalonDateTime(appointment.startTime, appointment.location?.timezone) : 'not scheduled'}`} gates={lifecycleGates(appointment.startTime, appointment.location?.timezone)} /> : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 content-start gap-5">
@@ -139,11 +141,14 @@ export async function AppointmentDetailPage({ params }: PageProps) {
                   {cardDeposit ? <RefundDepositButton paymentSessionId={cardDeposit.id} appointmentId={appointment.id} amountLabel={usd(cardDeposit.remaining)} client={contact.name} /> : null}
                 </div>
               ) : !['pending', 'confirmed'].includes(status) ? <p className="text-sm text-muted-foreground">Deposit of {usd(appointment.depositAmount)} not collected.</p> : (
+                <div className="grid gap-4">
+                {openOnlineDeposit ? <CheckDepositButton paymentSessionId={openOnlineDeposit.id} appointmentId={appointment.id} amountLabel={usd(appointment.depositAmount)} /> : null}
                 <ActionForm action={recordDeposit} submitLabel={`Record ${usd(appointment.depositAmount)} deposit`} pendingLabel="Recording…" className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="appointmentId" value={appointment.id} />
                   <input type="hidden" name="idempotencyKey" value={`desk-deposit:${appointment.id}`} />
                   <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">Paid by<select name="paymentMethod" required defaultValue="" className={inputClass}><option value="" disabled>Choose tender</option><option value="credit_card">Card · external terminal</option><option value="cash">Cash</option></select></label>
                 </ActionForm>
+                </div>
               )}
             </Panel>
           ) : null}

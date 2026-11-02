@@ -47,3 +47,30 @@ export function depositRefundFeedback(result: DepositRefundResult, amountLabel: 
   if (result.status === 'partially_refunded') return 'Deposit partly refunded. Refresh to see what is left.';
   return `Deposit is ${String(result.status || 'pending').replace(/_/g, ' ')}, not refunded yet. Refresh to check it.`;
 }
+
+const AWAITING = ['pending', 'requires_action', 'authorized'];
+
+/**
+ * The online card deposit whose Stripe Checkout is still open on our side, if any.
+ * Staff can ask Stripe whether it was paid (confirmPayment reads the Checkout back),
+ * for when the customer paid but never landed on the return page.
+ */
+export function pendingOnlineDeposit(sessions: DepositSessionRow[] | null | undefined) {
+  for (const session of sessions || []) {
+    const data = session?.data && typeof session.data === 'object' ? session.data as Record<string, unknown> : {};
+    if (!session?.id || data.purpose !== 'appointment_deposit' || !data.checkout || !session.providerReference) continue;
+    if (session.provider?.adapter !== 'stripe' || !AWAITING.includes(String(session.status))) continue;
+    return { id: session.id };
+  }
+  return null;
+}
+
+export type ConfirmPaymentResult = { success: boolean; error?: string | null; status?: string | null };
+
+export function depositCheckFeedback(result: ConfirmPaymentResult, amountLabel: string): { ok: boolean; text: string } {
+  if (!result.success) return { ok: false, text: result.error || 'Could not reach Stripe. Try again in a moment.' };
+  if (result.status === 'completed') return { ok: true, text: `Stripe shows the ${amountLabel} deposit paid. Marked paid.` };
+  if (result.status === 'refunded' || result.status === 'partially_refunded') return { ok: true, text: 'Stripe shows this deposit refunded. Updated.' };
+  if (result.status === 'cancelled' || result.status === 'failed') return { ok: true, text: 'The Stripe checkout expired unpaid. Record the deposit at the desk or send a new link.' };
+  return { ok: true, text: 'Stripe has no payment yet. The client hasn’t finished paying.' };
+}

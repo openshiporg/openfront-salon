@@ -112,8 +112,8 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
     clientId
       ? getBoundary<{ client: CareBoundary | null }>(`query AppointmentCare($id: ID!) { client(where: { id: $id }) { allergies skinSensitivities hairType hairTexture colorFormulas(orderBy: { createdAt: desc }, take: 1) { id formulaName products measurements processingTime createdAt } } }`, { id: clientId }, { client: null }).then((data) => data.client)
       : null,
-    // Deposit sessions with their provider and payment, so a refundable card deposit can be offered.
-    capabilities.refunds && Number(appointment.depositAmount || 0) > 0
+    // Deposit sessions with their provider and payment: a refundable card deposit, or an open online one to check with Stripe.
+    (capabilities.refunds || capabilities.payments) && Number(appointment.depositAmount || 0) > 0
       ? getBoundary<{ paymentSessions: DepositSessionRow[] }>(`query AppointmentDepositSessions($id: ID!) { paymentSessions(where: { appointment: { id: { equals: $id } } }, take: 20, orderBy: { createdAt: desc }) { id status amount providerReference data provider { adapter } payment { status refundedAmount } } }`, { id }, { paymentSessions: [] }).then((data) => data.paymentSessions)
       : undefined
   ]);
