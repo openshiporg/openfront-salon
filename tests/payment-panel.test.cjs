@@ -37,10 +37,18 @@ test('nothing to show means no rows, and payments already listed are not repeate
   assert.equal(paymentSessionRows([deposit()], ['p1']).length, 0);
 });
 
+test('the deposit shown in the Deposit card is not listed again under Payment', () => {
+  assert.equal(paymentSessionRows([deposit({ status: 'refunded' })], [], { depositShownElsewhere: true }).length, 0);
+  const card = { id: 's2', status: 'completed', amount: 9000, data: { purpose: 'checkout' }, provider: { name: 'Stripe', adapter: 'stripe' }, payment: { id: 'p2' } };
+  const rows = paymentSessionRows([deposit(), card], [], { depositShownElsewhere: true });
+  assert.equal(rows.length, 1); assert.equal(rows[0].id, 's2'); assert.equal(rows[0].purpose, 'Payment');
+  assert.equal(paymentSessionRows([deposit()], [], { depositShownElsewhere: false }).length, 1);
+});
+
 test('the panel no longer prints the provider-settings tip', () => {
   const page = read('features/platform/appointments/screens/AppointmentDetailPage.tsx');
   assert.doesNotMatch(page, /payment session\{|Provider settings live in Integrations/);
-  assert.match(page, /paymentSessionRows\(boundary\.sessions/);
+  assert.match(page, /paymentSessionRows\(paymentBoundary\?\.sessions[^;]*depositShownElsewhere: depositCardShown/);
 });
 
 test('phones: the header carries the assistant button and the floating one hides', () => {

@@ -36,18 +36,28 @@ const STATUS: Record<string, { label: string; tone: SessionRow['tone'] }> = {
   cancelled: { label: 'Cancelled', tone: 'rose' },
 };
 
+function isDepositSession(session: SessionInput) {
+  return (session.data as Record<string, unknown> | null)?.purpose === 'appointment_deposit';
+}
+
 /**
  * One row per session, newest first, skipping sessions whose payment the panel already
- * shows as a payment row. The date is when the session last changed state.
+ * shows as a payment row, and deposit sessions when the Deposit card shows them. The date is when the session last changed state.
  */
-export function paymentSessionRows(sessions: SessionInput[] | null | undefined, shownPaymentIds: string[] = []): SessionRow[] {
+export function paymentSessionRows(
+  sessions: SessionInput[] | null | undefined,
+  shownPaymentIds: string[] = [],
+  options: { depositShownElsewhere?: boolean } = {},
+): SessionRow[] {
   const shown = new Set(shownPaymentIds);
   return (sessions || [])
     .filter((session) => session?.id && !(session.payment?.id && shown.has(session.payment.id)))
+    // The Deposit card already reports the deposit (paid, refunded); don't list it twice.
+    .filter((session) => !(options.depositShownElsewhere && isDepositSession(session)))
     .map((session) => {
       const status = String(session.status || 'pending');
       const known = STATUS[status] || { label: status.replace(/_/g, ' '), tone: 'zinc' as const };
-      const purpose = (session.data as Record<string, unknown> | null)?.purpose === 'appointment_deposit' ? 'Deposit' : 'Payment';
+      const purpose = isDepositSession(session) ? 'Deposit' : 'Payment';
       const at = (status === 'refunded' || status === 'partially_refunded' ? session.refundedAt : null)
         || (status === 'failed' || status === 'cancelled' ? session.failedAt : null)
         || session.completedAt || session.createdAt || null;

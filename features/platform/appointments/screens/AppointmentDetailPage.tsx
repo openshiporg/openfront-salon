@@ -6,7 +6,7 @@ import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
 import { RefundDepositButton } from '../components/RefundDepositButton';
 import { depositRefundState, refundableDeposit } from '../lib/depositRefund';
-import { paymentSessionRows } from '../lib/paymentSessionRows';
+import { paymentSessionRows, type SessionRow } from '../lib/paymentSessionRows';
 import { lifecycleGates } from '../lib/lifecycleGates';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { formatSalonDateTime } from '@/features/lib/formatSalonDateTime';
@@ -28,6 +28,7 @@ import {
   inputClass,
   StatusDot,
 } from '../../components/salon-ui';
+import { formatPhone, phoneHref } from '@/features/lib/phone';
 
 interface PageProps { params: Promise<{ id: string }> }
 
@@ -56,6 +57,10 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   const appliedAtCheckout = Boolean(paymentBoundary?.transactions.length);
   const cardDeposit = capabilities.refunds ? refundableDeposit(depositSessions, { hasCheckout: appliedAtCheckout }) : null;
   const depositRefund = depositRefundState(depositSessions);
+  // The Deposit card shows the deposit whenever one is due, so Payment lists everything else.
+  const depositCardShown = capabilities.payments && Number(appointment.depositAmount || 0) > 0;
+  const sessionRows = paymentSessionRows(paymentBoundary?.sessions, paymentBoundary?.payments.map((payment) => payment.id), { depositShownElsewhere: depositCardShown });
+  const paymentShown = Boolean(paymentBoundary?.payments.length || sessionRows.length || paymentBoundary?.transactions.length);
   const canReschedule = capabilities.appointments && appointment.startTime && ['pending', 'confirmed'].includes(status);
 
   return (
@@ -144,7 +149,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           ) : null}
 
           <Panel title="Payment" icon={WalletCards}>
-            {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} timeZone={appointment.location?.timezone} />}
+            {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !paymentShown ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} sessionRows={sessionRows} timeZone={appointment.location?.timezone} />}
           </Panel>
 
           {capabilities.commissions && commissions ? (
@@ -163,7 +168,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
         <aside className="grid min-w-0 content-start gap-5">
           <Panel title="Client" icon={UserRound}>
             <div className="flex items-center gap-3"><Avatar name={contact.name} /><div className="min-w-0"><div className="truncate font-medium">{contact.name}</div><div className="truncate text-sm text-muted-foreground">{contact.email || 'No email recorded'}</div></div></div>
-            {contact.phone ? <a href={`tel:${contact.phone.replace(/[^\d+]/g, '')}`} className="mt-3 block text-sm font-medium underline-offset-4 hover:underline">{contact.phone}</a> : null}
+            {contact.phone ? <a href={phoneHref(contact.phone) || undefined} className="mt-3 block text-sm font-medium tabular-nums underline-offset-4 hover:underline">{formatPhone(contact.phone)}</a> : null}
             <dl className="mt-4 grid grid-cols-2 gap-3"><Fact label="Visits">{String(appointment.client?.totalVisits || 0)}</Fact><Fact label="Lifetime value">{usd(appointment.client?.lifetimeValue)}</Fact></dl>
             {care ? (
               <dl className="mt-4 grid gap-3 border-t pt-4">
@@ -205,7 +210,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   );
 }
 
-function PaymentBoundary({ boundary, timeZone }: { boundary: NonNullable<Awaited<ReturnType<typeof getAppointmentDetail>>['paymentBoundary']>; timeZone?: string | null }) {
+function PaymentBoundary({ boundary, sessionRows, timeZone }: { boundary: NonNullable<Awaited<ReturnType<typeof getAppointmentDetail>>['paymentBoundary']>; sessionRows: SessionRow[]; timeZone?: string | null }) {
   return (
     <div className="grid gap-3">
       {boundary.payments.map((payment) => (
@@ -221,7 +226,7 @@ function PaymentBoundary({ boundary, timeZone }: { boundary: NonNullable<Awaited
           {transaction.lineItems.map((line) => <div key={line.id} className="mt-2 flex justify-between gap-2 text-muted-foreground"><span>{line.service?.name || line.product?.name || line.itemType || 'Line item'} × {line.quantity || 1}</span><span className="tabular-nums">{usd((line.unitPrice || 0) * (line.quantity || 1) - (line.discount || 0))}</span></div>)}
         </div>
       ))}
-      {paymentSessionRows(boundary.sessions, boundary.payments.map((payment) => payment.id)).map((row) => (
+      {sessionRows.map((row) => (
         <div key={row.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-[6px] border p-3 text-sm">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <TitleStatus tone={row.tone}>{row.status}</TitleStatus>

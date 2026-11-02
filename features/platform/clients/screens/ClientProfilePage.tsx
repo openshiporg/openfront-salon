@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { stackBodyClass, stackCellClass, stackHeadClass, stackRowClass, stackTableClass, stackThClass } from '../../appointments/lib/stackTable';
 import { CareProfileForm, ClientNoteForm, ColorFormulaForm } from './ClientCareForms';
 import { getSalonTimezone } from '../../lib/salonTimezone';
+import { formatPhone, phoneHref } from '@/features/lib/phone';
 
 function when(value?: string | null, timeZone?: string | null) {
   return value ? new Date(value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timeZone || undefined }) : '—';
@@ -45,7 +46,7 @@ export async function ClientProfilePage({ params }: { params: Promise<{ id: stri
         title={name}
         meta={<>
           <span>{client.user ? 'Account' : 'Guest'}</span>
-          {phone ? <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="tabular-nums text-foreground underline-offset-4 hover:underline">{phone}</a> : null}
+          {phone ? <a href={phoneHref(phone) || undefined} className="tabular-nums text-foreground underline-offset-4 hover:underline">{formatPhone(phone)}</a> : null}
           {email ? <span className="min-w-0 break-all">{email}</span> : null}
         </>}
         actions={<Track><PillLink href={bookHref} variant="primary"><CalendarPlus />Book again</PillLink></Track>}

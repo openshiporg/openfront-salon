@@ -16,6 +16,7 @@ import {
   type WaitlistQueue,
   type WaitlistQueueEntry,
 } from '../actions/waitlist'
+import { formatPhone } from '@/features/lib/phone';
 
 const ANY = 'any'
 
@@ -229,7 +230,7 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue; 
                     <td className={`${tdClass} text-right font-semibold tabular-nums`}>{index + 1}</td>
                     <td className={tdClass}>
                       <span className="font-medium">{entry.client?.name || entry.guestName || 'Walk-in'}</span>
-                      {entry.guestPhone ? <span className="block text-xs tabular-nums text-muted-foreground">{entry.guestPhone}</span> : null}
+                      {entry.guestPhone ? <span className="block text-xs tabular-nums text-muted-foreground">{formatPhone(entry.guestPhone)}</span> : null}
                       <span className="block text-xs text-muted-foreground md:hidden">{entry.service?.name || 'Any service'}</span>
                       {entry.notes ? <span className="mt-0.5 block text-xs text-muted-foreground">Note: {entry.notes}</span> : null}
                     </td>
@@ -237,7 +238,7 @@ export function WaitlistClient({ initialQueue }: { initialQueue: WaitlistQueue; 
                     <td className={`${tdClass} hidden text-muted-foreground lg:table-cell`}>{preference || 'Any'}</td>
                     <td className={tdClass}>
                       <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium">
-                        <span aria-hidden="true" className={`inline-block size-2 rounded-full outline-3 -outline-offset-1 ${entry.notifiedAt ? 'bg-emerald-500 outline-emerald-100 dark:outline-emerald-900/50' : 'bg-amber-500 outline-amber-100 dark:outline-amber-900/50'}`} />
+                        <span aria-hidden="true" className={`inline-block size-2 rounded-full ${entry.notifiedAt ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                         {entry.notifiedAt ? 'Notified' : 'Waiting'}
                       </span>
                       <span className="block text-xs tabular-nums text-muted-foreground">{formatTimeAgo(entry.createdAt)}</span>
@@ -269,7 +270,7 @@ function WaitlistHeader({ waiting, meta, actions }: { waiting?: number; meta?: R
           <h1 className="text-xl font-semibold tracking-tight md:text-[1.375rem]">Walk-in waitlist</h1>
           {waiting ? (
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-muted-foreground">
-              <span aria-hidden="true" className="inline-block size-2 shrink-0 rounded-full bg-amber-500 outline-3 -outline-offset-1 outline-amber-100 dark:outline-amber-900/50" />
+              <span aria-hidden="true" className="inline-block size-2 shrink-0 rounded-full bg-amber-500" />
               {waiting} waiting
             </span>
           ) : null}

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { Check } from "lucide-react"
 import { getAppointmentById } from "../lib/data/appointments"
 import { formatMenuPrice } from "../lib/format-price"
+import { formatPhone } from '@/features/lib/phone';
 
 interface Props {
   params: Promise<{ id: string }>
@@ -70,7 +71,7 @@ export async function BookingConfirmationPage({ params }: Props) {
               <h2 className="mb-1 font-semibold text-[var(--sf-ink-3)]">Contact</h2>
               {client?.name ? <p className="font-semibold">{client.name}</p> : null}
               {client?.email ? <p className="break-all text-[var(--sf-ink-2)]">{client.email}</p> : null}
-              {client?.phone ? <p className="text-[var(--sf-ink-2)]">{client.phone}</p> : null}
+              {client?.phone ? <p className="text-[var(--sf-ink-2)]">{formatPhone(client.phone)}</p> : null}
             </div>
           </div>
           {appointment.clientNotes ? (

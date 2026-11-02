@@ -6,6 +6,7 @@ import { salonClient } from "../config"
 import { safeStorefrontHue } from "@/features/lib/storefront-theme"
 import { sanitizeStoreLogoSvg } from "@/features/lib/sanitize-store-logo"
 import { normalizeStoreLogoColor, storeLogoHue } from "@/features/lib/store-logo"
+import { formatPhone, phoneHref } from "@/features/lib/phone"
 import {
   UNCONFIGURED_STOREFRONT_DESCRIPTION,
   UNCONFIGURED_STOREFRONT_TITLE,
@@ -63,11 +64,6 @@ function clean(value?: string | null): string | null {
   return trimmed || null
 }
 
-function phoneHref(phone: string | null): string | null {
-  if (!phone) return null
-  const normalized = phone.replace(/[^\d+]/g, "")
-  return normalized ? `tel:${normalized}` : null
-}
 
 function unconfiguredBrand(): StorefrontBrand {
   return {
@@ -118,7 +114,7 @@ export const getStorefrontBrand = cache(async function (): Promise<StorefrontBra
     const zipCode = clean(location.zipCode)
     const locality = [city, state].filter(Boolean).join(", ")
     const finalLine = [locality, zipCode].filter(Boolean).join(" ")
-    const phone = clean(location.phone)
+    const phone = clean(location.phone) ? formatPhone(location.phone) : null
 
     return {
       configured: true,

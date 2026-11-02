@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Pencil, Plus, Save, X } from 'lucide-react';
 import { inputClass, labelize, pillClass, tableClass, tableWrapClass, tdClass, thClass, trackClass } from '../../components/pill';
 import { saveSalonRecordFromWorkspace, type SalonManagementData, type SalonManagementKind, type SalonManagementOption, type SalonManagementRecord } from '../actions/workspaces';
+import { formatPhone } from '@/features/lib/phone';
 
 type Row = SalonManagementRecord;
 const titles: Record<SalonManagementKind, string> = {
@@ -36,14 +37,14 @@ const addLabels: Record<SalonManagementKind, string> = {
 };
 const searchable: SalonManagementKind[] = ['client', 'product', 'service', 'staff'];
 const toneDot: Record<NonNullable<RecordExtra['tone']>, string> = {
-  emerald: 'bg-emerald-500 outline-emerald-100 dark:bg-emerald-400 dark:outline-emerald-900/50',
-  amber: 'bg-amber-500 outline-amber-100 dark:bg-amber-400 dark:outline-amber-900/50',
-  rose: 'bg-rose-500 outline-rose-100 dark:bg-rose-400 dark:outline-rose-900/50',
-  zinc: 'bg-zinc-400 outline-zinc-100 dark:bg-zinc-500 dark:outline-zinc-800/60',
+  emerald: 'bg-emerald-500 dark:bg-emerald-400',
+  amber: 'bg-amber-500 dark:bg-amber-400',
+  rose: 'bg-rose-500 dark:bg-rose-400',
+  zinc: 'bg-zinc-400 dark:bg-zinc-500',
 };
 
 function Status({ tone, children }: { tone: NonNullable<RecordExtra['tone']>; children: ReactNode }) {
-  return <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium"><span aria-hidden="true" className={`inline-block size-2 shrink-0 rounded-full outline-3 -outline-offset-1 ${toneDot[tone]}`} />{children}</span>;
+  return <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium"><span aria-hidden="true" className={`inline-block size-2 shrink-0 rounded-full ${toneDot[tone]}`} />{children}</span>;
 }
 
 function money(cents?: number | null) {
@@ -103,7 +104,7 @@ function columnsFor(kind: SalonManagementKind, data: SalonManagementData, extras
     ];
     default: return [
       { label: 'Email', className: hideSm, cell: (record) => <span className={`break-all ${muted}`}>{record.user?.email || record.guestEmail || '—'}</span> },
-      { label: 'Phone', className: hideSm, cell: (record) => <span className={`whitespace-nowrap ${muted}`}>{record.user?.phone || record.guestPhone || '—'}</span> },
+      { label: 'Phone', className: hideSm, cell: (record) => <span className={`whitespace-nowrap ${muted}`}>{formatPhone(record.user?.phone || record.guestPhone) || '—'}</span> },
       { label: 'Account', cell: (record) => record.user ? <Status tone="emerald">Account</Status> : <Status tone="zinc">Guest</Status> },
     ];
   }

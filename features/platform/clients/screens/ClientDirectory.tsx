@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { fieldLabelClass, inputClass, pillClass, trackClass } from '../../components/pill';
 import { saveSalonRecordFromWorkspace } from '../../workspaces/actions/workspaces';
 import { stackBodyClass, stackCellClass, stackHeadClass, stackRowClass, stackTableClass, stackThClass, stackWrapClass } from '../../appointments/lib/stackTable';
+import { formatPhone, phoneHref } from '@/features/lib/phone';
 
 export type DirectoryRow = {
   id: string;
@@ -92,7 +93,7 @@ export function ClientDirectory({ rows, visitsKnown, locations }: { rows: Direct
                         <span className="text-xs text-muted-foreground">{row.account ? 'Account' : 'Guest'}</span>
                       </td>
                       <td className={cn(stackCellClass, 'col-start-1 text-sm')}>
-                        {row.phone ? <a href={`tel:${row.phone.replace(/[^\d+]/g, '')}`} className="block truncate tabular-nums underline-offset-4 hover:underline">{row.phone}</a> : null}
+                        {row.phone ? <a href={phoneHref(row.phone) || undefined} className="block truncate tabular-nums underline-offset-4 hover:underline">{formatPhone(row.phone)}</a> : null}
                         <span className="block truncate text-xs text-muted-foreground">{row.email || (row.phone ? '' : 'No contact recorded')}</span>
                       </td>
                       <td className={cn(stackCellClass, 'col-start-2 row-start-1 text-right tabular-nums')}>

@@ -4,6 +4,7 @@ import { Banknote, CalendarClock, CalendarDays, Star, UserRound } from 'lucide-r
 import { getStaffProfile } from '../actions/staffProfile';
 import { appointmentLabel, appointmentTone, Avatar, Chip, DataTable, Fact, labelize, PageHeader, Panel, PillLink, PlatformPage, StatusCell, Td, TitleStatus, Track, usd } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
+import { formatPhone } from '@/features/lib/phone';
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const order = [1, 2, 3, 4, 5, 6, 0];
@@ -33,7 +34,7 @@ export async function StaffProfilePage({ params }: { params: Promise<{ id: strin
         title={name}
         status={<TitleStatus tone={statusTone}>{labelize(stylist.status) || 'Active'}</TitleStatus>}
         meta={<>
-          <span>{[[labelize(stylist.tier), labelize(stylist.role)?.toLowerCase()].filter(Boolean).join(' '), stylist.user?.email, stylist.user?.phone].filter(Boolean).join(' · ')}</span>
+          <span>{[[labelize(stylist.tier), labelize(stylist.role)?.toLowerCase()].filter(Boolean).join(' '), stylist.user?.email, formatPhone(stylist.user?.phone)].filter(Boolean).join(' · ')}</span>
           <span>{upcomingCount} upcoming · {completedCount} completed{noShowCount ? ` · ${noShowCount} no-show${noShowCount === 1 ? '' : 's'}` : ''}{average ? ` · rated ${average.toFixed(1)} from ${approved.length}` : ''}</span>
         </>}
         actions={<Track><PillLink href="/dashboard/platform/administration#management-staff" variant="raised">Edit profile</PillLink><PillLink href="/dashboard/platform/schedules" variant="raised">Hours & time off</PillLink><PillLink href={`/dashboard/platform/appointments/new?stylist=${stylist.id}`} variant="primary">Book</PillLink></Track>}

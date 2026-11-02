@@ -16,14 +16,14 @@ export { pillClass, trackClass, fieldLabelClass, inputClass, textareaClass, labe
 export type Tone = 'emerald' | 'amber' | 'blue' | 'violet' | 'rose' | 'zinc' | 'sky' | 'orange';
 
 const dotTones: Record<Tone, string> = {
-  emerald: 'bg-emerald-500 outline-emerald-100 dark:bg-emerald-400 dark:outline-emerald-900/50',
-  amber: 'bg-amber-500 outline-amber-100 dark:bg-amber-400 dark:outline-amber-900/50',
-  blue: 'bg-blue-500 outline-blue-100 dark:bg-blue-400 dark:outline-blue-900/50',
-  violet: 'bg-violet-500 outline-violet-100 dark:bg-violet-400 dark:outline-violet-900/50',
-  rose: 'bg-rose-500 outline-rose-100 dark:bg-rose-400 dark:outline-rose-900/50',
-  zinc: 'bg-zinc-400 outline-zinc-100 dark:bg-zinc-500 dark:outline-zinc-800/60',
-  sky: 'bg-sky-500 outline-sky-100 dark:bg-sky-400 dark:outline-sky-900/50',
-  orange: 'bg-orange-500 outline-orange-100 dark:bg-orange-400 dark:outline-orange-900/50',
+  emerald: 'bg-emerald-500 dark:bg-emerald-400',
+  amber: 'bg-amber-500 dark:bg-amber-400',
+  blue: 'bg-blue-500 dark:bg-blue-400',
+  violet: 'bg-violet-500 dark:bg-violet-400',
+  rose: 'bg-rose-500 dark:bg-rose-400',
+  zinc: 'bg-zinc-400 dark:bg-zinc-500',
+  sky: 'bg-sky-500 dark:bg-sky-400',
+  orange: 'bg-orange-500 dark:bg-orange-400',
 };
 
 export const appointmentTone: Record<string, Tone> = {
@@ -34,7 +34,7 @@ export const appointmentLabel: Record<string, string> = {
 };
 
 export function StatusDot({ tone, className }: { tone: Tone; className?: string }) {
-  return <span aria-hidden="true" className={cn('inline-block size-2 shrink-0 rounded-full outline-3 -outline-offset-1', dotTones[tone], className)} />;
+  return <span aria-hidden="true" className={cn('inline-block size-2 shrink-0 rounded-full', dotTones[tone], className)} />;
 }
 
 /** A status label that reads on the title line: dot + text. */
@@ -140,7 +140,7 @@ export function Fact({ label, children }: { label: string; children: ReactNode }
 }
 
 export function Chip({ children, tone }: { children: ReactNode; tone?: Tone }) {
-  return <span className="inline-flex h-5 items-center gap-1.5 whitespace-nowrap rounded-[4px] border bg-muted/30 px-1.5 text-[11px] font-medium text-muted-foreground">{tone ? <StatusDot tone={tone} /> : null}{children}</span>;
+  return <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-muted-foreground">{tone ? <StatusDot tone={tone} /> : null}{children}</span>;
 }
 
 export function EmptyState({ icon: Icon, title, action }: { icon: ComponentType<{ className?: string }>; title: string; action?: ReactNode }) {

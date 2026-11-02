@@ -22,7 +22,7 @@ export function StoreSettingsPageClient({ initialSettings, locations }: { initia
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h1 className="text-xl font-semibold tracking-tight md:text-[1.375rem]">Storefront settings</h1>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><span aria-hidden="true" className={`inline-block size-2 rounded-full outline-3 -outline-offset-1 ${configured ? 'bg-emerald-500 outline-emerald-100 dark:outline-emerald-900/50' : 'bg-amber-500 outline-amber-100 dark:outline-amber-900/50'}`} />{configured ? 'Published' : 'Not configured'}</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><span aria-hidden="true" className={`inline-block size-2 rounded-full ${configured ? 'bg-emerald-500' : 'bg-amber-500'}`} />{configured ? 'Published' : 'Not configured'}</span>
         </div>
         <div className={trackClass}><a href="/" target="_blank" rel="noreferrer" className={pillClass('raised')}>View storefront<ExternalLink /></a></div>
       </header>
