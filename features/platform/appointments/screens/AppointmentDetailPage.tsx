@@ -6,6 +6,7 @@ import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
 import { RefundDepositButton } from '../components/RefundDepositButton';
 import { depositRefundState, refundableDeposit } from '../lib/depositRefund';
+import { paymentSessionRows } from '../lib/paymentSessionRows';
 import { lifecycleGates } from '../lib/lifecycleGates';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { formatSalonDateTime } from '@/features/lib/formatSalonDateTime';
@@ -143,7 +144,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           ) : null}
 
           <Panel title="Payment" icon={WalletCards}>
-            {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} integrations={capabilities.integrations} />}
+            {!capabilities.payments ? <p className="text-sm text-muted-foreground">You don&apos;t have access to payments.</p> : !hasCheckout ? <p className="text-sm text-muted-foreground">Checkout not started.</p> : <PaymentBoundary boundary={paymentBoundary!} timeZone={appointment.location?.timezone} />}
           </Panel>
 
           {capabilities.commissions && commissions ? (
@@ -204,7 +205,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   );
 }
 
-function PaymentBoundary({ boundary, integrations }: { boundary: NonNullable<Awaited<ReturnType<typeof getAppointmentDetail>>['paymentBoundary']>; integrations: boolean }) {
+function PaymentBoundary({ boundary, timeZone }: { boundary: NonNullable<Awaited<ReturnType<typeof getAppointmentDetail>>['paymentBoundary']>; timeZone?: string | null }) {
   return (
     <div className="grid gap-3">
       {boundary.payments.map((payment) => (
@@ -220,7 +221,15 @@ function PaymentBoundary({ boundary, integrations }: { boundary: NonNullable<Awa
           {transaction.lineItems.map((line) => <div key={line.id} className="mt-2 flex justify-between gap-2 text-muted-foreground"><span>{line.service?.name || line.product?.name || line.itemType || 'Line item'} × {line.quantity || 1}</span><span className="tabular-nums">{usd((line.unitPrice || 0) * (line.quantity || 1) - (line.discount || 0))}</span></div>)}
         </div>
       ))}
-      {boundary.sessions.length ? <p className="rounded-[6px] border border-dashed p-3 text-sm text-muted-foreground">{boundary.sessions.length} payment session{boundary.sessions.length === 1 ? '' : 's'} recorded.{integrations ? ' Provider settings live in Integrations.' : ''}</p> : null}
+      {paymentSessionRows(boundary.sessions, boundary.payments.map((payment) => payment.id)).map((row) => (
+        <div key={row.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-[6px] border p-3 text-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <TitleStatus tone={row.tone}>{row.status}</TitleStatus>
+            <span className="text-muted-foreground">{row.purpose} · {row.provider}{row.at ? ` · ${formatSalonDateTime(row.at, timeZone)}` : ''}</span>
+          </div>
+          <span className="font-semibold tabular-nums">{usd(row.amount)}{row.refunded && row.refunded < row.amount ? <span className="ml-1.5 font-normal text-muted-foreground">{usd(row.refunded)} refunded</span> : null}</span>
+        </div>
+      ))}
     </div>
   );
 }

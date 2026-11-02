@@ -31,7 +31,7 @@ export type AppointmentDetail = {
 
 type PaymentBoundary = {
   payments: { id: string; status?: string | null; paymentMethod?: string | null; subtotal?: number | null; tax?: number | null; tip?: number | null; discount?: number | null; totalAmount?: number | null; refundedAmount?: number | null; processedAt?: string | null; refundedAt?: string | null; receiptSent?: boolean | null; cardBrand?: string | null; cardLast4?: string | null }[];
-  sessions: { id: string; status?: string | null; amount?: number | null; currency?: string | null; providerReference?: string | null; authorizedAt?: string | null; completedAt?: string | null; failedAt?: string | null }[];
+  sessions: { id: string; status?: string | null; amount?: number | null; currency?: string | null; providerReference?: string | null; createdAt?: string | null; authorizedAt?: string | null; completedAt?: string | null; failedAt?: string | null; refundedAt?: string | null; data?: unknown; provider?: { name?: string | null; adapter?: string | null } | null; payment?: { id: string; refundedAmount?: number | null; paymentMethod?: string | null } | null }[];
   transactions: { id: string; status?: string | null; paymentStatus?: string | null; paymentMethod?: string | null; completedAt?: string | null; tip?: number | null; lineItems: { id: string; itemType?: string | null; quantity?: number | null; unitPrice?: number | null; discount?: number | null; service?: { name?: string | null } | null; product?: { name?: string | null } | null }[] }[];
 };
 
@@ -98,7 +98,7 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
       ? getBoundary<{ payments: PaymentBoundary['payments']; paymentSessions: PaymentBoundary['sessions']; salonTransactions: PaymentBoundary['transactions'] }>(`
           query AppointmentPaymentBoundary($id: ID!) {
             payments(where: { appointment: { id: { equals: $id } } }, take: 10, orderBy: { processedAt: desc }) { id status paymentMethod subtotal tax tip discount totalAmount refundedAmount processedAt refundedAt receiptSent cardBrand cardLast4 }
-            paymentSessions(where: { appointment: { id: { equals: $id } } }, take: 20, orderBy: { createdAt: desc }) { id status amount currency providerReference authorizedAt completedAt failedAt }
+            paymentSessions(where: { appointment: { id: { equals: $id } } }, take: 20, orderBy: { createdAt: desc }) { id status amount currency providerReference createdAt authorizedAt completedAt failedAt refundedAt data provider { name adapter } payment { id refundedAmount paymentMethod } }
             salonTransactions(where: { appointment: { id: { equals: $id } } }, take: 10, orderBy: { completedAt: desc }) { id status paymentStatus paymentMethod completedAt tip lineItems { id itemType quantity unitPrice discount service { name } product { name } } }
           }
         `, { id }, { payments: [], paymentSessions: [], salonTransactions: [] }).then((data) => ({ payments: data.payments, sessions: data.paymentSessions, transactions: data.salonTransactions }))
