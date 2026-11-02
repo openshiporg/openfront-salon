@@ -72,7 +72,7 @@ async function resolveGuestClient(
     return { id: existing[0].id, user: null };
   }
   const created = await sudo.query.Client.createOne({
-    data: { guestName: input.name, guestEmail: input.email, guestPhone: input.phone || "", firstVisit: new Date().toISOString(), totalVisits: 0, lifetimeValue: 0 },
+    data: { guestName: input.name, guestEmail: input.email, guestPhone: input.phone || "" },
     query: "id",
   });
   return { id: created.id, user: null };
@@ -124,9 +124,6 @@ async function resolveAuthorizedClient(
   return sudo.query.Client.createOne({
     data: {
       user: { connect: { id: user.id } },
-      firstVisit: new Date().toISOString(),
-      totalVisits: 0,
-      lifetimeValue: 0,
     },
     query: "id user { id name email phone }",
   });

@@ -5,6 +5,7 @@ import { permissions } from "../access";
 import { currentStockContext, assertStockLocation } from "../inventory/locationAuthority";
 import { refundProviderPayment, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { recordInventoryMovement } from "./inventoryWorkflows";
+import { recomputeClientStats } from "../clientStats";
 import { serializableWorkflow } from "./serializableWorkflow";
 import { acquireStockLedgerFences, registerStockTransaction } from "../inventory/stockFences";
 
@@ -212,7 +213,7 @@ export async function reverseSalonTransactionTransaction(context: Context, args:
       }
       const cumulativeRefund = Number(payment.refundedAmount || 0) + checkoutRefundCents;
       await sudo.query.Payment.updateOne({ where: { id: payment.id }, data: { refundedAmount: cumulativeRefund, status: fullyRefunded ? "refunded" : "partially_refunded", refundedAt: now, refundReason: reason }, query: "id" });
-      if (transaction.client?.id) await sudo.query.Client.updateOne({ where: { id: transaction.client.id }, data: { lifetimeValue: Math.max(0, Number(transaction.client.lifetimeValue || 0) - checkoutRefundCents) }, query: "id" });
+      await recomputeClientStats(sudo, transaction.client?.id);
       await sudo.query.SalonTransaction.updateOne({ where: { id: transaction.id }, data: { metadata: { ...checkoutMetadata, pendingSaleReversal: null } }, query: "id" });
       return { success: true, reversalId: reversal.id, paymentDelta: -refundCents, error: null };
     });

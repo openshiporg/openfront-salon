@@ -14,6 +14,9 @@ import { ownCareRead } from "../privacy";
 import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
+/** Visit stats are recomputed by the server (sudo); people and API callers cannot write them. */
+const derived = { create: () => false, update: () => false };
+
 export const Client = list({
   access: {
     operation: {
@@ -157,32 +160,29 @@ export const Client = list({
       },
     }),
 
-    // Visit tracking
+    // Visit tracking: derived from completed appointments and sales by
+    // features/keystone/clientStats.ts. Stored for sorting; never edited by hand.
     firstVisit: timestamp({
-      ui: {
-        description: "Date of first visit",
-      },
+      access: derived,
+      ui: { description: "Start of the first completed appointment", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
     }),
 
     lastVisit: timestamp({
-      ui: {
-        description: "Date of most recent visit",
-      },
+      access: derived,
+      ui: { description: "Start of the most recent completed appointment", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
     }),
 
     totalVisits: integer({
       defaultValue: 0,
-      ui: {
-        description: "Total number of visits",
-      },
+      access: derived,
+      ui: { description: "Completed appointments", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
     }),
 
     lifetimeValue: integer({
       defaultValue: 0,
       validation: { min: 0 },
-      ui: {
-        description: "Total revenue from this client in cents",
-      },
+      access: derived,
+      ui: { description: "Pre-tax spend on completed sales, less refunds, in cents", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
     }),
 
     // Consent

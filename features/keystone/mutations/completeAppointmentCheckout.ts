@@ -4,6 +4,7 @@ import type { Context } from ".keystone/types";
 import { confirmProviderPayment, createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { assertServiceDayOpen } from "../appointmentTiming";
 import { activeLoyaltyProgram, pointsForSpend, postPoints } from "../loyalty";
+import { recomputeClientStats } from "../clientStats";
 import { serializableWorkflow } from "./serializableWorkflow";
 import { recordInventoryMovement } from "./inventoryWorkflows";
 import { currentStockContext, assertCheckoutLocation } from "../inventory/locationAuthority";
@@ -360,13 +361,15 @@ export async function completeAppointmentCheckoutTransaction(
           const earned = pointsForSpend(program, taxable);
           if (earned > 0) await postPoints(sudo, appointment.client.user.id, earned, { reason: "Visit", source: "checkout", reference: `checkout:${args.idempotencyKey}`, actorId: context.session!.itemId });
         }
-        await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { lifetimeValue: (appointment.client.lifetimeValue || 0) + taxable, totalVisits: (appointment.client.totalVisits || 0) + 1, lastVisit: now, ...(!appointment.client.homeLocation?.id && appointment.location?.id ? { homeLocation: { connect: { id: appointment.location.id } } } : {}) }, query: "id" });
+        if (!appointment.client.homeLocation?.id && appointment.location?.id) await sudo.query.Client.updateOne({ where: { id: appointment.client.id }, data: { homeLocation: { connect: { id: appointment.location.id } } }, query: "id" });
       }
       const appointmentMetadata = appointment.metadata && typeof appointment.metadata === "object" ? appointment.metadata as Record<string, any> : {};
       const transitionHistory = Array.isArray(appointmentMetadata.transitionHistory) ? appointmentMetadata.transitionHistory.slice(-49) : [];
       await sudo.query.Appointment.updateOne({ where: { id: appointment.id }, data: { status: "completed", metadata: { ...appointmentMetadata, transitionHistory: [...transitionHistory, { from: appointment.status, to: "completed", reason: "Checkout recorded", actorId: context.session!.itemId, at: now }] } }, query: "id" });
       const segments = await (sudo.query as any).AppointmentSegment.findMany({ where: { appointment: { id: { equals: appointment.id } }, status: { in: ["planned", "started"] } }, take: 200, query: "id" });
       for (const segment of segments) await (sudo.query as any).AppointmentSegment.updateOne({ where: { id: segment.id }, data: { status: "completed" }, query: "id" });
+      // Visits and spend are recomputed from completed appointments and sales, never incremented.
+      await recomputeClientStats(sudo, appointment.client?.id);
       return { success: true, transactionId: transaction.id, paymentId: payment.id, error: null };
     });
   } catch (error) {
