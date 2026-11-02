@@ -1,5 +1,6 @@
 'use server';
 
+import type { DepositSessionRow } from '../lib/depositRefund';
 import { getPlatformActor } from '@/features/platform/lib/getPlatformActor';
 import { keystoneClient } from '@/features/dashboard/lib/keystoneClient';
 
@@ -51,7 +52,8 @@ export type AppointmentDetailData = {
   paymentBoundary?: PaymentBoundary;
   commissions?: CommissionBoundary;
   inventory?: InventoryBoundary;
-  capabilities: { appointments: boolean; payments: boolean; commissions: boolean; inventory: boolean; integrations: boolean };
+  capabilities: { appointments: boolean; payments: boolean; commissions: boolean; inventory: boolean; integrations: boolean; refunds: boolean };
+  depositSessions?: DepositSessionRow[];
 };
 
 const APPOINTMENT_DETAIL_QUERY = `
@@ -84,13 +86,14 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
     commissions: manager || role?.canManageCommissions === true,
     inventory: manager || role?.canManageInventory === true || role?.canViewReports === true,
     integrations: manager || role?.canManageIntegrations === true,
+    refunds: manager || role?.canIssueRefunds === true,
   };
   const appointment = appointmentResponse.success ? appointmentResponse.data.appointment : null;
   if (!appointment) return { appointment: null, capabilities };
 
   // Care fields need care-record access; without it the visit still loads, just without them.
   const clientId = appointment.client?.id;
-  const [paymentBoundary, commissions, inventory, care] = await Promise.all([
+  const [paymentBoundary, commissions, inventory, care, depositSessions] = await Promise.all([
     capabilities.payments
       ? getBoundary<{ payments: PaymentBoundary['payments']; paymentSessions: PaymentBoundary['sessions']; salonTransactions: PaymentBoundary['transactions'] }>(`
           query AppointmentPaymentBoundary($id: ID!) {
@@ -109,7 +112,11 @@ export async function getAppointmentDetail(id: string): Promise<AppointmentDetai
     clientId
       ? getBoundary<{ client: CareBoundary | null }>(`query AppointmentCare($id: ID!) { client(where: { id: $id }) { allergies skinSensitivities hairType hairTexture colorFormulas(orderBy: { createdAt: desc }, take: 1) { id formulaName products measurements processingTime createdAt } } }`, { id: clientId }, { client: null }).then((data) => data.client)
       : null,
+    // Deposit sessions with their provider and payment, so a refundable card deposit can be offered.
+    capabilities.refunds && Number(appointment.depositAmount || 0) > 0
+      ? getBoundary<{ paymentSessions: DepositSessionRow[] }>(`query AppointmentDepositSessions($id: ID!) { paymentSessions(where: { appointment: { id: { equals: $id } } }, take: 20, orderBy: { createdAt: desc }) { id status amount providerReference data provider { adapter } payment { status refundedAmount } } }`, { id }, { paymentSessions: [] }).then((data) => data.paymentSessions)
+      : undefined
   ]);
 
-  return { appointment, paymentBoundary, commissions, inventory, care, capabilities };
+  return { appointment, paymentBoundary, commissions, inventory, care, capabilities, depositSessions };
 }

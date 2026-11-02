@@ -5,6 +5,18 @@ import { currentStockContext } from "../inventory/locationAuthority";
 import { serializableWorkflow } from "./serializableWorkflow";
 import { refundProviderPayment, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 
+/**
+ * The provider payment a deposit refund targets. Online deposits are Stripe Checkouts: the session's
+ * reference is the Checkout (cs_…), and the PaymentIntent that actually holds the money is recorded
+ * as data.paymentIntent when the Checkout is read back. Desk deposits reference the payment directly.
+ */
+export function depositRefundReference(session: { providerReference?: string | null; data?: unknown }) {
+  const reference = session.providerReference || "";
+  if (!reference.startsWith("cs_")) return reference || null;
+  const intent = (session.data as any)?.paymentIntent;
+  return typeof intent === "string" && intent.startsWith("pi_") ? intent : null;
+}
+
 /** Persist the request BEFORE a provider call. A timeout never invents a refund. */
 export async function refundAppointmentDeposit(context: Context, input: { paymentSessionId: string; amount?: number | null; reason?: string | null; idempotencyKey?: string | null }) {
   const denied = { success: false, refundId: null, status: null };
@@ -37,7 +49,9 @@ export async function refundAppointmentDeposit(context: Context, input: { paymen
     });
     if (prepared.operation.status === "completed") return { success: true, refundId: prepared.operation.refundId || null, status: prepared.operation.resultStatus, error: null };
     // Outside the DB transaction. Retrying prepared/unknown uses the SAME provider key.
-    const result = await refundProviderPayment({ provider: paymentProviderFromRecord(prepared.session.provider), providerReference: prepared.session.providerReference, amount: prepared.operation.amount, refundId: prepared.operation.refundId || undefined, idempotencyKey: `deposit-refund:${prepared.session.id}:${key}` });
+    const providerReference = depositRefundReference(prepared.session);
+    if (!providerReference) throw new Error("This deposit has no card payment to refund yet; check the deposit with the provider first");
+    const result = await refundProviderPayment({ provider: paymentProviderFromRecord(prepared.session.provider), providerReference, amount: prepared.operation.amount, refundId: prepared.operation.refundId || undefined, idempotencyKey: `deposit-refund:${prepared.session.id}:${key}` });
     return await serializableWorkflow(context, "salon-domain-resource", [`deposit:${input.paymentSessionId}`], async tx => {
       const current = await currentStockContext(tx, "return");
       const sudo = current.sudo();

@@ -4,6 +4,8 @@ import { ActionForm } from '../../components/ActionForm';
 import { recordDeposit, transitionSegment } from '../actions/appointmentWork';
 import { AppointmentRescheduleForm } from './AppointmentRescheduleForm';
 import { AppointmentActions } from './AppointmentActions';
+import { RefundDepositButton } from '../components/RefundDepositButton';
+import { depositRefundState, refundableDeposit } from '../lib/depositRefund';
 import { lifecycleGates } from '../lib/lifecycleGates';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { formatSalonDateTime } from '@/features/lib/formatSalonDateTime';
@@ -44,12 +46,15 @@ export async function AppointmentDetailPage({ params }: PageProps) {
   const { id } = await params;
   const data = await getAppointmentDetail(id);
   if (!data.appointment) notFound();
-  const { appointment, paymentBoundary, commissions, inventory, care, capabilities } = data;
+  const { appointment, paymentBoundary, commissions, inventory, care, capabilities, depositSessions } = data;
   const careAlerts = [care?.allergies ? `Allergies: ${care.allergies}` : '', care?.skinSensitivities ? `Sensitivities: ${care.skinSensitivities}` : ''].filter(Boolean);
   const needsPatchTest = appointment.services.some((service) => service.requiresPatchTest);
   const contact = appointmentContact(appointment);
   const hasCheckout = Boolean(paymentBoundary?.payments.length || paymentBoundary?.sessions.length || paymentBoundary?.transactions.length);
   const status = appointment.status || '';
+  const appliedAtCheckout = Boolean(paymentBoundary?.transactions.length);
+  const cardDeposit = capabilities.refunds ? refundableDeposit(depositSessions, { hasCheckout: appliedAtCheckout }) : null;
+  const depositRefund = depositRefundState(depositSessions);
   const canReschedule = capabilities.appointments && appointment.startTime && ['pending', 'confirmed'].includes(status);
 
   return (
@@ -61,7 +66,8 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           <span className="inline-flex items-center gap-1.5"><CalendarClock className="size-4" />{appointment.startTime ? formatSalonDateTime(appointment.startTime, appointment.location?.timezone) : 'Not scheduled'}</span>
           <span>{appointment.duration || 0} min</span>
           <span>{appointment.location?.name || 'Location not assigned'}</span>
-          {appointment.depositAmount ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
+          {appointment.depositAmount && depositRefund && !appointment.depositPaid ? <span className="inline-flex items-center gap-1.5"><StatusDot tone="zinc" />Deposit refunded {usd(depositRefund.refunded)}</span>
+            : appointment.depositAmount ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
           {appointment.services.some((service) => service.requiresConsultation) ? <span className="inline-flex items-center gap-1.5 text-violet-800 dark:text-violet-300"><StatusDot tone="violet" />Consultation required</span> : null}
         </>}
         actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
@@ -119,8 +125,14 @@ export async function AppointmentDetailPage({ params }: PageProps) {
 
           {capabilities.payments && Number(appointment.depositAmount || 0) > 0 ? (
             <Panel title="Deposit" icon={CreditCard}>
-              {appointment.depositPaid ? <p className="text-sm"><TitleStatus tone="emerald">Paid</TitleStatus> <span className="ml-2 tabular-nums">{usd(appointment.depositAmount)}</span> · applied at checkout</p>
-                : !['pending', 'confirmed'].includes(status) ? <p className="text-sm text-muted-foreground">Deposit of {usd(appointment.depositAmount)} not collected.</p> : (
+              {depositRefund && !appointment.depositPaid ? (
+                <p className="text-sm"><TitleStatus tone={depositRefund.tone === 'refunded' ? 'zinc' : 'amber'}>{depositRefund.tone === 'refunded' ? 'Refunded' : 'Partly refunded'}</TitleStatus> <span className="ml-2 tabular-nums">{usd(depositRefund.refunded)}</span> · back to the card</p>
+              ) : appointment.depositPaid ? (
+                <div className="grid gap-3">
+                  <p className="text-sm"><TitleStatus tone="emerald">Paid</TitleStatus> <span className="ml-2 tabular-nums">{usd(appointment.depositAmount)}</span> · {cardDeposit ? 'paid by card online' : 'applied at checkout'}{depositRefund ? <span className="text-muted-foreground"> · {usd(depositRefund.refunded)} refunded</span> : null}</p>
+                  {cardDeposit ? <RefundDepositButton paymentSessionId={cardDeposit.id} appointmentId={appointment.id} amountLabel={usd(cardDeposit.remaining)} client={contact.name} /> : null}
+                </div>
+              ) : !['pending', 'confirmed'].includes(status) ? <p className="text-sm text-muted-foreground">Deposit of {usd(appointment.depositAmount)} not collected.</p> : (
                 <ActionForm action={recordDeposit} submitLabel={`Record ${usd(appointment.depositAmount)} deposit`} pendingLabel="Recording…" className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="appointmentId" value={appointment.id} />
                   <input type="hidden" name="idempotencyKey" value={`desk-deposit:${appointment.id}`} />
