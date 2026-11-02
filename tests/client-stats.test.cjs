@@ -77,3 +77,9 @@ test('checkout and reversals recompute instead of incrementing, and nobody can w
   assert.match(migration, /a\."status" = 'completed'/);
   assert.match(migration, /LEFT JOIN visits/);
 });
+
+test('the client list shows lifetime value in dollars, not raw cents', () => {
+  const model = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'features/keystone/models/Client.ts'), 'utf8');
+  assert.match(model, /initialColumns: \[[^\]]*"totalVisits", "lifetimeSpend"\]/);
+  assert.match(model, /lifetimeSpend: virtual\([\s\S]*lifetimeValue[\s\S]*\/ 100[\s\S]*minimumFractionDigits: 2/);
+});

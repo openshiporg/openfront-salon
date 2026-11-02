@@ -32,7 +32,7 @@ export const Client = list({
   hooks: createLifecycleHooks("client", ["userId", "preferredStylistId", "homeLocationId", "totalVisits", "lifetimeValue", "marketingConsent"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
-      initialColumns: ["user", "hairType", "preferredStylist", "totalVisits", "lifetimeValue"],
+      initialColumns: ["user", "hairType", "preferredStylist", "totalVisits", "lifetimeSpend"],
     },
   },
   fields: {
@@ -183,6 +183,16 @@ export const Client = list({
       validation: { min: 0 },
       access: derived,
       ui: { description: "Pre-tax spend on completed sales, less refunds, in cents", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
+    }),
+
+    // The list column: lifetimeValue as dollars, so the table never shows raw cents.
+    lifetimeSpend: virtual({
+      field: graphql.field({
+        type: graphql.String,
+        resolve: (item) => `$${(Number((item as { lifetimeValue?: number | null }).lifetimeValue || 0) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      }),
+      label: "Lifetime Value",
+      ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "hidden" }, listView: { fieldMode: "read" } },
     }),
 
     // Consent
