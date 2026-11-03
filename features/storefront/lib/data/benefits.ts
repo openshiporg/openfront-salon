@@ -1,6 +1,6 @@
 "use server"
 
-import { getGraphQLEndpoint } from "../getBaseUrl"
+import { getServerGraphQLTarget } from "../getBaseUrl"
 
 export interface StorefrontPlan { id: string; name: string; description: string; services: { id: string; name: string }[] }
 export interface StorefrontMembership extends StorefrontPlan { monthlyPrice: number; discountPercent: number }
@@ -8,7 +8,8 @@ export interface StorefrontPackage extends StorefrontPlan { totalPrice: number; 
 
 async function publicQuery<T>(query: string, variables: Record<string, unknown> = {}): Promise<T | null> {
   try {
-    const response = await fetch(await getGraphQLEndpoint(), {
+    const target = await getServerGraphQLTarget()
+    const response = await (target.fetch ?? fetch)(target.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables }),

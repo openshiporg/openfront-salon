@@ -48,3 +48,16 @@ export async function getGraphQLEndpoint(): Promise<string> {
   const baseUrl = await getBaseUrl();
   return `${baseUrl}/api/graphql`;
 }
+
+/**
+ * Server-side GraphQL target for storefront data fetches: loopback with a signed end-user identity
+ * unless an explicit NEXT_PUBLIC_BACKEND_URL points elsewhere. Build one per request (it carries the
+ * visitor's identity).
+ */
+export async function getServerGraphQLTarget(
+  sourceHeaders?: { get(name: string): string | null } | null,
+): Promise<{ endpoint: string; fetch?: typeof fetch }> {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return { endpoint: await getGraphQLEndpoint() };
+  const { getServerGraphQLTarget: dashboardTarget } = await import("@/features/dashboard/lib/getBaseUrl");
+  return dashboardTarget(sourceHeaders);
+}

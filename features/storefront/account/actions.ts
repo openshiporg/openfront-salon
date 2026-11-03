@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { keystoneClient, type KeystoneResponse } from "@/features/dashboard/lib/keystoneClient";
 import { GraphQLClient } from "graphql-request";
-import { getGraphQLEndpoint } from "@/features/dashboard/lib/getBaseUrl";
+import { getServerGraphQLTarget } from "@/features/dashboard/lib/getBaseUrl";
 import { verifyPortalIdentity } from "./verifyPortalIdentity";
 import { parseExplicitIsoInstant } from "./rescheduleTimeInput";
 import { zonedLocalTimeToIso } from "@/features/lib/zonedLocalTime";
@@ -56,8 +56,9 @@ export async function portalSignIn(formData: FormData) {
   const auth = response.success ? response.data?.authenticateUserWithPassword : null;
   if (!auth?.sessionToken) await redirectToSignInError("credentials");
   const verified = await verifyPortalIdentity(auth, async (sessionToken) => {
-    const endpoint = await getGraphQLEndpoint();
+    const { endpoint, fetch: internalFetch } = await getServerGraphQLTarget();
     const client = new GraphQLClient(endpoint, {
+      ...(internalFetch ? { fetch: internalFetch } : {}),
       headers: { Cookie: `keystonejs-session=${sessionToken}` },
     });
     const result = await client.request<{ authenticatedItem: { id: string; clientProfile: { id: string } | null } | null }>(

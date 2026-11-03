@@ -4,25 +4,20 @@
  */
 
 import { GraphQLClient, RequestDocument, Variables } from 'graphql-request';
-import { getGraphQLEndpoint } from './getBaseUrl';
+import { getServerGraphQLTarget } from './getBaseUrl';
 
 class SalonClient {
-  private clientPromise: Promise<GraphQLClient> | null = null;
-
+  // Built per request: the internal fetch carries the visitor's signed identity and must not be shared.
   private async getClient(): Promise<GraphQLClient> {
-    if (!this.clientPromise) {
-      this.clientPromise = (async () => {
-        const endpoint = await getGraphQLEndpoint();
-        return new GraphQLClient(endpoint, {
-          credentials: 'include',
-          headers: {
-            'Connection': 'keep-alive',
-          },
-          timeout: 10000,
-        });
-      })();
-    }
-    return this.clientPromise;
+    const { endpoint, fetch: internalFetch } = await getServerGraphQLTarget();
+    return new GraphQLClient(endpoint, {
+      credentials: 'include',
+      headers: {
+        'Connection': 'keep-alive',
+      },
+      timeout: 10000,
+      ...(internalFetch ? { fetch: internalFetch } : {}),
+    });
   }
 
   async request<T = any, V extends Variables = Variables>(

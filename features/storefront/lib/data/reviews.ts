@@ -1,6 +1,6 @@
 "use server"
 
-import { getGraphQLEndpoint } from "../getBaseUrl"
+import { getServerGraphQLTarget } from "../getBaseUrl"
 
 export interface Review {
   id: string
@@ -50,7 +50,8 @@ export async function getApprovedReviews(limit?: number): Promise<Review[]> {
   `
 
   try {
-    const response = await fetch(await getGraphQLEndpoint(), {
+    const target = await getServerGraphQLTarget()
+    const response = await (target.fetch ?? fetch)(target.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { limit } }),
@@ -92,7 +93,8 @@ export async function getReviewsForService(serviceId: string): Promise<Review[]>
   `
 
   try {
-    const response = await fetch(await getGraphQLEndpoint(), {
+    const target = await getServerGraphQLTarget()
+    const response = await (target.fetch ?? fetch)(target.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { serviceId } }),
@@ -137,7 +139,8 @@ export async function getReviewsForStylist(stylistId: string): Promise<Review[]>
   `
 
   try {
-    const response = await fetch(await getGraphQLEndpoint(), {
+    const target = await getServerGraphQLTarget()
+    const response = await (target.fetch ?? fetch)(target.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, variables: { stylistId } }),
