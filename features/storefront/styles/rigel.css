@@ -393,9 +393,11 @@ body:has(.storefront) {
   color: #fff;
 }
 
-.storefront .sf-btn-primary:hover {
-  border-color: var(--sf-ink-2);
-  background: var(--sf-ink-2);
+@media (hover: hover) {
+  .storefront .sf-btn-primary:hover {
+    border-color: var(--sf-ink-2);
+    background: var(--sf-ink-2);
+  }
 }
 
 .storefront .sf-btn-quiet,
