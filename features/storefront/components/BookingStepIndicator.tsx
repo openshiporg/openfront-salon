@@ -1,5 +1,3 @@
-import { Check } from "lucide-react"
-
 interface Step {
   number: number
   title: string
@@ -12,34 +10,35 @@ interface BookingStepIndicatorProps {
   onSelect?: (step: number) => void
 }
 
-/** Four labelled cells; every label stays visible on a phone. Done steps carry a tick and can be revisited. */
+/**
+ * One progress indicator: a hairline segment per step, filled up to the current one,
+ * with its name underneath. Finished steps can be revisited.
+ */
 export function BookingStepIndicator({ currentStep, steps, onSelect }: BookingStepIndicatorProps) {
-  const current = steps.find((step) => step.number === currentStep)
   return (
-    <nav aria-label="Booking steps">
-      <ol className="sf-steps">
+    <nav aria-label="Booking progress">
+      <ol className="sf-bk-progress">
         {steps.map((step) => {
-          const isCompleted = currentStep > step.number
-          const isCurrent = currentStep === step.number
+          const done = currentStep > step.number
+          const current = currentStep === step.number
           return (
             <li key={step.number} className="min-w-0">
               <button
                 type="button"
-                disabled={!isCompleted || !onSelect}
+                disabled={!done || !onSelect}
                 onClick={() => onSelect?.(step.number)}
-                aria-current={isCurrent ? "step" : undefined}
-                aria-label={`Step ${step.number} of ${steps.length}: ${step.title}${isCompleted ? ", done, go back" : ""}`}
-                data-done={isCompleted && Boolean(onSelect)}
-                className="sf-step"
+                aria-current={current ? "step" : undefined}
+                aria-label={`${step.title}, step ${step.number} of ${steps.length}${done ? ", done. Go back to this step" : ""}`}
+                data-state={done ? "done" : current ? "current" : "todo"}
+                className="sf-bk-progress-step"
               >
-                {isCompleted ? <Check aria-hidden="true" /> : <span className="sf-step-num" aria-hidden="true">{step.number}</span>}
-                <span aria-hidden="true">{step.title}</span>
+                <span className="sf-bk-progress-bar" aria-hidden="true" />
+                <span className="sf-bk-progress-label" aria-hidden="true">{step.title}</span>
               </button>
             </li>
           )
         })}
       </ol>
-      {current ? <p className="sf-step-label" aria-live="polite">Step {current.number} of {steps.length}</p> : null}
     </nav>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Check, ChevronRight, ChevronLeft, ShieldCheck } from "lucide-react"
+import { Check, ChevronLeft } from "lucide-react"
 import type { Service } from "../lib/data/services"
 import { getStylistsForService } from "../lib/data/stylists"
 import type { Stylist } from "../lib/data/stylists"
@@ -12,7 +12,7 @@ import { getAvailableTimeSlots, type BookingSlot } from "../lib/data/availabilit
 import { clearBookingRequestKey, getOrCreateBookingRequestKey } from "../lib/data/bookingSubmitOutcome"
 import type { BookingContextRead, BookingSelectionRead } from "../lib/data/bookingSelectionRead"
 import { serviceTags } from "../components/ServiceCard"
-import { categoryBand, serviceCodes, type CategoryBands } from "../lib/bands"
+import type { CategoryBands } from "../lib/bands"
 import { StylistPortrait, stylistTitle } from "../components/StylistCard"
 import { PayDepositButton } from "../components/PayDepositButton"
 import { TimeSlotPicker } from "../components/TimeSlotPicker"
@@ -64,7 +64,7 @@ function formatNotice(minutes?: number | null) {
   return `${value} minutes`
 }
 
-export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null, categoryBands = null, preferredDate = null, preferredTime = null }: BookingPageProps) {
+export function BookingPage({ initialServiceCatalog, preselectedService = null, preselectedStylist = null, preselectedStylistName = null, preselectedStylistServiceIds = null, preferredDate = null, preferredTime = null }: BookingPageProps) {
 
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<string | null>(preselectedService)
@@ -149,10 +149,13 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     setStep(1)
   }, [preselectedService, selectedService, initialServiceCatalog.status, services])
 
-  // A stylist chosen before the service (e.g. "Book with …") skips the stylist step once qualified.
+  // A stylist chosen before the service (e.g. "Book with …") skips the stylist step once qualified, once.
+  const preselectSkip = useRef(Boolean(preselectedStylist))
   useEffect(() => {
-    if (step === 2 && selectedStylist && stylistRead.status === "available") setStep(3)
-  }, [step, selectedStylist, stylistRead.status])
+    if (!preselectSkip.current || step !== 2 || stylistRead.status !== "available") return
+    preselectSkip.current = false
+    if (selectedStylist && selectedStylist === preselectedStylist) setStep(3)
+  }, [step, selectedStylist, preselectedStylist, stylistRead.status])
 
   // A day and time carried from the home picker: applied once, when the time step first opens with that stylist.
   const preference = useRef(preferredDate && /^\d{4}-\d{2}-\d{2}$/.test(preferredDate) ? { date: preferredDate, time: preferredTime, stage: "date" as "date" | "time" | "done" } : null)
@@ -201,7 +204,8 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
           return
         }
         setStylistRead({ status: "available", items: result.items })
-        setSelectedStylist(current => current && result.items.some(stylist => stylist.id === current) ? current : null)
+        // One qualified stylist is chosen for the client; they still see who it is and confirm.
+        setSelectedStylist(current => current && result.items.some(stylist => stylist.id === current) ? current : result.items.length === 1 ? result.items[0].id : null)
       } catch {
         if (cancelled) return
         setStylistRead({ status: "unavailable" })
@@ -250,23 +254,24 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   const stylist = stylists.find((s) => s.id === selectedStylist)
   const selectedTimeLabel = availableSlots.find((slot) => slot.startTime === selectedTime)?.label || null
 
+  // Choosing marks the row; Continue (bottom bar on a phone, summary on desktop) moves on.
   const handleServiceSelect = (serviceId: string) => {
+    setError(null)
+    if (serviceId === selectedService) return
     setSelectedService(serviceId)
     setStylistRead({ status: "loading" })
     setSelectedDate(undefined)
     setSelectedTime(null)
     setAvailableSlots([])
-    setStep(2)
-    setError(null)
   }
 
   const handleStylistSelect = (stylistId: string) => {
+    setError(null)
+    if (stylistId === selectedStylist) return
     setSelectedStylist(stylistId)
     setSelectedDate(undefined)
     setSelectedTime(null)
     setAvailableSlots([])
-    setStep(3)
-    setError(null)
   }
 
   function handleDateSelect(date: Date | undefined) {
@@ -335,7 +340,6 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
   // Revisiting a step clears what depends on it, matching the "Change" links.
   const handleStepSelect = (target: number) => {
     if (target >= step) return
-    if (target === 2) setSelectedStylist(null)
     setStep(target)
     setError(null)
   }
@@ -352,6 +356,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
 
   const location = bookingContext?.locations.find((item) => item.id === locationId)
   const dateLabel = selectedDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+  const shortDate = selectedDate?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
   const servicesByCategory = menuServices.reduce<Array<{ name: string; items: Service[] }>>((groups, item) => {
     const name = item.category?.name || "Services"
     const group = groups.find((entry) => entry.name === name)
@@ -360,308 +365,283 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
     return groups
   }, [])
 
-  // The category, not its position, fixes each service's band colour and chip code, as on home and /services.
-  const bandByService = new Map<string, string>(services.map((item) => [item.id, categoryBand(categoryBands, item.category?.id)]))
-  const codeByService = serviceCodes(services)
-  const serviceBand = service ? bandByService.get(service.id) || "ink" : "ink"
-  const trayMeta = [stylist?.user?.name, selectedDate?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }), selectedTimeLabel].filter(Boolean).join(", ")
   const detailsReady = Boolean(requestKey && locationId && bookingContext && policyAccepted && !submitting)
+  const when = [shortDate, selectedTimeLabel].filter(Boolean).join(" · ")
+  const barMeta = [stylist?.user?.name, when].filter(Boolean).join(" · ")
 
-  const summary = (
-    <dl className="px-[var(--sf-space-sm)] py-1">
-      <div className="sf-summary-row"><dt>Service</dt><dd>{service?.name || "—"}</dd></div>
-      <div className="sf-summary-row"><dt>Stylist</dt><dd>{stylist?.user?.name || "—"}</dd></div>
-      <div className="sf-summary-row"><dt>Date</dt><dd>{dateLabel || "—"}</dd></div>
-      <div className="sf-summary-row"><dt>Time</dt><dd>{selectedTimeLabel || "—"}</dd></div>
-      {location ? <div className="sf-summary-row"><dt>Location</dt><dd>{location.name}</dd></div> : null}
+  // Move the view to the top of the flow whenever the step changes, so a phone never lands mid-list.
+  const flowTop = useRef<HTMLDivElement>(null)
+  const firstStep = useRef(true)
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return }
+    const top = flowTop.current
+    if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView({ block: "start" })
+  }, [step])
+
+  const stepTitle = step === 1 ? "Choose a service" : step === 2 ? "Choose your stylist" : step === 3 ? "Choose a time" : "Your details"
+  const stepNote = step === 1
+    ? null
+    : step === 2 ? service?.name
+    : step === 3 ? [service?.name, stylist?.user?.name ? `with ${stylist.user.name}` : null].filter(Boolean).join(" ")
+    : [service?.name, dateLabel && selectedTimeLabel ? `${dateLabel} at ${selectedTimeLabel}` : null].filter(Boolean).join(", ")
+
+  // The next action for the current step: what the bar (phone) and the summary (desktop) offer.
+  const nextAction: { label: string; disabled: boolean; onClick?: () => void; submit?: boolean } | null =
+    step === 1 ? (service ? { label: "Continue", disabled: false, onClick: () => { setStep(2); setError(null) } } : null)
+    : step === 2 ? { label: "Continue", disabled: !stylist, onClick: () => { if (stylist) { setStep(3); setError(null) } } }
+    : step === 3 ? { label: "Continue", disabled: !selectedDate || !selectedTime, onClick: handleDateTimeConfirm }
+    : { label: submitting ? "Booking…" : "Confirm booking", disabled: !detailsReady, submit: true }
+
+  const actionButton = (className = "") => nextAction ? (
+    nextAction.submit
+      ? <button type="submit" form="sf-booking-details" disabled={nextAction.disabled} className={`sf-btn sf-btn-primary ${className}`}>{submitting ? <span className="sf-spinner" aria-hidden="true" /> : null}{nextAction.label}</button>
+      : <button type="button" onClick={nextAction.onClick} disabled={nextAction.disabled} className={`sf-btn sf-btn-primary ${className}`}>{nextAction.label}</button>
+  ) : null
+
+  const visitRows = (
+    <dl className="sf-bk-visit">
+      <div><dt>Service</dt><dd>{service?.name || "Not chosen yet"}</dd></div>
+      <div><dt>Stylist</dt><dd>{stylist?.user?.name || (step > 1 ? "Not chosen yet" : "After the service")}</dd></div>
+      <div><dt>Time</dt><dd>{dateLabel && selectedTimeLabel ? <>{dateLabel}<br />{selectedTimeLabel}</> : dateLabel || "Not chosen yet"}</dd></div>
+      {location ? <div><dt>Location</dt><dd>{location.name}</dd></div> : null}
     </dl>
   )
 
   // Success screen
   if (bookingSuccess) {
     return (
-      <div className="sf-page-pad">
-        <div className="sf-container-narrow">
-          <div className="sf-carton" data-band={serviceBand} data-selected="true">
-            <div className="sf-carton-band"><span className="sf-tick"><Check aria-hidden="true" /></span></div>
-            <div className="px-[var(--sf-space-sm)] pb-3 pt-[var(--sf-space-sm)] md:px-[var(--sf-space-md)]">
-              <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Booking received</h1>
-              <p className="mt-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Booked under <span className="font-semibold text-[var(--sf-ink)]">{clientInfo.email}</span></p>
+      <div className="sf-bk">
+        <div className="sf-bk-done sf-bk-panel">
+          <span className="sf-bk-done-mark" aria-hidden="true"><Check /></span>
+          <h1 className="sf-bk-title">You&apos;re booked</h1>
+          <p className="sf-bk-lede">We&apos;ve sent the details to <span className="text-[var(--sf-ink)]">{clientInfo.email}</span>.</p>
+          <dl className="sf-bk-visit sf-bk-visit-ruled">
+            <div><dt>Service</dt><dd>{service?.name || "—"}</dd></div>
+            <div><dt>Stylist</dt><dd>{stylist?.user?.name || "—"}</dd></div>
+            <div><dt>When</dt><dd>{dateLabel && selectedTimeLabel ? `${dateLabel}, ${selectedTimeLabel}` : "—"}</dd></div>
+            {location ? <div><dt>Where</dt><dd>{location.name}</dd></div> : null}
+            <div><dt>Price</dt><dd className="sf-num">{formatMenuPrice(service?.basePrice)}</dd></div>
+            <div><dt>Reference</dt><dd className="sf-bk-ref">{bookingId}</dd></div>
+          </dl>
+          {deposit && bookingId ? (
+            <div className="sf-bk-deposit">
+              <p>A {formatMenuPrice(deposit.amount / 100)} deposit holds your time. Pay it now by card, or at the salon.</p>
+              <PayDepositButton appointmentId={bookingId} accessToken={deposit.token} amount={deposit.amount} />
             </div>
-            <div className="border-t border-[var(--sf-ink)]">{summary}</div>
-            <dl className="border-t border-[var(--sf-rule)] px-[var(--sf-space-sm)] py-1">
-              <div className="sf-summary-row"><dt>Price</dt><dd className="sf-num">{formatMenuPrice(service?.basePrice)}</dd></div>
-              <div className="sf-summary-row"><dt>Reference</dt><dd className="font-mono !text-[length:var(--sf-text-xs)]">{bookingId}</dd></div>
-            </dl>
-            <div className="grid gap-4 border-t border-[var(--sf-rule)] p-[var(--sf-space-sm)]">
-              {deposit && bookingId ? (
-                <div className="grid gap-1">
-                  <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">This service takes a deposit to hold your time. Pay it now by card, or at the salon.</p>
-                  <PayDepositButton appointmentId={bookingId} accessToken={deposit.token} amount={deposit.amount} />
-                </div>
-              ) : depositDue ? (
-                <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">A {formatMenuPrice(depositDue / 100)} deposit is due. Pay it at the salon.</p>
-              ) : null}
-              {bookingContext?.client ? <Link className="sf-link self-start text-[length:var(--sf-text-sm)]" href={`/booking/${bookingId}`}>View your saved appointment</Link> : <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">To change this booking, contact the salon.</p>}
-              <div className="sf-track">
-                <Link href="/" className="sf-btn sf-btn-primary">Home</Link>
-                <a href="/book" className="sf-btn sf-btn-quiet">Book another</a>
-              </div>
-            </div>
+          ) : depositDue ? (
+            <p className="sf-bk-deposit">A {formatMenuPrice(depositDue / 100)} deposit is due. Pay it at the salon.</p>
+          ) : null}
+          <div className="sf-bk-done-links">
+            {bookingContext?.client ? <Link className="sf-link" href={`/booking/${bookingId}`}>View your appointment</Link> : <p className="text-[var(--sf-ink-2)]">To change this booking, contact the salon.</p>}
+            <a href="/book" className="sf-link">Book another</a>
+            <Link href="/" className="sf-link">Home</Link>
           </div>
         </div>
       </div>
     )
   }
 
+  const showBar = !bookingOutcomeUnresolved && Boolean(service)
+
   return (
-    <div className={`sf-page-pad !pt-[var(--sf-space-md)] ${service && !bookingOutcomeUnresolved ? "sf-has-tray" : ""}`}>
-      <div className="sf-container">
-        <div className="sf-page-head !mb-[var(--sf-space-md)]">
-          <h1 className="sf-display sf-page-title">Book</h1>
-          {/* The booking context reads any signed-in user (it pre-fills details); the client portal needs a client profile. Say what is true here. */}
-          {bookingContext?.client
-            ? <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Details filled in for <span className="font-semibold text-[var(--sf-ink)]">{bookingContext.client.name}</span></p>
-            : <Link className="sf-link text-[length:var(--sf-text-sm)]" href="/account">Client sign in</Link>}
-        </div>
+    <div className={`sf-bk ${showBar ? "sf-bk-has-bar" : ""}`}>
+      <div className="sf-bk-layout">
+        <div className="min-w-0" ref={flowTop}>
+          <BookingStepIndicator currentStep={step} steps={STEPS} onSelect={bookingOutcomeUnresolved ? undefined : handleStepSelect} />
 
-        <div className="sf-booking-grid">
-          <div className="min-w-0">
-            <div className="mb-[var(--sf-space-md)]">
-              <BookingStepIndicator currentStep={step} steps={STEPS} onSelect={bookingOutcomeUnresolved ? undefined : handleStepSelect} />
-            </div>
-
-            {bookingContextRead === null ? <p role="status" className="sf-note mb-4">Loading booking locations and policy…</p> : null}
-            {bookingContextRead?.status === "unavailable" ? <div role="alert" className="sf-alert mb-4">Booking configuration could not be verified. No reservation can be submitted. <button type="button" className="sf-link ml-1" onClick={() => setBookingContextAttempt(attempt => attempt + 1)}>Retry booking details</button></div> : null}
-            {bookingContextRead?.status === "available" && bookingContextRead.data.locations.length === 0 ? <p role="status" className="sf-note mb-4">No salon locations are available for online booking. Contact the salon.</p> : null}
-            {requestKeyUnavailable ? <p role="alert" className="sf-alert mb-4">Online booking needs site storage. Enable it in your browser and reload, or contact the salon.</p> : null}
-            {bookingContext && bookingContext.locations.length > 1 ? (
-              <label className="sf-field mb-[var(--sf-space-md)] max-w-md">Location
-                <select className="sf-input" value={locationId} onChange={event => { setLocationId(event.target.value); setSelectedTime(null); setAvailableSlots([]) }} required>
-                  <option value="">Choose a location</option>{bookingContext.locations.map(item => <option key={item.id} value={item.id}>{item.name} · {item.timezone || "Timezone unavailable"}</option>)}
-                </select>
-              </label>
+          <header className="sf-bk-head">
+            {step > 1 && !bookingOutcomeUnresolved ? (
+              <button type="button" className="sf-bk-back" onClick={() => handleStepSelect(step - 1)} aria-label={`Back to ${STEPS[step - 2].title.toLowerCase()}`}>
+                <ChevronLeft aria-hidden="true" />
+              </button>
             ) : null}
-            {error ? <div role="alert" className="sf-alert mb-4">{error}</div> : null}
+            <div className="min-w-0">
+              <h1 className="sf-bk-title" aria-live="polite">{stepTitle}</h1>
+              {stepNote ? <p className="sf-bk-lede">{stepNote}</p> : null}
+            </div>
+          </header>
 
-            {bookingOutcomeUnresolved ? (
-              <div role="alert" className="sf-card grid gap-4 p-[var(--sf-space-md)]">
-                <h2 className="sf-display text-[length:var(--sf-text-2xl)]">We couldn&apos;t confirm your booking request</h2>
-                <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Retry below; it won&apos;t be booked twice. If it&apos;s still unclear, check your email or contact the salon.</p>
-                <div className="sf-track justify-self-start">
-                  <button type="button" className="sf-btn sf-btn-primary" disabled={submitting || !requestKey} onClick={() => void submitBooking()}>
-                    {submitting ? "Checking request…" : "Retry same booking request"}
-                  </button>
-                </div>
+          {bookingContextRead === null ? <p role="status" className="sf-bk-notice">Loading booking details…</p> : null}
+          {bookingContextRead?.status === "unavailable" ? <div role="alert" className="sf-alert mb-4">Booking configuration could not be verified. No reservation can be submitted. <button type="button" className="sf-link ml-1" onClick={() => setBookingContextAttempt(attempt => attempt + 1)}>Retry booking details</button></div> : null}
+          {bookingContextRead?.status === "available" && bookingContextRead.data.locations.length === 0 ? <p role="status" className="sf-bk-notice">No salon locations are available for online booking. Contact the salon.</p> : null}
+          {requestKeyUnavailable ? <p role="alert" className="sf-alert mb-4">Online booking needs site storage. Enable it in your browser and reload, or contact the salon.</p> : null}
+          {bookingContext && bookingContext.locations.length > 1 ? (
+            <label className="sf-field mb-[var(--sf-space-md)] max-w-md">Location
+              <select className="sf-input" value={locationId} onChange={event => { setLocationId(event.target.value); setSelectedTime(null); setAvailableSlots([]) }} required>
+                <option value="">Choose a location</option>{bookingContext.locations.map(item => <option key={item.id} value={item.id}>{item.name} · {item.timezone || "Timezone unavailable"}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {error ? <div role="alert" className="sf-alert mb-4">{error}</div> : null}
+
+          {bookingOutcomeUnresolved ? (
+            <div role="alert" className="sf-bk-panel grid gap-4">
+              <h2 className="sf-bk-title !text-[length:var(--sf-text-2xl)]">We couldn&apos;t confirm your booking request</h2>
+              <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Retry below; it won&apos;t be booked twice. If it&apos;s still unclear, check your email or contact the salon.</p>
+              <div>
+                <button type="button" className="sf-btn sf-btn-primary" disabled={submitting || !requestKey} onClick={() => void submitBooking()}>
+                  {submitting ? "Checking request…" : "Retry same booking request"}
+                </button>
               </div>
-            ) : (
-              <>
-                {step === 1 && (
-                  <section aria-labelledby="step-service">
-                    <h2 id="step-service" className="sf-display mb-4 text-[length:var(--sf-text-2xl)]">Choose a service</h2>
-                    {stylistFilter ? (
-                      <div className="mb-5 flex flex-wrap items-center gap-3">
-                        <span className="sf-chip sf-chip-accent">With {preselectedStylistName || "your stylist"}</span>
-                        <button type="button" className="sf-btn sf-btn-sm sf-btn-quiet" onClick={clearStylistFilter}>Any stylist</button>
-                      </div>
-                    ) : null}
-                    {initialServiceCatalog.status === "unavailable" ? (
-                      <div role="alert" className="sf-alert">
-                        Service choices could not be verified. No service can be selected until the catalog loads.
-                        <button type="button" className="sf-link ml-1" onClick={() => window.location.reload()}>Retry service catalog</button>
-                      </div>
-                    ) : services.length === 0 ? (
-                      <p role="status" className="sf-note">No services are available for online booking. Contact the salon.</p>
-                    ) : (
-                      <div className="grid gap-[var(--sf-space-md)]">
-                        {servicesByCategory.map((group) => (
-                          <div key={group.name}>
-                            {servicesByCategory.length > 1 ? <h3 className="sf-display mb-2 border-b border-[var(--sf-ink)] pb-1.5 text-[length:var(--sf-text-lg)]">{group.name}</h3> : null}
-                            <div className="sf-shelf-grid">
-                              {group.items.map((svc) => {
-                                const tags = serviceTags(svc)
-                                const chosen = selectedService === svc.id
-                                return (
-                                  <button key={svc.id} type="button" aria-pressed={chosen} onClick={() => handleServiceSelect(svc.id)} className="sf-carton" data-band={bandByService.get(svc.id) || "ink"}>
-                                    <span className="sf-carton-band">
-                                      {chosen ? <span className="sf-tick"><Check aria-hidden="true" /></span> : <span className="sf-shade" aria-hidden="true">{codeByService.get(svc.id)}</span>}
+            </div>
+          ) : (
+            <div key={step} className="sf-bk-step">
+              {step === 1 && (
+                <section aria-label="Services">
+                  {stylistFilter ? (
+                    <p className="sf-bk-filter">
+                      Showing services with {preselectedStylistName || "your stylist"}.{" "}
+                      <button type="button" className="sf-link" onClick={clearStylistFilter}>Show all services</button>
+                    </p>
+                  ) : null}
+                  {initialServiceCatalog.status === "unavailable" ? (
+                    <div role="alert" className="sf-alert">
+                      Service choices could not be verified. No service can be selected until the catalog loads.
+                      <button type="button" className="sf-link ml-1" onClick={() => window.location.reload()}>Retry service catalog</button>
+                    </div>
+                  ) : services.length === 0 ? (
+                    <p role="status" className="sf-bk-notice">No services are available for online booking. Contact the salon.</p>
+                  ) : (
+                    <div className="grid gap-[var(--sf-space-lg)]">
+                      {servicesByCategory.map((group) => (
+                        <div key={group.name} role="group" aria-labelledby={`cat-${group.name}`}>
+                          {servicesByCategory.length > 1 ? <h2 id={`cat-${group.name}`} className="sf-bk-category">{group.name}</h2> : null}
+                          <ul className="sf-bk-list">
+                            {group.items.map((svc) => {
+                              const notes = serviceTags(svc)
+                              const chosen = selectedService === svc.id
+                              return (
+                                <li key={svc.id}>
+                                  <button type="button" aria-pressed={chosen} onClick={() => handleServiceSelect(svc.id)} className="sf-bk-option" data-service-option>
+                                    <span className="sf-bk-radio" aria-hidden="true"><Check /></span>
+                                    <span className="sf-bk-option-main">
+                                      <span className="sf-bk-option-name">{svc.name}</span>
+                                      {svc.description ? <span className="sf-bk-option-desc">{svc.description}</span> : null}
+                                      {notes.length ? <span className="sf-bk-option-note">{notes.join(" · ")}</span> : null}
                                     </span>
-                                    <span className="sf-carton-body">
-                                      <span className="sf-carton-name">{svc.name}</span>
-                                      {svc.description ? <span className="sf-carton-desc line-clamp-2">{svc.description}</span> : null}
-                                      {tags.length ? <span className="sf-carton-tags">{tags.map((tag) => <span key={tag} className="sf-chip sf-chip-accent"><ShieldCheck aria-hidden="true" />{tag}</span>)}</span> : null}
-                                      <span className="sf-carton-figures">
-                                        <span className="sf-num sf-carton-duration">{svc.baseDuration}<small>min</small></span>
-                                        <span className="sf-num sf-carton-price">{formatMenuPrice(svc.basePrice)}</span>
-                                      </span>
+                                    <span className="sf-bk-option-figures">
+                                      <span className="sf-bk-price">{formatMenuPrice(svc.basePrice)}</span>
+                                      <span className="sf-bk-duration">{svc.baseDuration} min</span>
                                     </span>
                                   </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                )}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
-                {step === 2 && (
-                  <section aria-labelledby="step-stylist">
-                    <h2 id="step-stylist" className="sf-display mb-1 text-[length:var(--sf-text-2xl)]">Choose a stylist</h2>
-                    <p className="mb-5 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">For {service?.name}</p>
-                    {stylistRead.status === "loading" || stylistRead.status === "idle" ? <p role="status" className="sf-note">Loading stylists…</p> : null}
-                    {stylistRead.status === "unavailable" ? <div role="alert" className="sf-alert">Stylist choices could not be verified. No stylist is selected. <button type="button" className="sf-link ml-1" onClick={() => setStylistRetryAttempt(attempt => attempt + 1)}>Retry stylist list</button></div> : null}
-                    {stylistRead.status === "available" && stylists.length === 0 ? <p role="status" className="sf-note">No stylists are available for this service. Contact the salon.</p> : null}
-                    {stylistRead.status === "available" && stylists.length > 0 ? (
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {stylists.map((styl) => (
-                          <button key={styl.id} type="button" aria-pressed={selectedStylist === styl.id} onClick={() => handleStylistSelect(styl.id)} className="sf-pick">
-                            <StylistPortrait stylist={styl} className="h-20 w-16 shrink-0" />
-                            <span className="min-w-0 flex-1">
-                              <span className="sf-carton-name block truncate">{styl.user?.name || "Stylist"}</span>
-                              <span className="mt-1 block text-[length:var(--sf-text-xs)] text-[var(--sf-ink-2)]">{stylistTitle(styl.tier, styl.role)}</span>
+              {step === 2 && (
+                <section aria-label="Stylists">
+                  {stylistRead.status === "loading" || stylistRead.status === "idle" ? <p role="status" className="sf-bk-empty"><span className="sf-spinner" aria-hidden="true" />Finding stylists for this service…</p> : null}
+                  {stylistRead.status === "unavailable" ? <div role="alert" className="sf-alert">Stylist choices could not be verified. No stylist is selected. <button type="button" className="sf-link ml-1" onClick={() => setStylistRetryAttempt(attempt => attempt + 1)}>Retry stylist list</button></div> : null}
+                  {stylistRead.status === "available" && stylists.length === 0 ? <p role="status" className="sf-bk-notice">No stylists are available for this service. Contact the salon.</p> : null}
+                  {stylistRead.status === "available" && stylists.length > 0 ? (
+                    <ul className="sf-bk-list">
+                      {stylists.map((styl) => (
+                        <li key={styl.id}>
+                          <button type="button" aria-pressed={selectedStylist === styl.id} onClick={() => handleStylistSelect(styl.id)} className="sf-bk-option sf-bk-person" data-stylist-option>
+                            <StylistPortrait stylist={styl} className="sf-bk-portrait" />
+                            <span className="sf-bk-option-main">
+                              <span className="sf-bk-option-name">{styl.user?.name || "Stylist"}</span>
+                              <span className="sf-bk-option-desc">{stylistTitle(styl.tier, styl.role)}</span>
+                              {styl.bio ? <span className="sf-bk-option-note sf-bk-bio">{styl.bio}</span> : null}
                             </span>
-                            {selectedStylist === styl.id ? <span className="sf-tick"><Check aria-hidden="true" /></span> : <ChevronRight className="h-5 w-5 shrink-0" aria-hidden="true" />}
+                            <span className="sf-bk-radio" aria-hidden="true"><Check /></span>
                           </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </section>
-                )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+              )}
 
-                {step === 3 && (
-                  <section aria-labelledby="step-time">
-                    <h2 id="step-time" className="sf-display mb-1 text-[length:var(--sf-text-2xl)]">Pick a time</h2>
-                    <p className="mb-5 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{service?.name} with {stylist?.user?.name}</p>
-                    <TimeSlotPicker
-                      selectedDate={selectedDate}
-                      onDateSelect={handleDateSelect}
-                      selectedTime={selectedTime}
-                      onTimeSelect={setSelectedTime}
-                      availableSlots={availableSlots}
-                      loadingSlots={loadingSlots}
-                    />
-                    {selectedDate && !loadingSlots && availableSlots.length === 0 && selectedService ? (
-                      <div className="sf-tray-surface mt-[var(--sf-space-md)] flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-[length:var(--sf-text-sm)]">{waitlist.status === "joined" ? "You're on the waitlist for this day." : "No open times this day."}</p>
-                        {waitlist.status === "joined" ? null : bookingContext?.client ? (
-                          <div className="sf-track self-start">
-                            <button type="button" disabled={waitlist.status === "sending"} onClick={async () => {
-                              setWaitlist({ status: "sending" })
-                              const result = await joinWaitlistForDay({ serviceId: selectedService, stylistId: selectedStylist, localDate: localDateKey(selectedDate) })
-                              setWaitlist(result.status === "joined" ? { status: "joined" } : { status: "error", message: result.message })
-                            }} className="sf-btn">{waitlist.status === "sending" ? "Joining…" : "Join the waitlist"}</button>
-                          </div>
-                        ) : <div className="sf-track self-start"><Link href="/account/signin" className="sf-btn">Sign in to join the waitlist</Link></div>}
-                      </div>
-                    ) : null}
-                    {waitlist.status === "error" ? <p role="alert" className="sf-alert mt-2">{waitlist.message}</p> : null}
-                    {/* On a phone the tray carries Continue; this one serves wider screens. */}
-                    <div className="mt-[var(--sf-space-md)] hidden justify-end lg:flex">
-                      <button type="button" onClick={handleDateTimeConfirm} disabled={!selectedDate || !selectedTime} className="sf-btn sf-btn-primary">
-                        Continue
-                        <ChevronRight />
-                      </button>
+              {step === 3 && (
+                <section aria-label="Day and time">
+                  <TimeSlotPicker
+                    selectedDate={selectedDate}
+                    onDateSelect={handleDateSelect}
+                    selectedTime={selectedTime}
+                    onTimeSelect={setSelectedTime}
+                    availableSlots={availableSlots}
+                    loadingSlots={loadingSlots}
+                  />
+                  {selectedDate && !loadingSlots && availableSlots.length === 0 && selectedService ? (
+                    <div className="sf-bk-waitlist">
+                      <p>{waitlist.status === "joined" ? "You're on the waitlist for this day. We'll email you if a time opens." : "Want this day anyway? Join the waitlist and we'll email you if a time opens."}</p>
+                      {waitlist.status === "joined" ? null : bookingContext?.client ? (
+                        <button type="button" disabled={waitlist.status === "sending"} onClick={async () => {
+                          setWaitlist({ status: "sending" })
+                          const result = await joinWaitlistForDay({ serviceId: selectedService, stylistId: selectedStylist, localDate: localDateKey(selectedDate) })
+                          setWaitlist(result.status === "joined" ? { status: "joined" } : { status: "error", message: result.message })
+                        }} className="sf-btn sf-btn-sm self-start">{waitlist.status === "sending" ? "Joining…" : "Join the waitlist"}</button>
+                      ) : <Link href="/account/signin" className="sf-link self-start">Sign in to join the waitlist</Link>}
                     </div>
-                  </section>
-                )}
+                  ) : null}
+                  {waitlist.status === "error" ? <p role="alert" className="sf-alert mt-2">{waitlist.message}</p> : null}
+                </section>
+              )}
 
-                {step === 4 && (
-                  <form id="sf-booking-details" onSubmit={handleSubmit} aria-labelledby="step-details" className="grid gap-[var(--sf-space-md)]">
-                    <h2 id="step-details" className="sf-display text-[length:var(--sf-text-2xl)]">Your details</h2>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <label htmlFor="booking-name" className="sf-field sm:col-span-2">Full name
-                        <input id="booking-name" type="text" required autoComplete="name" value={clientInfo.name} onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })} className="sf-input" />
-                      </label>
-                      <label htmlFor="booking-email" className="sf-field">Email
-                        <input id="booking-email" type="email" required autoComplete="email" value={clientInfo.email} onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })} className="sf-input" />
-                      </label>
-                      <label htmlFor="booking-phone" className="sf-field">Phone
-                        <input id="booking-phone" type="tel" required autoComplete="tel" value={clientInfo.phone} onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })} className="sf-input" />
-                      </label>
-                      <label htmlFor="booking-notes" className="sf-field sm:col-span-2">Notes for your stylist <span className="sf-field-hint">Optional</span>
-                        <textarea id="booking-notes" value={clientInfo.notes} onChange={(e) => setClientInfo({ ...clientInfo, notes: e.target.value })} className="sf-input min-h-[100px]" />
-                      </label>
-                    </div>
-
-                    {selectedTime && bookingContext?.policy && new Date(selectedTime).getTime() - Date.now() < Math.min(bookingContext.policy.cancellationNoticeMinutes, bookingContext.policy.rescheduleNoticeMinutes) * 60_000 ? (
-                      <p role="status" className="sf-note !text-[length:var(--sf-text-sm)]">This time is inside the notice window, so it can&apos;t be cancelled or rescheduled online. Contact the salon to change it.</p>
-                    ) : null}
-                    <label className="sf-tray-surface flex cursor-pointer items-start gap-3 p-4 text-[length:var(--sf-text-sm)]">
-                      <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--sf-ink)]" />
-                      <span>I agree to the booking policy: cancel at least {formatNotice(bookingContext?.policy.cancellationNoticeMinutes)} and reschedule at least {formatNotice(bookingContext?.policy.rescheduleNoticeMinutes)} before my appointment.</span>
+              {step === 4 && (
+                <form id="sf-booking-details" onSubmit={handleSubmit} aria-label="Your details" className="grid gap-[var(--sf-space-md)]">
+                  {/* The booking context reads any signed-in user (it pre-fills details); the client portal needs a client profile. Say what is true here. */}
+                  {bookingContext?.client
+                    ? <p className="sf-bk-account">Filled in from your account, {bookingContext.client.name}.</p>
+                    : <p className="sf-bk-account">Been here before? <Link className="sf-link" href="/account">Sign in</Link> to fill this in.</p>}
+                  <div className="sf-bk-fields">
+                    <label htmlFor="booking-name" className="sf-field sf-bk-span">Full name
+                      <input id="booking-name" type="text" required autoComplete="name" value={clientInfo.name} onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })} className="sf-input" />
                     </label>
+                    <label htmlFor="booking-email" className="sf-field">Email
+                      <input id="booking-email" type="email" required autoComplete="email" inputMode="email" value={clientInfo.email} onChange={(e) => setClientInfo({ ...clientInfo, email: e.target.value })} className="sf-input" />
+                    </label>
+                    <label htmlFor="booking-phone" className="sf-field">Phone
+                      <input id="booking-phone" type="tel" required autoComplete="tel" inputMode="tel" value={clientInfo.phone} onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })} className="sf-input" />
+                    </label>
+                    <label htmlFor="booking-notes" className="sf-field sf-bk-span">
+                      <span>Notes for your stylist <span className="sf-field-hint">· optional</span></span>
+                      <textarea id="booking-notes" value={clientInfo.notes} onChange={(e) => setClientInfo({ ...clientInfo, notes: e.target.value })} className="sf-input min-h-[6.5rem]" placeholder="Anything we should know before your visit" />
+                    </label>
+                  </div>
 
-                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <button type="button" onClick={() => setStep(3)} className="sf-btn sf-btn-quiet self-start">
-                        <ChevronLeft />
-                        Back
-                      </button>
-                      {/* On a phone the tray carries the confirm button for this form. */}
-                      <div className="sf-track sf-track-block hidden sm:w-auto lg:flex">
-                        <button type="submit" disabled={!detailsReady} className="sf-btn sf-btn-primary">
-                          {submitting ? (
-                            <>
-                              <span className="sf-spinner" aria-hidden="true" />
-                              Booking…
-                            </>
-                          ) : (
-                            <>
-                              <Check />
-                              Confirm booking
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                )}
-              </>
-            )}
-          </div>
-
-          <aside className="sf-booking-aside" aria-label="Your visit">
-            <div className="sf-tray-surface" data-band={serviceBand}>
-              <div className="flex items-center justify-between gap-3 border-b border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3">
-                <h2 className="sf-display text-[length:var(--sf-text-xl)]">Your visit</h2>
-                <span className="sf-shade !h-5 !w-5" aria-hidden="true" />
-              </div>
-              {summary}
-              {service ? (
-                <div className="flex items-baseline justify-between gap-3 border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3">
-                  <span className="sf-num text-[length:var(--sf-text-2xl)]">{service.baseDuration}<small>min</small></span>
-                  <span className="sf-num text-[length:var(--sf-text-xl)]">{formatMenuPrice(service.basePrice)}</span>
-                </div>
-              ) : (
-                <p className="border-t border-[var(--sf-ink)] px-[var(--sf-space-sm)] py-3 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-3)]">
-                  Choose a service to see its time and price.
-                </p>
+                  {selectedTime && bookingContext?.policy && new Date(selectedTime).getTime() - Date.now() < Math.min(bookingContext.policy.cancellationNoticeMinutes, bookingContext.policy.rescheduleNoticeMinutes) * 60_000 ? (
+                    <p role="status" className="sf-bk-notice">This time is inside the notice window, so it can&apos;t be cancelled or rescheduled online. Contact the salon to change it.</p>
+                  ) : null}
+                  <label className="sf-bk-policy">
+                    <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} />
+                    <span>I agree to the booking policy: cancel at least {formatNotice(bookingContext?.policy.cancellationNoticeMinutes)} and reschedule at least {formatNotice(bookingContext?.policy.rescheduleNoticeMinutes)} before my appointment.</span>
+                  </label>
+                </form>
               )}
             </div>
-          </aside>
+          )}
         </div>
+
+        <aside className="sf-bk-aside" aria-label="Your visit">
+          <div className="sf-bk-summary">
+            <h2 className="sf-bk-summary-title">Your visit</h2>
+            {visitRows}
+            <div className="sf-bk-total">
+              <span>{service ? `${service.baseDuration} min` : "Total"}</span>
+              <span className="sf-num">{service ? formatMenuPrice(service.basePrice) : "—"}</span>
+            </div>
+            {!bookingOutcomeUnresolved ? actionButton("w-full") : null}
+          </div>
+        </aside>
       </div>
 
-      {service && !bookingOutcomeUnresolved ? (
-        <div className="sf-tray" role="region" aria-label="Your visit" data-band={serviceBand}>
-          <div className="sf-tray-inner">
-            <div className="sf-tray-carton">
-              <div className="min-w-0">
-                <p className="sf-tray-name">{service.name}</p>
-                <p className="sf-tray-figures"><span className="sf-num">{service.baseDuration}<small>min</small></span><span className="sf-num">{formatMenuPrice(service.basePrice)}</span></p>
-                {trayMeta ? <p className="sf-tray-meta">{trayMeta}</p> : null}
-              </div>
+      {showBar ? (
+        <div className="sf-bk-bar" role="region" aria-label="Your visit">
+          <div className="sf-bk-bar-inner">
+            <div className="min-w-0 flex-1">
+              <p className="sf-bk-bar-line"><span className="sf-bk-bar-name">{service!.name}</span><span className="sf-num">{formatMenuPrice(service!.basePrice)}</span></p>
+              <p className="sf-bk-bar-meta">{barMeta || `${service!.baseDuration} min`}</p>
             </div>
-            {step === 3 ? (
-              <button type="button" onClick={handleDateTimeConfirm} disabled={!selectedDate || !selectedTime} className="sf-btn sf-btn-primary shrink-0">Continue</button>
-            ) : step === 4 ? (
-              <button type="submit" form="sf-booking-details" disabled={!detailsReady} className="sf-btn sf-btn-primary shrink-0">{submitting ? <><span className="sf-spinner" aria-hidden="true" />Booking…</> : "Confirm"}</button>
-            ) : step === 1 ? (
-              <button type="button" onClick={() => handleServiceSelect(service.id)} className="sf-btn sf-btn-primary shrink-0">Continue</button>
-            ) : (
-              <button type="button" onClick={() => handleStepSelect(1)} className="sf-btn sf-btn-quiet shrink-0">Change</button>
-            )}
+            {actionButton("shrink-0")}
           </div>
         </div>
       ) : null}
