@@ -28,7 +28,7 @@ export async function MainLayout({ children }: { children: React.ReactNode }) {
           Online booking opens soon
         </div>
       ) : null}
-      <Nav brandName={brand.name} tagline={brand.tagline} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
+      <Nav brandName={brand.name} logoIcon={brand.logoIcon} logoColor={brand.logoColor} />
       <main className="min-w-0 flex-1">{children}</main>
       <Footer brand={brand} />
     </div>

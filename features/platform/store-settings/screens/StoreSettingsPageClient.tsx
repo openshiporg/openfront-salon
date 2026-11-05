@@ -35,7 +35,6 @@ export function StoreSettingsPageClient({ initialSettings, locations }: { initia
           <div className="grid gap-4 p-4">
           <label htmlFor="storefront-name" className={fieldLabelClass}>Storefront name · header, footer, page titles<input id="storefront-name" name="name" value={name} onChange={event => setName(event.target.value)} maxLength={120} required className={inputClass} /></label>
           <label htmlFor="storefront-description" className={fieldLabelClass}>Description<textarea id="storefront-description" name="description" defaultValue={initialSettings?.description || ''} maxLength={240} rows={3} className={textareaClass} /></label>
-          <label htmlFor="storefront-tagline" className={fieldLabelClass}>Tagline · optional, small under the name in the header<input id="storefront-tagline" name="tagline" defaultValue={initialSettings?.tagline || ''} maxLength={24} placeholder="SALON" className={inputClass} /></label>
           </div>
         </section>
         <section className="min-w-0 overflow-hidden rounded-[6px] border bg-background">
