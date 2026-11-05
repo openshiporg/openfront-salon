@@ -2885,9 +2885,8 @@ body:has(.storefront) {
   z-index: 45;
   padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--sf-rule);
-  background: color-mix(in srgb, var(--sf-paper) 94%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--sf-paper);
+  box-shadow: 0 -8px 24px -18px rgb(29 28 25 / 0.25);
   animation: sf-dock var(--sf-dur-dock) var(--sf-ease-out);
 }
 
