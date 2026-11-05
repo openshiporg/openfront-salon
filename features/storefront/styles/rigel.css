@@ -393,6 +393,12 @@ body:has(.storefront) {
   color: #fff;
 }
 
+/* Touch: a tap leaves :hover stuck, so the primary keeps its resting colour. */
+.storefront .sf-btn-primary:hover {
+  border-color: var(--sf-sage-deep);
+  background: var(--sf-sage-deep);
+}
+
 @media (hover: hover) {
   .storefront .sf-btn-primary:hover {
     border-color: var(--sf-ink-2);
