@@ -1,8 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">Salon storefront</title>
-  <desc id="desc">A neutral scissors mark.</desc>
-  <rect width="64" height="64" rx="8" fill="#ffffff"/>
-  <circle cx="18" cy="45" r="8" fill="none" stroke="#171717" stroke-width="4"/>
-  <circle cx="46" cy="45" r="8" fill="none" stroke="#171717" stroke-width="4"/>
-  <path d="M23 39 48 13M41 39 16 13" fill="none" stroke="#171717" stroke-width="4" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Morrow &amp; Mane</title>
+  <rect width="64" height="64" rx="14" fill="#4e5d48"/>
+  <path transform="translate(32 32) scale(1.15) translate(-24 -24.5)" d="M6 37V12l9 15 9-15 9 15 9-15v25M24 12v25" fill="none" stroke="#f8f7f3" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

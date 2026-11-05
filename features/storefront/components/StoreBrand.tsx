@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { normalizeStoreLogoColor } from '@/features/lib/store-logo';
+import { markFollowsAccent } from '@/features/platform/store-settings/lib/store-logo';
 import { storeOwnMark } from '../lib/store-mark';
 
 /**
@@ -9,8 +10,11 @@ import { storeOwnMark } from '../lib/store-mark';
  */
 export function StoreBrand({ name, logoIcon, logoColor, onClick, size = 'md' }: { name: string | null; logoIcon?: string; logoColor?: string; onClick?: () => void; size?: 'md' | 'lg' }) {
   const mark = storeOwnMark(logoIcon);
+  // The M&M ligature (and any currentColor mark) is drawn in the storefront's deep sage; older
+  // fill-coloured marks keep the saved hue rotation.
+  const markStyle = markFollowsAccent(mark) ? { color: 'var(--sf-sage-deep, #4e5d48)' } : { filter: `hue-rotate(${normalizeStoreLogoColor(logoColor)}deg)` };
   return <Link href="/" onClick={onClick} className="inline-flex min-h-11 min-w-11 max-w-full items-center gap-2.5 text-current no-underline" data-store-brand>
-    {mark ? <span aria-hidden="true" className={`block shrink-0 [&>svg]:block [&>svg]:size-full ${size === 'lg' ? 'size-9' : 'size-6 lg:size-7'}`} style={{ filter: `hue-rotate(${normalizeStoreLogoColor(logoColor)}deg)` }} dangerouslySetInnerHTML={{ __html: mark }} /> : null}
+    {mark ? <span aria-hidden="true" className={`block shrink-0 [&>svg]:block [&>svg]:size-full ${size === 'lg' ? 'size-9' : 'size-6 lg:size-7'}`} style={markStyle} dangerouslySetInnerHTML={{ __html: mark }} /> : null}
     {name ? (
       <span className={`sf-brand-name min-w-0 max-w-full ${size === 'lg' ? 'truncate text-[1.75rem]' : 'line-clamp-2 text-[1rem] min-[360px]:line-clamp-1 sm:text-[1.125rem] lg:text-[1.625rem]'}`}>{name}</span>
     ) : <span className="sr-only">Home</span>}

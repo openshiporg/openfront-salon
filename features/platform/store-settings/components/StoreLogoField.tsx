@@ -11,7 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { HUE_PRESETS, LOGO_ICONS } from "../lib/icon-registry";
-import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from "../lib/store-logo";
+import { DEFAULT_STORE_LOGO_ICON, STORE_LOGO_SAGE, markFollowsAccent, normalizeStoreLogoColor } from "../lib/store-logo";
+
+/** currentColor marks (the M&M ligature) preview in sage; fill-coloured presets take the hue rotation. */
+const previewStyle = (svg: string, hue: string) => markFollowsAccent(svg) ? { color: STORE_LOGO_SAGE } : { filter: `hue-rotate(${hue}deg)` };
 
 /** E-commerce's Store Settings logo block, posted with the surrounding form as logoIcon/logoColor. */
 export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: string; initialColor: string }) {
@@ -42,7 +45,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
             >
               <div
                 dangerouslySetInnerHTML={{ __html: logoIcon }}
-                style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                style={previewStyle(logoIcon, logoColor)}
                 className="[&>svg]:w-6 [&>svg]:h-6"
               />
             </SelectPrimitive.Trigger>
@@ -52,7 +55,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
                   <span className="flex items-center gap-3">
                     <div
                       dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
-                      style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                      style={previewStyle(icon.lightSvg, logoColor)}
                       className="[&>svg]:w-6 [&>svg]:h-6"
                     />
                     <span>
@@ -96,7 +99,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
                   <div className="text-sm text-muted-foreground">Preview:</div>
                   <div
                     dangerouslySetInnerHTML={{ __html: logoIcon }}
-                    style={{ filter: `hue-rotate(${logoColor}deg)` }}
+                    style={previewStyle(logoIcon, logoColor)}
                     className="[&>svg]:w-8 [&>svg]:h-8 flex items-center justify-center p-2 border rounded"
                   />
                 </div>

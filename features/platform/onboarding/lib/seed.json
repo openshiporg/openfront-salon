@@ -5,6 +5,7 @@
     "description": "Hair, color, skin, and considered appointment booking.",
     "themeHue": 28,
     "logoColor": "28",
+    "logoIcon": "<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" height=\"100%\" width=\"100%\" viewBox=\"0 0 48 48\"><path d=\"M6 37V12l9 15 9-15 9 15 9-15v25M24 12v25\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
     "address": "123 Beauty Street",
     "city": "San Francisco",
     "state": "CA",
