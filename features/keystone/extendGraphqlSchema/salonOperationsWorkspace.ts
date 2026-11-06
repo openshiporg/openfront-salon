@@ -1,3 +1,4 @@
+import { deliverPendingEvents } from "../lib/domainOutbox";
 import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
@@ -176,10 +177,10 @@ async function reports(sudo: ReturnType<Context["sudo"]>, range: ReportRange = "
 }
 
 async function integrations(sudo: ReturnType<Context["sudo"]>) {
-  const [providers, pending, failed, events, webhooks] = await Promise.all([
+  const [providers, delivered, failed, events, webhooks] = await Promise.all([
     sudo.query.PaymentProvider.findMany({ take: 20, orderBy: { name: "asc" }, query: "id name code adapter isInstalled isDefault" }),
-    sudo.query.DomainEvent.count({ where: { status: { equals: "pending" } } }), sudo.query.DomainEvent.count({ where: { status: { equals: "dead_letter" } } }),
-    sudo.query.DomainEvent.findMany({ take: 30, where: { status: { equals: "dead_letter" } }, orderBy: { occurredAt: "desc" }, query: "id eventType aggregateType aggregateId status attempts occurredAt" }),
+    sudo.query.DomainEvent.count({ where: { status: { equals: "delivered" } } }), sudo.query.DomainEvent.count({ where: { OR: [{ status: { equals: "dead_letter" } }, { status: { in: ["pending", "processing"] }, availableAt: { lt: new Date(Date.now() - 15 * 60_000).toISOString() } }] } }),
+    sudo.query.DomainEvent.findMany({ take: 30, where: { OR: [{ status: { equals: "dead_letter" } }, { status: { in: ["pending", "processing"] }, availableAt: { lt: new Date(Date.now() - 15 * 60_000).toISOString() } }] }, orderBy: { occurredAt: "desc" }, query: "id eventType aggregateType aggregateId status attempts occurredAt" }),
     sudo.query.PaymentWebhookEvent.findMany({ take: 30, orderBy: { processedAt: "desc" }, query: "id eventId type status processedAt provider { name }" }),
   ]);
   const records: RecordItem[] = [
@@ -187,11 +188,10 @@ async function integrations(sudo: ReturnType<Context["sudo"]>) {
     ...events.map((row: any) => ({ id: `event:${row.id}`, title: row.eventType, subtitle: `${row.aggregateType} · ${row.aggregateId}`, status: row.status, detail: `${row.attempts || 0} ${row.attempts === 1 ? "attempt" : "attempts"}`, amount: null, metric: row.attempts || 0, occurredAt: date(row.occurredAt), href: null, action: null })),
     ...webhooks.map((row: any) => ({ id: `webhook:${row.id}`, title: row.type, subtitle: row.provider?.name || "Unknown provider", status: row.status, detail: `Provider event ${row.eventId}`, amount: null, metric: null, occurredAt: date(row.processedAt), href: null, action: null })),
   ];
-  // DomainEvent rows are the salon's change log (every booking, sale and edit is recorded). Nothing external
-  // subscribes to them, and client messages are sent directly and logged in MessageLog, so recorded events are
-  // history, not a backlog. Only dead-lettered events need someone to look.
+  // DomainEvent is the salon's outbox (lib/domainOutbox.ts delivers it: client notices by email, the rest to the
+  // audit log). Exceptions are dead letters and anything still undelivered 15 minutes after it was due.
   const attentionLabel = failed ? `${failed} failed` : null;
-  return { metrics: [count("Installed providers", providers.filter((x: any) => x.isInstalled).length), count("Changes recorded", pending), count("Failed events", failed), count("Recent webhooks", webhooks.length)], records, attentionCount: failed, attentionLabel };
+  return { metrics: [count("Installed providers", providers.filter((x: any) => x.isInstalled).length), count("Changes recorded", delivered), count("Failed events", failed), count("Recent webhooks", webhooks.length)], records, attentionCount: failed, attentionLabel };
 }
 
 const loaders: Record<Section, (sudo: ReturnType<Context["sudo"]>) => Promise<any>> = { clients, catalog, benefits, inventory, engagement, administration, reports, integrations };
@@ -221,6 +221,8 @@ export const salonOperationsWorkspace = graphql.field({
       await currentStockContext(context, "adjust");
       return { actorId: current.session!.itemId, section: key, ...definitions[key], ...data };
     }
+    // Opening Integrations delivers anything due first, so the page shows the real state of the outbox.
+    if (key === "integrations") await deliverPendingEvents(context).catch((error) => console.error("Outbox delivery failed:", error));
     const data = key === "reports"
       ? await reports(context.sudo(), range && Object.hasOwn(reportRanges, range) ? range as ReportRange : "all")
       : await loaders[key](context.sudo());

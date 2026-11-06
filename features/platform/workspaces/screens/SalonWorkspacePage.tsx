@@ -299,7 +299,7 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
       <section aria-labelledby="undelivered" className="grid gap-2">
         <h2 id="undelivered" className="flex items-baseline gap-2 text-sm font-semibold">Failed events<span className="text-xs font-normal tabular-nums text-muted-foreground">{queued + failed}</span></h2>
         <DataTable label="Failed events by type" head={[{ label: 'Event type' }, { label: 'Status' }, { label: 'Count', className: 'text-right' }, { label: 'Most attempts', className: 'hidden sm:table-cell text-right' }, { label: 'Oldest', className: 'hidden md:table-cell' }, { label: 'Latest', className: 'hidden md:table-cell' }]}>
-          {groups.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No failed events.{recorded ? ` ${recorded.toLocaleString('en-US')} changes recorded in the audit log.` : ''}</Td></tr> : groups.map((group) => (
+          {groups.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No failed events.{recorded ? ` ${recorded.toLocaleString('en-US')} ${recorded === 1 ? 'event' : 'events'} delivered: client notices by email, everything else to the audit log.` : ''}</Td></tr> : groups.map((group) => (
             <tr key={`${group.type}|${group.status}`}>
               <Td className="font-medium">{group.type}</Td>
               <Td><StatusCell tone={statusTone(group.status)}>{group.status === 'dead_letter' ? 'Failed' : labelize(group.status)}</StatusCell></Td>

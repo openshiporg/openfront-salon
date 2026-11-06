@@ -1,6 +1,6 @@
 import type { Context } from ".keystone/types";
 
-export type MessageKind = "appointment_confirmation" | "appointment_reminder" | "gift_card";
+export type MessageKind = "appointment_confirmation" | "appointment_reminder" | "appointment_cancelled" | "appointment_rescheduled" | "gift_card" | "membership";
 
 /**
  * Sends one email and writes the outcome to MessageLog, so Engagement shows what each client was actually sent

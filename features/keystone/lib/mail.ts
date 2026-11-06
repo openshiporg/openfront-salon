@@ -358,3 +358,35 @@ export async function sendGiftCardEmail(params: {
     throw error;
   }
 }
+
+/** Short client notice (appointment cancelled or moved), in the confirmation email's style. */
+export async function sendAppointmentNoticeEmail(params: {
+  to: string;
+  subject: string;
+  heading: string;
+  clientName: string;
+  body: string;
+  rows: Array<[string, string]>;
+  storefrontName: string | null;
+  themeHue: number;
+  actionUrl?: string | null;
+  actionLabel?: string | null;
+}): Promise<void> {
+  if (!hasSmtpConfiguration()) throw new Error("Email is not configured (SMTP_HOST / SMTP_FROM)");
+  const esc = (value: string) => value.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const primary = `hsl(${params.themeHue} 45% 38%)`;
+  const rows = params.rows.map(([label, value]) => `<tr><td style="font-size:14px;color:#6b7280;width:120px;padding:6px 0;">${esc(label)}</td><td style="font-size:14px;color:#444;font-weight:500;padding:6px 0;">${esc(value)}</td></tr>`).join("");
+  const html = `
+    <body style="background:#f9f9f9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+      <table width="100%" cellspacing="0" cellpadding="0" style="padding:40px 0;"><tr><td align="center">
+        <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:12px;">
+          <tr><td style="padding:36px 40px 16px;border-bottom:2px solid ${primary};text-align:center;"><h1 style="margin:0;font-size:26px;color:${primary};">${esc(params.heading)}</h1></td></tr>
+          <tr><td style="padding:24px 40px 8px;font-size:16px;line-height:1.6;color:#444;"><p style="margin:0;">Hi ${esc(params.clientName)},</p><p style="margin:12px 0 0;">${esc(params.body)}</p></td></tr>
+          <tr><td style="padding:12px 40px;"><table width="100%" cellspacing="0" cellpadding="0" style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;"><tr><td style="padding:18px 22px;"><table width="100%">${rows}</table></td></tr></table></td></tr>
+          ${params.actionUrl ? `<tr><td align="center" style="padding:16px 40px;"><a href="${esc(params.actionUrl)}" style="display:inline-block;background:${primary};color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px;font-size:15px;">${esc(params.actionLabel || "Book again")}</a></td></tr>` : ""}
+          <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">${esc(params.storefrontName || "")}${process.env.SMTP_STORE_LINK ? ` | ${esc(process.env.SMTP_STORE_LINK)}` : ""}</td></tr>
+        </table>
+      </td></tr></table>
+    </body>`;
+  await transport.sendMail({ to: params.to, from: process.env.SMTP_FROM, subject: params.subject, html });
+}

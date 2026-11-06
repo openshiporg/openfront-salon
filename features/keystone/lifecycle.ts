@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { kickOutboxSoon } from "./lib/domainOutbox";
 
 function canonicalize(value: unknown): unknown {
   if (value instanceof Date) return value.toISOString();
@@ -95,6 +96,7 @@ export function createLifecycleHooks(
         payload,
         occurredAt: versionSource ? new Date(versionSource) : new Date(),
       });
+      if (aggregateType === "appointment" && operation === "update") kickOutboxSoon(context);
     },
   };
 }
