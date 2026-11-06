@@ -6,6 +6,8 @@ import { settleOnlineGiftCard } from "./onlineGiftCardService";
 import { recordMembershipRenewal, settleOnlineMembership } from "./onlineMembershipService";
 import { parseProviderWebhook, paymentProviderFromRecord } from "./utils/paymentProviderAdapter";
 
+const SALON_CHECKOUT_PURPOSES = new Set(["appointment_deposit", "gift_card", "membership", "front_desk_card"]);
+
 export type PaymentWebhookOutcome = {
   replayed: boolean;
   processed: boolean;
@@ -85,7 +87,10 @@ export async function reconcilePaymentWebhook(
     const isCheckoutDeposit = Boolean(session && (session.data as any)?.checkout && (session.data as any)?.purpose === "appointment_deposit");
     // Let the provider retry an early event; do not permanently acknowledge a
     // money event before its locally committed session can be reconciled.
-    if (!session && event.providerReference && event.status && event.type.startsWith("checkout.session.")) throw new Error("Payment session is not yet available; retry webhook");
+    // The Stripe account is shared, so the endpoint also sees other apps' Checkouts. Only a Checkout this salon
+    // started (tagged with one of its purposes) is worth a retry; anything else is acknowledged and ignored.
+    const salonCheckout = SALON_CHECKOUT_PURPOSES.has(String((event.data as Record<string, unknown> | undefined)?.purpose || ""));
+    if (!session && event.providerReference && event.status && event.type.startsWith("checkout.session.") && salonCheckout) throw new Error("Payment session is not yet available; retry webhook");
     if (session && event.currency && event.currency.toLowerCase() !== session.currency.toLowerCase()) throw new Error("Webhook currency does not match payment session");
     if (session && event.status === "completed" && event.amount !== session.amount) throw new Error("Webhook amount does not match payment session");
     // A stored checkout event was fully handled (failures throw before storing), so a duplicate is a no-op.

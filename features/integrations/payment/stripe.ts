@@ -184,7 +184,7 @@ export const stripePaymentAdapter: PaymentAdapter = {
         status,
         amount: resource.amount_total ?? undefined,
         currency: resource.currency ?? undefined,
-        data: { livemode: event.livemode, checkoutSessionId: resource.id, paymentIntent: id(resource.payment_intent), sessionKey: resource.metadata?.depositKey || null },
+        data: { livemode: event.livemode, checkoutSessionId: resource.id, paymentIntent: id(resource.payment_intent), sessionKey: resource.metadata?.depositKey || null, purpose: resource.metadata?.purpose || null },
       };
     }
     const paymentIntent = "payment_intent" in resource ? resource.payment_intent : null;
