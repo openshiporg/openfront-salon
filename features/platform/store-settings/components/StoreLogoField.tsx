@@ -11,10 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { HUE_PRESETS, LOGO_ICONS } from "../lib/icon-registry";
-import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor, storeLogoFilter } from "../lib/store-logo";
-
-/** The picker previews each mark exactly as the storefront paints it. */
-const previewStyle = (_svg: string, hue: string) => ({ filter: storeLogoFilter(hue) });
+import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor } from "../lib/store-logo";
 
 /** E-commerce's Store Settings logo block, posted with the surrounding form as logoIcon/logoColor. */
 export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: string; initialColor: string }) {
@@ -45,7 +42,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
             >
               <div
                 dangerouslySetInnerHTML={{ __html: logoIcon }}
-                style={previewStyle(logoIcon, logoColor)}
+                style={{ filter: `hue-rotate(${logoColor}deg)` }}
                 className="[&>svg]:w-6 [&>svg]:h-6"
               />
             </SelectPrimitive.Trigger>
@@ -55,7 +52,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
                   <span className="flex items-center gap-3">
                     <div
                       dangerouslySetInnerHTML={{ __html: icon.lightSvg }}
-                      style={previewStyle(icon.lightSvg, logoColor)}
+                      style={{ filter: `hue-rotate(${logoColor}deg)` }}
                       className="[&>svg]:w-6 [&>svg]:h-6"
                     />
                     <span>
@@ -99,7 +96,7 @@ export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: str
                   <div className="text-sm text-muted-foreground">Preview:</div>
                   <div
                     dangerouslySetInnerHTML={{ __html: logoIcon }}
-                    style={previewStyle(logoIcon, logoColor)}
+                    style={{ filter: `hue-rotate(${logoColor}deg)` }}
                     className="[&>svg]:w-8 [&>svg]:h-8 flex items-center justify-center p-2 border rounded"
                   />
                 </div>
