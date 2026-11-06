@@ -116,7 +116,7 @@ export async function GiftCardsPage({ searchParams }: { searchParams?: Promise<{
                             <div className="min-w-0">
                               <h3 className="text-xs font-semibold text-muted-foreground">Balance history</h3>
                               <ul className="mt-2 grid gap-1.5 text-sm">
-                                {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{item.type === 'card_refund' ? 'Refunded to card' : labelize(item.type)} · {date(item.createdAt)}{item.notes && !item.notes.startsWith('provider:') ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
+                                {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{item.type === 'card_refund' ? 'Refunded to card' : labelize(item.type)} · {date(item.createdAt)}{item.notes && !/^(provider|webhook|online):/.test(item.notes) ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
                               </ul>
                             </div>
                             {boughtOnline(card) && card.isActive && card.currentBalance === card.initialValue ? (
