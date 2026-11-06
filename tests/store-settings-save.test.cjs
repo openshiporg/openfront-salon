@@ -20,7 +20,7 @@ function load(relative) {
 }
 
 const { sanitizeStoreLogoSvg } = load('features/keystone/utils/storeLogo.ts');
-const { normalizeStoreLogoColor, DEFAULT_STORE_LOGO_ICON, markFollowsAccent } = load('features/platform/store-settings/lib/store-logo.ts');
+const { normalizeStoreLogoColor, DEFAULT_STORE_LOGO_ICON, RETIRED_STORE_LOGO_ICONS, storeLogoFilter } = load('features/platform/store-settings/lib/store-logo.ts');
 const { LOGO_ICONS } = load('features/platform/store-settings/lib/icon-registry.ts');
 const { storeOwnMark } = load('features/storefront/lib/store-mark.ts');
 
@@ -36,7 +36,7 @@ test('every preset survives the sanitizer', () => { for (const icon of LOGO_ICON
 test('hue is normalized to 0-359', () => {
   assert.equal(normalizeStoreLogoColor('390'), '30');
   assert.equal(normalizeStoreLogoColor('-30'), '330');
-  assert.equal(normalizeStoreLogoColor('x'), '0');
+  assert.equal(normalizeStoreLogoColor('x'), '250');
 });
 test('custom SVG kept, unsafe SVG rejected', () => {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M0 0h8v8z"/></svg>';
@@ -48,12 +48,13 @@ test('the storefront always draws an icon beside the name', () => {
   assert.equal(storeOwnMark(DEFAULT_STORE_LOGO_ICON), storeOwnMark(''));
   assert.match(storeOwnMark(LOGO_ICONS[1].lightSvg), /^<svg/);
 });
-test('the default mark is the M&M ligature, drawn in the storefront sage, and the seed uses it', () => {
-  assert.match(DEFAULT_STORE_LOGO_ICON, /M6 37V12l9 15 9-15 9 15 9-15v25M24 12v25/);
+test('the mark comes from the Untitled UI registry (Flora & Fauna, sage), and the seed uses it', () => {
+  assert.equal(LOGO_ICONS.find(icon => icon.lightSvg.trim() === DEFAULT_STORE_LOGO_ICON)?.id, 'flora-fauna');
+  assert.ok(LOGO_ICONS.every(icon => !/currentColor/.test(icon.lightSvg)), 'no custom marks in the picker');
   assert.equal(sanitizeStoreLogoSvg(DEFAULT_STORE_LOGO_ICON), DEFAULT_STORE_LOGO_ICON);
-  assert.ok(markFollowsAccent(DEFAULT_STORE_LOGO_ICON));
-  assert.ok(!markFollowsAccent(LOGO_ICONS[1].lightSvg));
-  assert.equal(LOGO_ICONS[0].lightSvg, DEFAULT_STORE_LOGO_ICON);
+  assert.equal(storeLogoFilter('250'), 'hue-rotate(250deg) saturate(0.35) brightness(0.72)');
+  assert.equal(storeOwnMark(RETIRED_STORE_LOGO_ICONS[0]), storeOwnMark(DEFAULT_STORE_LOGO_ICON));
   const seed = JSON.parse(fs.readFileSync(path.join(root, 'features/platform/onboarding/lib/seed.json'), 'utf8'));
   assert.equal(seed.salonInfo.logoIcon, DEFAULT_STORE_LOGO_ICON);
+  assert.equal(seed.salonInfo.logoColor, '250');
 });

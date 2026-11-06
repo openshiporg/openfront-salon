@@ -1,17 +1,20 @@
 /**
- * Morrow & Mane's M&M ligature (owner pick, 2026-11-04): two Ms drawn as one monoline that share
- * the centre stem. Drawn in currentColor, so the storefront paints it in its own sage
- * (see markFollowsAccent) rather than hue-rotating a stock colour.
+ * Morrow & Mane's mark is "Flora & Fauna" from the Untitled UI logo picker (icon-registry.ts), a
+ * botanical knot. Every store mark comes from that registry; there is no custom mark.
  */
-export const DEFAULT_STORE_LOGO_ICON = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" height="100%" width="100%" viewBox="0 0 48 48"><path d="M6 37V12l9 15 9-15 9 15 9-15v25M24 12v25" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-export const DEFAULT_STORE_LOGO_COLOR = '0';
+export const DEFAULT_STORE_LOGO_ICON = '<svg fill="none" height="100%" viewBox="0 0 40 48" width="100%" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="m13.7146 4c-2.2564 0-4.4203.89634-6.01579 2.49183l-7.69881 7.69877v3.524c0 2.4897 1.06944 4.7296 2.77401 6.2854-1.70457 1.5558-2.77401 3.7957-2.77401 6.2854v3.524l7.69881 7.6988c1.59549 1.5955 3.75939 2.4918 6.01579 2.4918 2.4897 0 4.7296-1.0694 6.2854-2.774 1.5558 1.7046 3.7957 2.774 6.2854 2.774 2.2564 0 4.4203-.8963 6.0158-2.4918l7.6988-7.6988v-3.524c0-2.4897-1.0694-4.7296-2.774-6.2854 1.7046-1.5558 2.774-3.7957 2.774-6.2854v-3.524l-7.6988-7.69877c-1.5955-1.59549-3.7594-2.49183-6.0158-2.49183-2.4897 0-4.7296 1.06944-6.2854 2.77401-1.5558-1.70457-3.7957-2.77401-6.2854-2.77401zm12.0442 20c-.0959-.0875-.19-.1774-.2822-.2696l-5.4766-5.4766-5.4766 5.4766c-.0922.0922-.1863.1821-.2822.2696.0959.0875.19.1774.2822.2696l5.4766 5.4766 5.4766-5.4766c.0922-.0922.1863-.1821.2822-.2696zm-3.5366 9.8094v1.683c0 2.244 1.8192 4.0632 4.0632 4.0632 1.0776 0 2.1111-.4281 2.8731-1.1901l6.3971-6.3971v-1.683c0-2.244-1.8192-4.0632-4.0632-4.0632-1.0776 0-2.1111.4281-2.8731 1.1901zm-4.4444 0-6.3971-6.3971c-.762-.762-1.79546-1.1901-2.87308-1.1901-2.24403 0-4.06318 1.8192-4.06318 4.0632v1.683l6.39706 6.3971c.762.762 1.7955 1.1901 2.8731 1.1901 2.244 0 4.0632-1.8192 4.0632-4.0632zm0-21.3018v1.683l-6.3971 6.3971c-.762.762-1.79546 1.1901-2.87308 1.1901-2.24403 0-4.06318-1.8192-4.06318-4.0632v-1.683l6.39706-6.39708c.762-.76199 1.7955-1.19007 2.8731-1.19007 2.244 0 4.0632 1.81915 4.0632 4.06315zm10.8415 8.0801-6.3971-6.3971v-1.683c0-2.244 1.8192-4.06315 4.0632-4.06315 1.0776 0 2.1111.42808 2.8731 1.19007l6.3971 6.39708v1.683c0 2.244-1.8192 4.0632-4.0632 4.0632-1.0776 0-2.1111-.4281-2.8731-1.1901z" fill="#155eef" fill-rule="evenodd"/></svg>';
+/** Hue 250 turns the registry blue into the storefront's sage green. */
+export const DEFAULT_STORE_LOGO_COLOR = '250';
 
-/** The sage the ligature is drawn in wherever no storefront theme is around it (dashboard previews, icons). */
-export const STORE_LOGO_SAGE = '#4e5d48';
+/** The custom M&M ligature used until 2026-11-05; settings still holding it move to the default. */
+export const RETIRED_STORE_LOGO_ICONS = ['<svg xmlns="http://www.w3.org/2000/svg" fill="none" height="100%" width="100%" viewBox="0 0 48 48"><path d="M6 37V12l9 15 9-15 9 15 9-15v25M24 12v25" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'];
 
-/** A mark drawn in currentColor takes the surrounding accent colour and is never hue-rotated. */
-export function markFollowsAccent(svg: unknown): boolean {
-  return typeof svg === 'string' && /currentcolor/i.test(svg);
+/**
+ * How a registry mark is painted: the saved hue, then muted so Untitled UI's saturated stock colours
+ * sit in the salon's quiet palette (sage at the default hue) instead of shouting next to the serif name.
+ */
+export function storeLogoFilter(hue: unknown): string {
+  return `hue-rotate(${normalizeStoreLogoColor(hue)}deg) saturate(0.35) brightness(0.72)`;
 }
 
 // This module is intentionally browser-safe. Server-only SVG parsing and

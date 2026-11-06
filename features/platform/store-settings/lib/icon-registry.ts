@@ -1,13 +1,5 @@
-import { DEFAULT_STORE_LOGO_ICON } from './store-logo';
-
-// Salon's own M&M ligature first (the default); the rest are from Untitled UI (Light and Dark mode versions)
+// Logo data from Untitled UI (Light and Dark mode versions)
 export const LOGO_ICONS = [
-  {
-    id: 'mm-ligature',
-    name: 'M&M Ligature',
-    lightSvg: DEFAULT_STORE_LOGO_ICON,
-    darkSvg: DEFAULT_STORE_LOGO_ICON,
-  },
   {
     id: '3portals',
     name: '3Portals',

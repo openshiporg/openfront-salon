@@ -11,10 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { HUE_PRESETS, LOGO_ICONS } from "../lib/icon-registry";
-import { DEFAULT_STORE_LOGO_ICON, STORE_LOGO_SAGE, markFollowsAccent, normalizeStoreLogoColor } from "../lib/store-logo";
+import { DEFAULT_STORE_LOGO_ICON, normalizeStoreLogoColor, storeLogoFilter } from "../lib/store-logo";
 
-/** currentColor marks (the M&M ligature) preview in sage; fill-coloured presets take the hue rotation. */
-const previewStyle = (svg: string, hue: string) => markFollowsAccent(svg) ? { color: STORE_LOGO_SAGE } : { filter: `hue-rotate(${hue}deg)` };
+/** The picker previews each mark exactly as the storefront paints it. */
+const previewStyle = (_svg: string, hue: string) => ({ filter: storeLogoFilter(hue) });
 
 /** E-commerce's Store Settings logo block, posted with the surrounding form as logoIcon/logoColor. */
 export function StoreLogoField({ initialIcon, initialColor }: { initialIcon: string; initialColor: string }) {
