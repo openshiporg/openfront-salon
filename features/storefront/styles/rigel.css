@@ -1879,7 +1879,7 @@ body:has(.storefront) {
 
 .storefront .sf-day small {
   margin-top: 0.125rem;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: var(--sf-ink-3);
 }
 
@@ -1917,11 +1917,10 @@ body:has(.storefront) {
 }
 
 .storefront .sf-time-pill small {
-  padding: 0.0625rem 0.375rem;
-  border-radius: 0.375rem;
-  background: rgb(255 255 255 / 0.5);
-  color: var(--sf-ink-3);
-  font-size: 0.6875rem;
+  margin-left: -0.25rem;
+  color: var(--sf-ink-2);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
 }
 
 .storefront .sf-time-pill svg {

@@ -75,8 +75,8 @@ export async function AppointmentDetailPage({ params }: PageProps) {
           <span>{appointment.duration || 0} min</span>
           <span>{appointment.location?.name || 'Location not assigned'}</span>
           {appointment.depositAmount && depositRefund && !appointment.depositPaid ? <span className="inline-flex items-center gap-1.5"><StatusDot tone="zinc" />Deposit refunded {usd(depositRefund.refunded)}</span>
-            : appointment.depositAmount ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
-          {appointment.services.some((service) => service.requiresConsultation) ? <span className="inline-flex items-center gap-1.5 text-violet-800 dark:text-violet-300"><StatusDot tone="violet" />Consultation required</span> : null}
+            : appointment.depositAmount && (appointment.depositPaid || !['cancelled', 'no_show'].includes(status)) ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
+          {appointment.services.some((service) => service.requiresConsultation) ? <span className="inline-flex items-center gap-1.5 text-sky-800 dark:text-sky-300"><StatusDot tone="sky" />Consultation required</span> : null}
         </>}
         actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
       />

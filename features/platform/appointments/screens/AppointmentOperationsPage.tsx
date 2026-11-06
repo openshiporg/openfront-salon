@@ -181,10 +181,10 @@ function AppointmentRow({ appointment, showDay }: { appointment: PlatformAppoint
         <span className="text-xs tabular-nums text-muted-foreground lg:hidden">{usd(serviceTotal(appointment), { whole: true })}</span>
       </td>
       <td className={cn(stackCellClass, 'text-xs empty:hidden lg:empty:table-cell')}>
-        {appointment.depositAmount || needsIntake(appointment) ? (
+        {(appointment.depositAmount && !(closed && !appointment.depositPaid)) || needsIntake(appointment) ? (
           <div className="flex flex-wrap gap-x-3 gap-y-1 lg:grid lg:gap-0.5">
-            {appointment.depositAmount ? <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', !appointment.depositPaid && 'font-medium text-amber-800 dark:text-amber-300')}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} className="size-1.5" />{appointment.depositPaid ? 'Deposit paid' : `Deposit due ${usd(appointment.depositAmount, { whole: true })}`}</span> : null}
-            {needsIntake(appointment) ? <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-violet-800 dark:text-violet-300"><ShieldAlert className="size-3" />Intake / consent</span> : null}
+            {appointment.depositAmount && !(closed && !appointment.depositPaid) ? <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', !appointment.depositPaid && 'font-medium text-amber-800 dark:text-amber-300')}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} className="size-1.5" />{appointment.depositPaid ? 'Deposit paid' : `Deposit due ${usd(appointment.depositAmount, { whole: true })}`}</span> : null}
+            {needsIntake(appointment) ? <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sky-800 dark:text-sky-300"><ShieldAlert className="size-3" />Intake / consent</span> : null}
           </div>
         ) : null}
       </td>

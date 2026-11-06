@@ -201,7 +201,9 @@ export async function scheduleAppointmentSegmentsTransaction(context: Context, a
   const operator = permissions.canManageAppointments({ session: context.session as any });
   let items: AllocationInput[] = []; const start = new Date(args.startTime); const reason = args.reason.trim();
   try { if (operator && args.allocations != null) { items = parseAllocations(args.allocations); validateSequence(items); } } catch (error) { return { success: false, appointmentId: null, revision: null, error: error instanceof Error ? error.message : "Schedule is invalid" }; }
-  if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now() || start.getTime() > Date.now() + 366 * 86400_000 || !reason || reason.length > 1000) return { success: false, appointmentId: null, revision: null, error: "A valid start and reason are required" };
+  if (!Number.isNaN(start.getTime()) && start.getTime() <= Date.now()) return { success: false, appointmentId: null, revision: null, error: "The new time has already passed. Choose a later time." };
+  if (!Number.isNaN(start.getTime()) && start.getTime() > Date.now() + 366 * 86400_000) return { success: false, appointmentId: null, revision: null, error: "The new time is more than a year away." };
+  if (Number.isNaN(start.getTime()) || !reason || reason.length > 1000) return { success: false, appointmentId: null, revision: null, error: "A valid start and reason are required" };
   let requestedScheduleHash = digest(items);
   let ownerPlanSnapshotHash: string | null = null;
   let ownerPlanLockKeys: string[] = [];
