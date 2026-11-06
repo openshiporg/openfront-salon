@@ -1,6 +1,6 @@
 import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
-import { giftOrderToken, startGiftCardCheckoutTransaction, settleOnlineGiftCard, giftCardOrderTransaction, type StartResult, type StatusResult } from "../onlineGiftCardService";
+import { giftOrderToken, startGiftCardCheckoutTransaction, settleOnlineGiftCard, giftCardOrderTransaction, refundOnlineGiftCardToCard, type StartResult, type StatusResult } from "../onlineGiftCardService";
 
 export { giftOrderToken, startGiftCardCheckoutTransaction, settleOnlineGiftCard, giftCardOrderTransaction };
 
@@ -27,4 +27,13 @@ export const confirmGiftCardOrder = graphql.field({
   }),
   args: { sessionId: graphql.arg({ type: graphql.nonNull(graphql.ID) }), token: graphql.arg({ type: graphql.nonNull(graphql.String) }) },
   resolve: (_source, args, context: Context) => giftCardOrderTransaction(context, args),
+});
+
+export const refundGiftCardToCard = graphql.field({
+  type: graphql.object<{ success: boolean; error: string | null }>()({
+    name: "RefundGiftCardToCardResult",
+    fields: { success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }), error: graphql.field({ type: graphql.String }) },
+  }),
+  args: { giftCardId: graphql.arg({ type: graphql.nonNull(graphql.ID) }), reason: graphql.arg({ type: graphql.nonNull(graphql.String) }) },
+  resolve: (_source, args, context: Context) => refundOnlineGiftCardToCard(context, args),
 });

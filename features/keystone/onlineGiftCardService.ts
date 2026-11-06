@@ -6,7 +6,8 @@ import { getStorefrontMessageBrand } from "./lib/storefrontBranding";
 import { onlineDepositProvider } from "./depositCheckout";
 import { trustedOrigin } from "./lib/trustedOrigin";
 import { serializableWorkflow } from "./mutations/serializableWorkflow";
-import { createProviderCheckout, paymentProviderFromRecord, retrieveProviderCheckout } from "./utils/paymentProviderAdapter";
+import { createProviderCheckout, paymentProviderFromRecord, refundProviderPayment, retrieveProviderCheckout } from "./utils/paymentProviderAdapter";
+import { permissions } from "./access";
 
 /**
  * Online gift cards (Mindbody / Boulevard style): the buyer picks an amount, pays on Stripe's hosted page,
@@ -148,3 +149,59 @@ export async function giftCardOrderTransaction(context: Context, args: { session
   catch (error) { return { success: false, error: error instanceof Error ? error.message : "We could not check the payment yet.", status: null, code: null, amount: null, recipientEmail: null }; }
 }
 
+
+/**
+ * Refund an unused online gift card to the buyer's card (Square / Boulevard). The card is locked first so it
+ * can't be spent while Stripe refunds; if Stripe refuses, the lock is undone. Spent cards are refunded as value.
+ */
+export async function refundOnlineGiftCardToCard(context: Context, args: { giftCardId: string; reason?: string | null }) {
+  if (!permissions.canIssueRefunds({ session: context.session as any })) return { success: false, error: "You must have refund authority" };
+  const reason = (args.reason || "").trim();
+  if (!reason || reason.length > 1000) return { success: false, error: "Enter a reason for the refund" };
+  const sudo = context.sudo();
+  try {
+    const found = await sudo.prisma.paymentSession.findFirst({ where: { data: { path: ["giftCardId"], equals: args.giftCardId } }, select: { id: true } });
+    const session = found ? await sudo.query.PaymentSession.findOne({ where: { id: found.id }, query: "id status amount idempotencyKey data payment { id } provider { id code adapter config }" }) as any : null;
+    const data = dataOf(session?.data);
+    if (!session?.provider || data.purpose !== "gift_card" || !data.online) throw new Error("Only gift cards bought online can be refunded to a card");
+    if (session.status === "refunded") return { success: true, error: null };
+    if (session.status !== "completed" || typeof data.paymentIntent !== "string") throw new Error("This gift card's payment isn't settled yet");
+    // Append-only ledger: each attempt locks the full value with its own entry; a failed attempt is closed by a restore entry.
+    const base = `${session.idempotencyKey}:card-refund`;
+    await serializableWorkflow(context, "salon-gift-card", [`card:${args.giftCardId}`], async (tx) => {
+      const txSudo = tx.sudo();
+      const entries = await txSudo.query.GiftCardTransaction.findMany({ where: { idempotencyKey: { startsWith: base } }, query: "id idempotencyKey" });
+      const attempts = entries.filter((entry: any) => !entry.idempotencyKey.endsWith(":restore"));
+      const restored = new Set(entries.filter((entry: any) => entry.idempotencyKey.endsWith(":restore")).map((entry: any) => entry.idempotencyKey.slice(0, -":restore".length)));
+      if (attempts.some((entry: any) => !restored.has(entry.idempotencyKey))) return; // an earlier attempt still holds the lock
+      const card = await txSudo.query.GiftCard.findOne({ where: { id: args.giftCardId }, query: "id initialValue currentBalance isActive" });
+      if (!card) throw new Error("Gift card not found");
+      if (card.currentBalance !== card.initialValue || card.currentBalance !== session.amount) throw new Error("This card has been used. Return the unused value instead, or refund the sale it paid for.");
+      await txSudo.query.GiftCardTransaction.createOne({ data: { giftCard: { connect: { id: card.id } }, type: "card_refund", amount: -card.initialValue, idempotencyKey: `${base}:${attempts.length + 1}`, notes: reason }, query: "id" });
+      await txSudo.query.GiftCard.updateOne({ where: { id: card.id }, data: { currentBalance: 0, isActive: false }, query: "id" });
+    });
+    let result: Awaited<ReturnType<typeof refundProviderPayment>>;
+    try {
+      result = await refundProviderPayment({ provider: paymentProviderFromRecord(session.provider), providerReference: data.paymentIntent, amount: session.amount, idempotencyKey: `gift-card-refund:${session.id}` });
+      if (result.status === "failed") throw new Error("Stripe declined the refund");
+    } catch (error) {
+      // Nothing moved: give the card back its value so the recipient can still use it.
+      await serializableWorkflow(context, "salon-gift-card", [`card:${args.giftCardId}`], async (tx) => {
+        const txSudo = tx.sudo();
+        const entries = await txSudo.query.GiftCardTransaction.findMany({ where: { idempotencyKey: { startsWith: base } }, query: "id idempotencyKey" });
+        const keys = new Set(entries.map((entry: any) => entry.idempotencyKey));
+        const open = entries.find((entry: any) => !entry.idempotencyKey.endsWith(":restore") && !keys.has(`${entry.idempotencyKey}:restore`));
+        if (!open) return;
+        await txSudo.query.GiftCardTransaction.createOne({ data: { giftCard: { connect: { id: args.giftCardId } }, type: "refund", amount: session.amount, idempotencyKey: `${open.idempotencyKey}:restore`, notes: "Card refund failed; value restored" }, query: "id" });
+        await txSudo.query.GiftCard.updateOne({ where: { id: args.giftCardId }, data: { currentBalance: session.amount, isActive: true }, query: "id" });
+      });
+      throw error;
+    }
+    const now = new Date().toISOString();
+    await sudo.query.PaymentSession.updateOne({ where: { id: session.id }, data: { status: "refunded", refundedAt: now }, query: "id" });
+    if (session.payment?.id) await sudo.query.Payment.updateOne({ where: { id: session.payment.id }, data: { status: "refunded", refundedAmount: session.amount, refundedAt: now, refundReason: reason, stripeRefundId: String(result.data?.refundId || "") }, query: "id" });
+    return { success: true, error: null };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "The refund could not be completed" };
+  }
+}

@@ -7696,6 +7696,9 @@ type Mutation {
   purchaseGiftCard(amount: Int!, recipientEmail: String, recipientName: String, message: String, purchaserEmail: String!, purchaserName: String!, providerCode: String, idempotencyKey: String!): PurchaseGiftCardResult
   startGiftCardCheckout(amount: Int!, purchaserName: String!, purchaserEmail: String!, recipientName: String, recipientEmail: String, message: String): StartGiftCardCheckoutResult
   confirmGiftCardOrder(sessionId: ID!, token: String!): GiftCardOrderResult
+  refundGiftCardToCard(giftCardId: ID!, reason: String!): RefundGiftCardToCardResult
+  startMembershipCheckout(membershipId: ID!): StartMembershipCheckoutResult
+  confirmMembershipSignup(sessionId: ID!, token: String!): MembershipSignupResult
   confirmGiftCardPurchase(paymentSessionId: ID!): ConfirmGiftCardPurchaseResult
   applyGiftCardBalance(giftCardId: ID!, action: String!, amount: Int!, appointmentId: ID, reason: String, idempotencyKey: String!): ApplyGiftCardBalanceResult
   transitionAppointment(appointmentId: ID!, status: String!, reason: String): TransitionAppointmentResult
@@ -7801,6 +7804,26 @@ type GiftCardOrderResult {
   code: String
   amount: Int
   recipientEmail: String
+}
+
+type RefundGiftCardToCardResult {
+  success: Boolean!
+  error: String
+}
+
+type StartMembershipCheckoutResult {
+  success: Boolean!
+  error: String
+  url: String
+}
+
+type MembershipSignupResult {
+  success: Boolean!
+  error: String
+  status: String
+  planName: String
+  amount: Int
+  nextBillingDate: String
 }
 
 type ConfirmGiftCardPurchaseResult {

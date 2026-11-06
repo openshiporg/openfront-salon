@@ -97,3 +97,17 @@ export async function changeGiftCardBalance(_previous: FormState, formData: Form
   if (state.status === 'success') refresh();
   return state.status === 'success' ? ok(state.message) : state;
 }
+
+/** Refunds an unused online gift card back to the buyer's card through Stripe. */
+export async function refundGiftCardToCard(_previous: FormState, formData: FormData): Promise<FormState> {
+  const giftCardId = String(formData.get('giftCardId') || '');
+  const reason = String(formData.get('reason') || '').trim();
+  if (!giftCardId) return fail('Gift card not found.');
+  if (!reason) return fail('Enter a reason.');
+  const response = await keystoneClient<{ refundGiftCardToCard: { success: boolean; error?: string | null } }>(`
+    mutation RefundGiftCardToCard($giftCardId: ID!, $reason: String!) { refundGiftCardToCard(giftCardId: $giftCardId, reason: $reason) { success error } }
+  `, { giftCardId, reason });
+  const state = workflowState(response, 'refundGiftCardToCard', 'Refunded to the card it was bought with.', 'The refund could not be completed.');
+  if (state.status === 'success') refresh();
+  return state;
+}

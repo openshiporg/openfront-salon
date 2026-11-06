@@ -45,6 +45,7 @@ export const GiftCardTransaction = list({
         { label: "Purchase", value: "purchase" },
         { label: "Redemption", value: "redemption" },
         { label: "Refund", value: "refund" },
+        { label: "Refunded to card", value: "card_refund" },
       ],
       validation: { isRequired: true },
       ui: {

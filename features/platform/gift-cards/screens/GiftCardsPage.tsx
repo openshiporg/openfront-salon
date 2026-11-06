@@ -1,9 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { Gift, Search } from 'lucide-react';
-import { changeGiftCardBalance, getGiftCards, sellGiftCard, type PlatformGiftCard } from '../actions/giftCards';
+import { changeGiftCardBalance, getGiftCards, refundGiftCardToCard, sellGiftCard, type PlatformGiftCard } from '../actions/giftCards';
 import { ActionForm } from '../../components/ActionForm';
 import { EmptyState, ErrorState, fieldLabelClass, inputClass, labelize, PageHeader, Panel, pillClass, PlatformPage, SegmentTabs, StatusCell, textareaClass, usd, type Tone } from '../../components/salon-ui';
 import { getSalonTimezone } from '../../lib/salonTimezone';
+
+const boughtOnline = (card: PlatformGiftCard) => card.transactions.some((item) => item.type === 'purchase' && /^(online|webhook):/.test(item.notes || ''));
 
 const tabs = [
   { value: 'active', label: 'Active' },
@@ -13,6 +15,7 @@ const tabs = [
 ] as const;
 
 function cardState(card: PlatformGiftCard): { label: string; tone: Tone } {
+  if (card.transactions.some((item) => item.type === 'card_refund') && !card.isActive) return { label: 'Refunded', tone: 'zinc' };
   if (!card.isActive) return { label: 'Inactive', tone: 'zinc' };
   if (card.expiresAt && new Date(card.expiresAt).getTime() <= Date.now()) return { label: 'Expired', tone: 'rose' };
   if (card.currentBalance <= 0) return { label: 'Used up', tone: 'zinc' };
@@ -113,9 +116,16 @@ export async function GiftCardsPage({ searchParams }: { searchParams?: Promise<{
                             <div className="min-w-0">
                               <h3 className="text-xs font-semibold text-muted-foreground">Balance history</h3>
                               <ul className="mt-2 grid gap-1.5 text-sm">
-                                {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{labelize(item.type)} · {date(item.createdAt)}{item.notes && !item.notes.startsWith('provider:') ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
+                                {card.transactions.map((item) => <li key={item.id} className="flex justify-between gap-3"><span className="min-w-0 truncate">{item.type === 'card_refund' ? 'Refunded to card' : labelize(item.type)} · {date(item.createdAt)}{item.notes && !item.notes.startsWith('provider:') ? ` · ${item.notes}` : ''}</span><span className="tabular-nums">{item.amount >= 0 ? '+' : '−'}{usd(Math.abs(item.amount))}</span></li>)}
                               </ul>
                             </div>
+                            {boughtOnline(card) && card.isActive && card.currentBalance === card.initialValue ? (
+                              <ActionForm action={refundGiftCardToCard} submitLabel="Refund to card" confirm={`Refund ${usd(card.initialValue)} to the buyer's card`} variant="danger" className="grid gap-3 md:col-start-2">
+                                <input type="hidden" name="giftCardId" value={card.id} />
+                                <p className="text-xs text-muted-foreground">Unused, bought online. The card stops working and {usd(card.initialValue)} goes back to the card it was paid with.</p>
+                                <label className={fieldLabelClass}>Reason<input name="reason" required maxLength={1000} className={inputClass} /></label>
+                              </ActionForm>
+                            ) : null}
                             {state.label === 'Active' || state.label === 'Used up' ? (
                               <ActionForm action={changeGiftCardBalance} submitLabel="Apply" resetOnSuccess>
                                 <input type="hidden" name="giftCardId" value={card.id} />

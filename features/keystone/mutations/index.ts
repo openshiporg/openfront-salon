@@ -3,7 +3,7 @@ import { registerSalonCustomer } from "./registerSalonCustomer";
 import redirectToInit from "./redirectToInit";
 import { paymentMutations } from "./processPayment";
 import { giftCardMutations } from "./purchaseGiftCard";
-import { confirmGiftCardOrder, startGiftCardCheckout } from "./onlineGiftCard";
+import { confirmGiftCardOrder, refundGiftCardToCard, startGiftCardCheckout } from "./onlineGiftCard";
 import { confirmMembershipSignup, startMembershipCheckout } from "./onlineMembership";
 import { confirmDepositCheckout, startDepositCheckout } from "./depositCheckoutMutations";
 import { bookAppointment } from "./bookAppointment";
@@ -65,6 +65,7 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     purchaseGiftCard: giftCardMutations.purchaseGiftCard,
     startGiftCardCheckout,
     confirmGiftCardOrder,
+    refundGiftCardToCard,
     startMembershipCheckout,
     confirmMembershipSignup,
     confirmGiftCardPurchase: giftCardMutations.confirmGiftCardPurchase,
