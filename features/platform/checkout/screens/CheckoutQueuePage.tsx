@@ -7,6 +7,8 @@ import { appointmentContact } from '../../lib/appointmentContact';
 import { RetryCheckoutQueueButton } from './RetryCheckoutQueueButton';
 import { CheckoutActionForm } from './CheckoutActionForm';
 import { CheckoutLocalStock } from './CheckoutLocalStock';
+import { DeskCardPanel } from './DeskCardPanel';
+import type { DeskCardState } from '../actions/deskCard';
 import {
   calculateCheckoutTotals,
   CheckoutAppointment,
@@ -155,7 +157,7 @@ function PaidTicket({ appointment }: { appointment: CheckoutAppointment }) {
 }
 
 /** One salon ticket: services and staff on the left, payment capture on the right. */
-export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '', showClient = true }: { appointment: CheckoutAppointment; retailPage?: number; retailSearch?: string; showClient?: boolean }) {
+export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '', showClient = true, deskCard }: { appointment: CheckoutAppointment; retailPage?: number; retailSearch?: string; showClient?: boolean; deskCard?: DeskCardState | null }) {
   const totals = calculateCheckoutTotals(appointment);
   const clientName = appointmentContact(appointment).name;
   const stylistName = appointment.stylist?.user?.name || 'Unassigned';
@@ -223,7 +225,8 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
             </dl>
           </div>
         ) : (
-        <CheckoutActionForm action={completeAppointmentCheckout} alreadyCheckedOut={alreadyCheckedOut}>
+        <>
+        <CheckoutActionForm id={`checkout-${appointment.id}`} action={completeAppointmentCheckout} alreadyCheckedOut={alreadyCheckedOut}>
           <input type="hidden" name="appointmentId" value={appointment.id} />
           <h3 className="text-sm font-semibold">Record payment</h3>
           <p className="mt-1 text-xs text-muted-foreground">Final total is confirmed on save.</p>
@@ -232,8 +235,8 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
               Payment method
               <select name="paymentMethod" required defaultValue="" className={inputClass}>
                 <option value="" disabled>Select collected payment</option>
-                <option value="card">Card · external terminal</option>
                 <option value="cash">Cash</option>
+                <option value="card">Card · already taken on a terminal</option>
               </select>
             </label>
             {membershipOptions.length > 0 ? (
@@ -266,6 +269,8 @@ export function CheckoutWorkflowCard({ appointment, retailPage, retailSearch = '
             )}
           </div>
         </CheckoutActionForm>
+        <DeskCardPanel appointmentId={appointment.id} initial={deskCard ?? null} formId={`checkout-${appointment.id}`} />
+        </>
         )}
       </aside>
     </article>

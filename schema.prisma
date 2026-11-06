@@ -338,6 +338,7 @@ model Appointment {
   metadata                                Json?
   bookedAt                                DateTime?                     @default(now())
   confirmedAt                             DateTime?
+  reminderSentAt                          DateTime?
   cancelledAt                             DateTime?
   cancellationReason                      String                        @default("")
   notes                                   String                        @default("")
@@ -543,17 +544,20 @@ model MessageTemplate {
 }
 
 model MessageLog {
-  id           String           @id @default(cuid())
-  recipient    User?            @relation("MessageLog_recipient", fields: [recipientId], references: [id])
-  recipientId  String?          @map("recipient")
-  template     MessageTemplate? @relation("MessageLog_template", fields: [templateId], references: [id])
-  templateId   String?          @map("template")
-  sentAt       DateTime?        @default(now())
-  channel      String
-  status       String?          @default("sent")
-  errorMessage String           @default("")
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @default(now()) @updatedAt
+  id               String           @id @default(cuid())
+  recipient        User?            @relation("MessageLog_recipient", fields: [recipientId], references: [id])
+  recipientId      String?          @map("recipient")
+  template         MessageTemplate? @relation("MessageLog_template", fields: [templateId], references: [id])
+  templateId       String?          @map("template")
+  sentAt           DateTime?        @default(now())
+  channel          String
+  status           String?          @default("sent")
+  recipientAddress String           @default("")
+  subject          String           @default("")
+  kind             String           @default("")
+  errorMessage     String           @default("")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now()) @updatedAt
 
   @@index([recipientId])
   @@index([templateId])
@@ -596,20 +600,22 @@ model GiftCardTransaction {
 }
 
 model ClientMembership {
-  id              String      @id @default(cuid())
-  client          User?       @relation("ClientMembership_client", fields: [clientId], references: [id])
-  clientId        String?     @map("client")
-  membership      Membership? @relation("ClientMembership_membership", fields: [membershipId], references: [id])
-  membershipId    String?     @map("membership")
-  startDate       DateTime
-  nextBillingDate DateTime?
-  status          String?     @default("active")
-  pausedUntil     DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @default(now()) @updatedAt
+  id                     String      @id @default(cuid())
+  client                 User?       @relation("ClientMembership_client", fields: [clientId], references: [id])
+  clientId               String?     @map("client")
+  membership             Membership? @relation("ClientMembership_membership", fields: [membershipId], references: [id])
+  membershipId           String?     @map("membership")
+  startDate              DateTime
+  nextBillingDate        DateTime?
+  status                 String?     @default("active")
+  pausedUntil            DateTime?
+  providerSubscriptionId String      @default("")
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @default(now()) @updatedAt
 
   @@index([clientId])
   @@index([membershipId])
+  @@index([providerSubscriptionId])
 }
 
 model IntakeForm {

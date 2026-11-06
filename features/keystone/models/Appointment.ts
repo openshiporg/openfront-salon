@@ -108,6 +108,10 @@ export const Appointment = list({
       },
     }),
 
+    reminderSentAt: timestamp({
+      ui: { description: "When the day-ahead reminder was emailed", createView: { fieldMode: "hidden" }, itemView: { fieldMode: "read" } },
+    }),
+
     cancelledAt: timestamp({
       ui: {
         description: "When the appointment was cancelled",

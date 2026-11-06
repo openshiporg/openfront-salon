@@ -4,19 +4,28 @@ import { PageIntro } from "../components/ui/PageIntro"
 import { storefrontTitle } from "../lib/data/brand"
 import { getStorefrontBenefits } from "../lib/data/benefits"
 import { formatMenuPrice } from "../lib/format-price"
+import { requestSalon } from "../lib/session-client"
+import { JoinMembershipButton } from "../components/JoinMembershipButton"
+
+async function isSignedIn() {
+  try {
+    const data = await requestSalon<{ authenticatedItem: { id: string } | null }>(`query MembershipViewer { authenticatedItem { ... on User { id } } }`)
+    return Boolean(data.authenticatedItem?.id)
+  } catch { return false }
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: await storefrontTitle("Memberships & packages") }
 }
 
 export async function MembershipsPage() {
-  const benefits = await getStorefrontBenefits()
+  const [benefits, signedIn] = await Promise.all([getStorefrontBenefits(), isSignedIn()])
   const memberships = benefits?.memberships || []
   const packages = benefits?.packages || []
 
   return (
     <div className="sf-page-pad"><div className="sf-container">
-      <PageIntro title="Memberships & packages" description="Sold in the salon. Your plan appears in your account and applies at checkout." />
+      <PageIntro title="Memberships & packages" description="Join a membership online and it bills monthly by card. Packages are sold in the salon. Either one shows in your account and applies at checkout." />
       {!benefits ? <p role="alert" className="sf-alert">Plans couldn&apos;t be loaded. Try again.</p>
         : memberships.length === 0 && packages.length === 0 ? (
           <div className="sf-carton sf-carton-empty mx-auto max-w-md" data-band="ink"><p className="sf-display text-[length:var(--sf-text-xl)]">No plans on offer right now</p><div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link></div></div>
@@ -34,10 +43,12 @@ export async function MembershipsPage() {
                       <p className="sf-num text-[length:var(--sf-text-2xl)]">{formatMenuPrice(plan.monthlyPrice / 100)}<small>/ month</small></p>
                       {plan.discountPercent ? <p className="text-[length:var(--sf-text-sm)] font-semibold">{plan.discountPercent}% off {plan.services.length ? plan.services.map((service) => service.name).join(", ") : "services"}</p> : null}
                       {plan.description ? <p className="sf-carton-desc">{plan.description}</p> : null}
+                      {signedIn ? <JoinMembershipButton membershipId={plan.id} label={`Join for ${formatMenuPrice(plan.monthlyPrice / 100)} a month`} /> : <div className="sf-track sf-track-block"><Link href="/account/signin" className="sf-btn sf-btn-primary">Sign in to join</Link></div>}
                       </div>
                     </article>
                   ))}
                 </div>
+                <p className="mt-3 text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">Billed monthly by card through Stripe. Pause or cancel any time at the front desk.</p>
               </section>
             ) : null}
             {packages.length ? (
@@ -58,7 +69,7 @@ export async function MembershipsPage() {
                 </div>
               </section>
             ) : null}
-            <div className="sf-track"><Link href="/contact" className="sf-btn sf-btn-primary">Ask about a plan</Link><Link href="/book" className="sf-btn sf-btn-quiet">Book an appointment</Link></div>
+            <div className="sf-track"><Link href="/book" className="sf-btn sf-btn-primary">Book an appointment</Link>{packages.length ? <Link href="/contact" className="sf-btn sf-btn-quiet">Ask about a package</Link> : null}</div>
           </div>
         )}
     </div></div>

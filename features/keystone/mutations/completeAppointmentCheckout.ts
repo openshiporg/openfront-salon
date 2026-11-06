@@ -13,10 +13,11 @@ import { originalCheckoutScope } from "../inventory/originalCheckoutScope";
 import { checkoutSettlement } from "../settlement";
 import { assertNoUnreconciledPackageUsage } from "../checkoutBoundaries";
 import { assertNoUnresolvedAppointmentPaymentSessions } from "../depositBoundaries";
+import { assertNoOpenDeskCard } from "../deskCardBoundary";
 
 const TAX_RATE = Number.parseFloat(process.env.TAX_RATE || "0.08");
 
-type CheckoutResult = { success: boolean; transactionId: string | null; paymentId: string | null; error: string | null };
+type CheckoutResult = { success: boolean; transactionId: string | null; paymentId: string | null; error: string | null; quoteTotal?: number | null };
 
 type RetailInput = { productId: string; quantity: number };
 
@@ -102,6 +103,10 @@ export async function completeAppointmentCheckoutTransaction(
   args: {
     appointmentId: string; paymentMethod: string; tipAmount: number; discountAmount: number;
     retailItems?: unknown; clientPackageId?: string | null; clientMembershipId?: string | null; idempotencyKey: string;
+    /** Price the sale exactly as checkout would, then stop before any write. */
+    quoteOnly?: boolean;
+    /** A front-desk card payment Stripe already collected for this exact total. */
+    cardSessionId?: string | null;
   },
 ): Promise<CheckoutResult> {
   try { await currentStockContext(context, "checkout"); }
@@ -179,6 +184,8 @@ export async function completeAppointmentCheckoutTransaction(
         query: "id status",
       });
       assertNoUnresolvedAppointmentPaymentSessions(pendingPaymentSessions);
+      // A card page left open could still be paid; never record another tender around it.
+      if (!args.cardSessionId && !args.quoteOnly) await assertNoOpenDeskCard(transactionContext, appointment.id);
 
       const products = retail.length ? await sudo.query.Product.findMany({
         where: { id: { in: retail.map((item) => item.productId) }, isActive: { equals: true } },
@@ -233,6 +240,7 @@ export async function completeAppointmentCheckoutTransaction(
         manualDiscount: args.discountAmount, membershipPercent, membershipServices, packageAvailable, packageServices, depositAvailable, taxRate: TAX_RATE, tip: args.tipAmount,
       });
       const { subtotal, taxable, discount, packageCredit, tax, tip, depositCredit, total } = settlement;
+      if (args.quoteOnly) return { success: true, transactionId: null, paymentId: null, error: null, quoteTotal: total };
       const now = new Date().toISOString();
 
       const transaction = await sudo.query.SalonTransaction.createOne({
@@ -284,20 +292,41 @@ export async function completeAppointmentCheckoutTransaction(
         if (!movement.success) throw new Error(movement.error || "Inventory movement failed");
       }
 
-      const providers = await sudo.query.PaymentProvider.findMany({
-        where: { adapter: { equals: "manual" }, isInstalled: { equals: true } }, take: 1,
-        query: "id code adapter config",
-      });
-      const provider = providers[0];
-      if (!provider) throw new Error("Operator payment provider is unavailable");
-      const providerConfig = paymentProviderFromRecord(provider as any);
-      const initiated = await createProviderPaymentSession({ provider: providerConfig, amount: total, currency: "usd", idempotencyKey: args.idempotencyKey, metadata: { appointmentId: appointment.id, operatorId: context.session!.itemId } });
-      const confirmed = await confirmProviderPayment({ provider: providerConfig, providerReference: initiated.providerReference, amount: total, idempotencyKey: `${args.idempotencyKey}:confirm` });
-      if (confirmed.status !== "completed") throw new Error("Operator payment was not completed");
+      let provider: any;
+      let initiated: { providerReference: string; data?: Record<string, unknown> };
+      let confirmed: { data?: Record<string, unknown> };
+      if (args.cardSessionId) {
+        // Stripe already holds this money: the sale is recorded against its PaymentIntent, so refunds go back to the card.
+        const card = await sudo.query.PaymentSession.findOne({ where: { id: args.cardSessionId }, query: "id status completedAt amount currency providerReference data provider { id code adapter config }" }) as any;
+        const cardData = card?.data && typeof card.data === "object" ? card.data : {};
+        if (!card?.provider || cardData.purpose !== "front_desk_card" || cardData.deskAppointmentId !== appointment.id) throw new Error("Card payment not found for this visit");
+        if (card.status !== "completed" || typeof cardData.paymentIntent !== "string" || !cardData.paymentIntent.startsWith("pi_")) throw new Error("The card payment is not complete yet");
+        if (cardData.settledSessionId) throw new Error("This card payment is already recorded");
+        if (card.amount !== total) throw new Error(`The card was charged ${(card.amount / 100).toFixed(2)} but the visit now totals ${(total / 100).toFixed(2)}. Refund the card payment and charge again.`);
+        provider = card.provider;
+        initiated = { providerReference: cardData.paymentIntent, data: { cardSessionId: card.id, checkoutSessionId: card.providerReference } };
+        confirmed = { data: { cardCollectedAt: card.completedAt || now } };
+      } else {
+        const providers = await sudo.query.PaymentProvider.findMany({
+          where: { adapter: { equals: "manual" }, isInstalled: { equals: true } }, take: 1,
+          query: "id code adapter config",
+        });
+        provider = providers[0];
+        if (!provider) throw new Error("Operator payment provider is unavailable");
+        const providerConfig = paymentProviderFromRecord(provider as any);
+        initiated = await createProviderPaymentSession({ provider: providerConfig, amount: total, currency: "usd", idempotencyKey: args.idempotencyKey, metadata: { appointmentId: appointment.id, operatorId: context.session!.itemId } });
+        const manualConfirmed = await confirmProviderPayment({ provider: providerConfig, providerReference: initiated.providerReference, amount: total, idempotencyKey: `${args.idempotencyKey}:confirm` });
+        if (manualConfirmed.status !== "completed") throw new Error("Operator payment was not completed");
+        confirmed = manualConfirmed;
+      }
       const session = await sudo.query.PaymentSession.createOne({
         data: { appointment: { connect: { id: appointment.id } }, provider: { connect: { id: provider.id } }, idempotencyKey: args.idempotencyKey, amount: total, currency: "usd", status: "completed", providerReference: initiated.providerReference, completedAt: now, data: { ...(initiated.data || {}), ...(confirmed.data || {}), source: "controlled_checkout", checkoutRequestHash: requestHash, originalTransactionId: transaction.id, originalLocationId: checkoutLocationId, stockActorId: context.session!.itemId } },
         query: "id",
       });
+      if (args.cardSessionId) {
+        const card = await sudo.query.PaymentSession.findOne({ where: { id: args.cardSessionId }, query: "id data" }) as any;
+        await sudo.query.PaymentSession.updateOne({ where: { id: args.cardSessionId }, data: { data: { ...(card?.data || {}), settledSessionId: session.id } }, query: "id" });
+      }
       const payment = await sudo.query.Payment.createOne({
         data: { appointment: { connect: { id: appointment.id } }, session: { connect: { id: session.id } }, subtotal, tax, tip, discount, totalAmount: total, paymentMethod: args.paymentMethod, status: "completed", processedAt: now, processedBy: { connect: { id: context.session!.itemId } }, receiptEmail: appointment.client?.user?.email || appointment.client?.guestEmail || "", notes: "Recorded by controlled appointment checkout" },
         query: "id",

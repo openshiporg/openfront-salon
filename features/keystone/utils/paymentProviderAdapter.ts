@@ -5,6 +5,7 @@ import {
   type PaymentOperationInput,
   type PaymentProviderConfig,
   type PaymentWebhookInput,
+  type SubscriptionCheckoutInput,
 } from "../../integrations/payment";
 
 export async function createProviderPaymentSession(input: CreatePaymentSessionInput) {
@@ -21,6 +22,36 @@ export async function retrieveProviderCheckout(input: { provider: PaymentProvide
   const adapter = await getPaymentAdapter(input.provider);
   if (!adapter.retrieveCheckout) throw new Error("Provider does not take online payments");
   return adapter.retrieveCheckout(input);
+}
+
+export async function expireProviderCheckout(input: { provider: PaymentProviderConfig; providerReference: string }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.expireCheckout) throw new Error("Provider does not take online payments");
+  return adapter.expireCheckout(input);
+}
+
+export async function createProviderSubscriptionCheckout(input: SubscriptionCheckoutInput) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.createSubscriptionCheckout) throw new Error("Provider does not take subscriptions");
+  return adapter.createSubscriptionCheckout(input);
+}
+
+export async function retrieveProviderSubscriptionCheckout(input: { provider: PaymentProviderConfig; providerReference: string }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.retrieveSubscriptionCheckout) throw new Error("Provider does not take subscriptions");
+  return adapter.retrieveSubscriptionCheckout(input);
+}
+
+export async function cancelProviderSubscription(input: { provider: PaymentProviderConfig; subscriptionId: string }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.cancelSubscription) throw new Error("Provider does not take subscriptions");
+  return adapter.cancelSubscription(input);
+}
+
+export async function setProviderSubscriptionPaused(input: { provider: PaymentProviderConfig; subscriptionId: string; paused: boolean }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.setSubscriptionPaused) throw new Error("Provider does not take subscriptions");
+  return adapter.setSubscriptionPaused(input);
 }
 
 export async function confirmProviderPayment(input: PaymentOperationInput) {

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { ArrowUpRight, Search } from 'lucide-react';
 import { appointmentContact } from '../../lib/appointmentContact';
 import { getCheckoutWorkflow } from '../actions/checkout';
+import { getDeskCard } from '../actions/deskCard';
 import { CheckoutWorkflowCard } from './CheckoutQueuePage';
 import { RetryCheckoutWorkflowButton } from './RetryCheckoutWorkflowButton';
 import { appointmentLabel, appointmentTone, ErrorState, inputClass, PageHeader, pillClass, PillLink, PlatformPage, TitleStatus, Track, trackClass } from '../../components/salon-ui';
@@ -31,6 +32,7 @@ export async function CheckoutWorkflowPage({ params, searchParams }: PageProps) 
   const { appointment } = result.data;
   const clientName = appointmentContact(appointment).name;
   const paid = appointment.transaction?.status === 'completed' || appointment.payment?.status === 'completed';
+  const deskCard = paid ? null : await getDeskCard(appointment.id);
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'link', label: 'Checkout', href: '/platform/checkout' }, { type: 'page', label: clientName }]}>
@@ -45,7 +47,7 @@ export async function CheckoutWorkflowPage({ params, searchParams }: PageProps) 
           <div className={trackClass}><button type="submit" className={pillClass('raised')}>Search stock</button></div>
         </form>
       )}
-      <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} showClient={false} />
+      <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} showClient={false} deskCard={deskCard} />
     </PlatformPage>
   );
 }

@@ -3,6 +3,8 @@ import { registerSalonCustomer } from "./registerSalonCustomer";
 import redirectToInit from "./redirectToInit";
 import { paymentMutations } from "./processPayment";
 import { giftCardMutations } from "./purchaseGiftCard";
+import { confirmGiftCardOrder, startGiftCardCheckout } from "./onlineGiftCard";
+import { confirmMembershipSignup, startMembershipCheckout } from "./onlineMembership";
 import { confirmDepositCheckout, startDepositCheckout } from "./depositCheckoutMutations";
 import { bookAppointment } from "./bookAppointment";
 import { checkAvailability } from "../extendGraphqlSchema/checkAvailability";
@@ -11,6 +13,7 @@ import { storefrontStylists, storefrontStylist } from "../extendGraphqlSchema/st
 import { salonOperationsWorkspace } from "../extendGraphqlSchema/salonOperationsWorkspace";
 import { runSalonOnboarding } from "./runSalonOnboarding";
 import { completeAppointmentCheckout } from "./completeAppointmentCheckout";
+import { cancelDeskCardPayment, checkDeskCardPayment, deskCardPayment, startDeskCardPayment } from "./deskCardPayment";
 import { processAppointmentDeposit, transitionAppointment } from "./appointmentWorkflows";
 import { redeemClientPackage } from "./packageWorkflows";
 import { joinWaitlist, joinWaitlistAsClient, transitionWaitlistEntry } from "./waitlistWorkflows";
@@ -33,6 +36,7 @@ import { giftCardBalance, storefrontBenefits } from "../extendGraphqlSchema/stor
 
 export const extendGraphqlSchema = graphql.extend((base) => ({
   query: {
+    deskCardPayment,
     redirectToInit: graphql.field({
       type: graphql.Boolean,
       resolve: redirectToInit,
@@ -59,6 +63,10 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     refundPayment: paymentMutations.refundPayment,
     distributeTip: paymentMutations.distributeTip,
     purchaseGiftCard: giftCardMutations.purchaseGiftCard,
+    startGiftCardCheckout,
+    confirmGiftCardOrder,
+    startMembershipCheckout,
+    confirmMembershipSignup,
     confirmGiftCardPurchase: giftCardMutations.confirmGiftCardPurchase,
     applyGiftCardBalance: giftCardMutations.applyGiftCardBalance,
     transitionAppointment,
@@ -88,6 +96,9 @@ export const extendGraphqlSchema = graphql.extend((base) => ({
     reviewConsultation,
     runSalonOnboarding,
     completeAppointmentCheckout,
+    startDeskCardPayment,
+    checkDeskCardPayment,
+    cancelDeskCardPayment,
     upsertSalonStoreSettings,
     saveSalonRecord,
   },

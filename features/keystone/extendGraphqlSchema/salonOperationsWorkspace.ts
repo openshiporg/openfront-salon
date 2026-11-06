@@ -97,15 +97,16 @@ async function inventory(context: Context) {
 async function engagement(sudo: ReturnType<Context["sudo"]>) {
   const [waitlist, messageLogs, active, failed, sent, undelivered] = await Promise.all([
     sudo.query.WaitlistEntry.findMany({ take: 50, orderBy: { createdAt: "asc" }, query: "id guestName status preferredTimeRange dateRangeStart dateRangeEnd createdAt client { name } service { name } preferredStylists { user { name } }" }),
-    sudo.query.MessageLog.findMany({ take: 20, orderBy: { sentAt: "desc" }, query: "id channel status sentAt recipient { name } template { name }" }),
+    sudo.query.MessageLog.findMany({ take: 20, orderBy: { sentAt: "desc" }, query: "id channel status sentAt kind subject recipientAddress errorMessage recipient { name } template { name }" }),
     sudo.query.WaitlistEntry.count({ where: { status: { in: ["active", "notified"] } } }), sudo.query.MessageLog.count({ where: { status: { equals: "failed" } } }), sudo.query.MessageLog.count({ where: { status: { in: ["sent", "delivered"] } } }),
     sudo.query.DomainEvent.count({ where: { status: { equals: "pending" } } }),
   ]);
   const records: RecordItem[] = [
     ...waitlist.map((row: any) => ({ id: row.id, title: row.client?.name || row.guestName || "Waitlist guest", subtitle: row.service?.name || "Any service", status: row.status || "active", detail: [row.preferredTimeRange, row.preferredStylists?.[0]?.user?.name].filter(Boolean).join(" · ") || "Flexible provider and time", amount: null, metric: null, occurredAt: date(row.createdAt), href: null, action: row.status === "active" ? "notify_waitlist" : row.status === "notified" ? "remove_waitlist" : null })),
-    ...messageLogs.map((row: any) => ({ id: `message:${row.id}`, title: row.template?.name || `${row.channel || "Message"} communication`, subtitle: row.recipient?.name || "Recipient omitted", status: row.status, detail: row.status === "failed" ? "Delivery failed" : row.channel ? `Sent by ${row.channel}` : null, amount: null, metric: null, occurredAt: date(row.sentAt), href: null, action: null })),
+    ...messageLogs.map((row: any) => ({ id: `message:${row.id}`, title: row.subject || row.template?.name || `${row.channel || "Message"} communication`, subtitle: row.recipient?.name || row.recipientAddress || "Recipient omitted", status: row.status, detail: row.status === "failed" ? (row.errorMessage ? `Delivery failed · ${row.errorMessage.slice(0, 80)}` : "Delivery failed") : [row.kind ? row.kind.replace(/_/g, " ") : "", row.channel ? `by ${row.channel}` : ""].filter(Boolean).join(" ") || null, amount: null, metric: null, occurredAt: date(row.sentAt), href: null, action: null })),
   ];
-  return { metrics: [count("Open waitlist", active), count("Messages sent", sent), count("Delivery failures", failed), count("Events not delivered", undelivered)], records, attentionCount: active + failed + undelivered, attentionLabel: [active ? `${active} on waitlist` : "", failed ? `${failed} failed` : "", undelivered ? `${undelivered} not delivered` : ""].filter(Boolean).join(" · ") || null };
+  void undelivered;
+  return { metrics: [count("Open waitlist", active), count("Messages sent", sent), count("Delivery failures", failed)], records, attentionCount: active + failed, attentionLabel: [active ? `${active} on waitlist` : "", failed ? `${failed} failed` : ""].filter(Boolean).join(" · ") || null };
 }
 
 async function administration(sudo: ReturnType<Context["sudo"]>) {
@@ -178,7 +179,7 @@ async function integrations(sudo: ReturnType<Context["sudo"]>) {
   const [providers, pending, failed, events, webhooks] = await Promise.all([
     sudo.query.PaymentProvider.findMany({ take: 20, orderBy: { name: "asc" }, query: "id name code adapter isInstalled isDefault" }),
     sudo.query.DomainEvent.count({ where: { status: { equals: "pending" } } }), sudo.query.DomainEvent.count({ where: { status: { equals: "dead_letter" } } }),
-    sudo.query.DomainEvent.findMany({ take: 30, where: { status: { in: ["pending", "dead_letter"] } }, orderBy: { occurredAt: "desc" }, query: "id eventType aggregateType aggregateId status attempts occurredAt" }),
+    sudo.query.DomainEvent.findMany({ take: 30, where: { status: { equals: "dead_letter" } }, orderBy: { occurredAt: "desc" }, query: "id eventType aggregateType aggregateId status attempts occurredAt" }),
     sudo.query.PaymentWebhookEvent.findMany({ take: 30, orderBy: { processedAt: "desc" }, query: "id eventId type status processedAt provider { name }" }),
   ]);
   const records: RecordItem[] = [
@@ -186,9 +187,11 @@ async function integrations(sudo: ReturnType<Context["sudo"]>) {
     ...events.map((row: any) => ({ id: `event:${row.id}`, title: row.eventType, subtitle: `${row.aggregateType} · ${row.aggregateId}`, status: row.status, detail: `${row.attempts || 0} ${row.attempts === 1 ? "attempt" : "attempts"}`, amount: null, metric: row.attempts || 0, occurredAt: date(row.occurredAt), href: null, action: null })),
     ...webhooks.map((row: any) => ({ id: `webhook:${row.id}`, title: row.type, subtitle: row.provider?.name || "Unknown provider", status: row.status, detail: `Provider event ${row.eventId}`, amount: null, metric: null, occurredAt: date(row.processedAt), href: null, action: null })),
   ];
-  // No dispatcher runs yet, so a pending backlog means nothing is being delivered.
-  const attentionLabel = [pending ? `${pending} queued, not delivered` : "", failed ? `${failed} failed` : ""].filter(Boolean).join(" · ") || null;
-  return { metrics: [count("Installed providers", providers.filter((x: any) => x.isInstalled).length), count("Queued, not delivered", pending), count("Failed events", failed), count("Recent webhooks", webhooks.length)], records, attentionCount: pending + failed, attentionLabel };
+  // DomainEvent rows are the salon's change log (every booking, sale and edit is recorded). Nothing external
+  // subscribes to them, and client messages are sent directly and logged in MessageLog, so recorded events are
+  // history, not a backlog. Only dead-lettered events need someone to look.
+  const attentionLabel = failed ? `${failed} failed` : null;
+  return { metrics: [count("Installed providers", providers.filter((x: any) => x.isInstalled).length), count("Changes recorded", pending), count("Failed events", failed), count("Recent webhooks", webhooks.length)], records, attentionCount: failed, attentionLabel };
 }
 
 const loaders: Record<Section, (sudo: ReturnType<Context["sudo"]>) => Promise<any>> = { clients, catalog, benefits, inventory, engagement, administration, reports, integrations };

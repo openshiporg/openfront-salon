@@ -2,6 +2,7 @@ import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
 import { serializableWorkflow } from "./serializableWorkflow";
+import { syncMembershipBilling } from "../onlineMembershipService";
 
 type Result = { success: boolean; recordId: string | null; error: string | null };
 const denied = { success: false, recordId: null };
@@ -81,6 +82,8 @@ export async function setClientBenefitStatusTransaction(context: Context, args: 
       if (record.status === "cancelled") throw new Error("A cancelled membership can't be changed");
       const pausedUntil = args.status === "paused" && args.pausedUntil ? new Date(args.pausedUntil) : null;
       if (pausedUntil && Number.isNaN(pausedUntil.getTime())) throw new Error("Pause date is invalid");
+      // Online memberships bill through Stripe: change the billing first so the salon never shows a state Stripe disagrees with.
+      if (record.status !== args.status) await syncMembershipBilling(context, record.id, args.status as "active" | "paused" | "cancelled");
       await sudo.query.ClientMembership.updateOne({ where: { id: record.id }, data: { status: args.status, pausedUntil: pausedUntil ? pausedUntil.toISOString() : null }, query: "id" });
       return { success: true, recordId: record.id, error: null };
     }

@@ -1,4 +1,5 @@
 import { graphql } from "@keystone-6/core";
+import { triggerReminderSweep } from "../lib/appointmentReminders";
 import { sanitizeStoreLogoSvg } from "../../lib/sanitize-store-logo";
 import { normalizeStoreLogoColor, storeLogoHue } from "../../lib/store-logo";
 import type { Context } from ".keystone/types";
@@ -74,6 +75,7 @@ const unconfigured = (): PublicStorefrontSettingsResult => ({
 export const publicStorefrontSettings = graphql.field({
   type: graphql.nonNull(publicStorefrontSettingsType),
   async resolve(_source, _args, context: Context): Promise<PublicStorefrontSettingsResult> {
+    triggerReminderSweep(context);
     const rows = await context.sudo().query.StoreSettings.findMany({
       where: { scope: { equals: STOREFRONT_SETTINGS_SCOPE } },
       take: 2,

@@ -13,6 +13,10 @@ function getBaseUrlForEmails(): string {
   return '';
 }
 
+export async function mailConfigured() {
+  return hasSmtpConfiguration();
+}
+
 function hasSmtpConfiguration() {
   return Boolean(process.env.SMTP_HOST?.trim() && process.env.SMTP_FROM?.trim());
 }
@@ -90,6 +94,8 @@ function appointmentConfirmationEmail(params: {
   price: number;
   storefrontName: string | null;
   themeHue: number;
+  reminder?: boolean;
+  manageUrl?: string | null;
 }): string {
   const backgroundColor = "#f9f9f9";
   const textColor = "#444444";
@@ -107,7 +113,7 @@ function appointmentConfirmationEmail(params: {
               <!-- Header -->
               <tr>
                 <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 2px solid ${primaryColor};">
-                  <h1 style="margin: 0; font-size: 28px; color: ${primaryColor}; font-weight: bold;">Appointment Confirmed!</h1>
+                  <h1 style="margin: 0; font-size: 28px; color: ${primaryColor}; font-weight: bold;">${params.reminder ? "See you tomorrow" : "Appointment Confirmed!"}</h1>
                 </td>
               </tr>
 
@@ -118,7 +124,7 @@ function appointmentConfirmationEmail(params: {
                     Hi ${params.clientName},
                   </p>
                   <p style="margin: 15px 0 0 0; font-size: 16px; color: ${textColor}; line-height: 1.6;">
-                    We're excited to see you! Your appointment has been confirmed.
+                    ${params.reminder ? "This is a reminder of your appointment tomorrow." : "We're excited to see you! Your appointment has been confirmed."}
                   </p>
                 </td>
               </tr>
@@ -178,7 +184,7 @@ function appointmentConfirmationEmail(params: {
               <tr>
                 <td style="padding: 30px 40px; border-top: 1px solid ${borderColor}; text-align: center;">
                   <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
-                    Need to reschedule? Please call us or visit our website.
+                    ${params.manageUrl ? `Need to change it? <a href="${params.manageUrl}" style="color: ${primaryColor};">Reschedule or cancel</a>.` : "Need to reschedule? Please call us or visit our website."}
                   </p>
                   ${params.storefrontName ? `<p style="margin: 15px 0 0 0; font-size: 12px; color: #9ca3af;">${params.storefrontName}${process.env.SMTP_STORE_LINK ? ` | ${process.env.SMTP_STORE_LINK}` : ""}</p>` : ""}
                 </td>
@@ -203,14 +209,16 @@ export async function sendAppointmentConfirmation(params: {
   price: number;
   storefrontName: string | null;
   themeHue: number;
+  reminder?: boolean;
+  manageUrl?: string | null;
 }): Promise<void> {
-  if (!hasSmtpConfiguration()) return;
+  if (!hasSmtpConfiguration()) throw new Error("Email is not configured (SMTP_HOST / SMTP_FROM)");
 
   try {
     const info = await transport.sendMail({
       to: params.to,
       from: process.env.SMTP_FROM,
-      subject: `Appointment Confirmed - ${params.appointmentDate} at ${params.appointmentTime}`,
+      subject: await appointmentEmailSubject(params),
       html: appointmentConfirmationEmail(params),
     });
 
@@ -221,6 +229,12 @@ export async function sendAppointmentConfirmation(params: {
     console.error("Failed to send appointment confirmation email:", error);
     throw error;
   }
+}
+
+export async function appointmentEmailSubject(params: { appointmentDate: string; appointmentTime: string; reminder?: boolean; storefrontName?: string | null }) {
+  return params.reminder
+    ? `Reminder: ${params.appointmentDate} at ${params.appointmentTime}${params.storefrontName ? ` · ${params.storefrontName}` : ""}`
+    : `Appointment Confirmed - ${params.appointmentDate} at ${params.appointmentTime}`;
 }
 
 function giftCardEmail(params: {
@@ -249,7 +263,7 @@ function giftCardEmail(params: {
               <tr>
                 <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); border-radius: 12px 12px 0 0;">
                   <h1 style="margin: 0; font-size: 32px; color: #ffffff; font-weight: bold;">You've Received a Gift Card!</h1>
-                  <p style="margin: 10px 0 0 0; font-size: 18px; color: #f3e8ff;">From ${params.senderName}</p>
+                  <p style="margin: 10px 0 0 0; font-size: 18px; color: #ffffff;">From ${params.senderName}</p>
                 </td>
               </tr>
 
@@ -272,7 +286,7 @@ function giftCardEmail(params: {
               <!-- Gift Card Amount -->
               <tr>
                 <td style="padding: 20px 40px;">
-                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-radius: 8px; border: 2px solid ${primaryColor};">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f8f9fa; border-radius: 8px; border: 2px solid ${primaryColor};">
                     <tr>
                       <td style="padding: 30px; text-align: center;">
                         <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">Gift Card Value</p>
@@ -293,7 +307,7 @@ function giftCardEmail(params: {
                   <h3 style="margin: 0 0 15px 0; font-size: 18px; color: ${textColor};">How to Use Your Gift Card</h3>
                   <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: ${textColor}; line-height: 1.8;">
                     <li>Book an appointment online or call us</li>
-                    <li>Provide your gift card code during checkout</li>
+                    <li>Give the front desk this code when you pay</li>
                     <li>Enjoy your salon experience!</li>
                   </ol>
                   ${process.env.SMTP_STORE_LINK ? `<div style="margin-top: 20px; text-align: center;"><a href="${process.env.SMTP_STORE_LINK}/book" style="display: inline-block; padding: 15px 30px; background: ${primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Book Your Appointment</a></div>` : ""}
@@ -304,7 +318,7 @@ function giftCardEmail(params: {
               <tr>
                 <td style="padding: 30px 40px; border-top: 1px solid #e5e7eb; text-align: center;">
                   <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.6;">
-                    This gift card never expires and can be used for any service.<br/>
+                    This gift card is valid for one year and can be used for any service or product.<br/>
                     Questions? Contact us at ${process.env.SMTP_FROM}
                   </p>
                 </td>

@@ -25,7 +25,7 @@ export const MessageLog = list({
   },
   ui: {
     listView: {
-      initialColumns: ["recipient", "template", "sentAt", "channel", "status"],
+      initialColumns: ["recipientAddress", "kind", "sentAt", "channel", "status"],
     },
   },
   fields: {
@@ -80,6 +80,15 @@ export const MessageLog = list({
       },
     }),
 
+    recipientAddress: text({
+      ui: { description: "Email address or phone number the message went to (guests have no user account)" },
+    }),
+    subject: text({
+      ui: { description: "Subject line or first line of the message" },
+    }),
+    kind: text({
+      ui: { description: "What the message was for: appointment_confirmation, appointment_reminder, gift_card, password_reset" },
+    }),
     errorMessage: text({
       ui: {
         displayMode: "textarea",

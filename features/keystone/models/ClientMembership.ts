@@ -2,6 +2,7 @@ import { list } from "@keystone-6/core";
 import {
   relationship,
   select,
+  text,
   timestamp,
 } from "@keystone-6/core/fields";
 
@@ -81,6 +82,12 @@ export const ClientMembership = list({
       ui: {
         description: "If paused, when the membership will resume",
       },
+    }),
+
+    // Online memberships renew through the payment provider (Stripe subscription).
+    providerSubscriptionId: text({
+      isIndexed: true,
+      ui: { description: "Stripe subscription that bills this membership each month (blank when sold at the desk)", itemView: { fieldMode: "read" } },
     }),
     ...trackingFields,
   },

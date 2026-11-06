@@ -24,4 +24,6 @@ export type {
   PaymentSessionResult,
   PaymentWebhookInput,
   PaymentWebhookResult,
+  SubscriptionCheckoutInput,
+  SubscriptionObservation,
 } from "./types";

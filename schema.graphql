@@ -1544,6 +1544,7 @@ type Client {
   lastVisit: DateTime
   totalVisits: Int
   lifetimeValue: Int
+  lifetimeSpend: String
   photoConsent: Boolean
   marketingConsent: Boolean
   appointments(where: AppointmentWhereInput! = {}, orderBy: [AppointmentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AppointmentWhereUniqueInput): [Appointment!]
@@ -2081,6 +2082,7 @@ type Appointment {
   metadata: JSON
   bookedAt: DateTime
   confirmedAt: DateTime
+  reminderSentAt: DateTime
   cancelledAt: DateTime
   cancellationReason: String
   notes: String
@@ -2145,6 +2147,7 @@ input AppointmentWhereInput {
   depositPaid: BooleanFilter
   bookedAt: DateTimeNullableFilter
   confirmedAt: DateTimeNullableFilter
+  reminderSentAt: DateTimeNullableFilter
   cancelledAt: DateTimeNullableFilter
   cancellationReason: StringFilter
   notes: StringFilter
@@ -2210,6 +2213,7 @@ input AppointmentOrderByInput {
   depositPaid: OrderDirection
   bookedAt: OrderDirection
   confirmedAt: OrderDirection
+  reminderSentAt: OrderDirection
   cancelledAt: OrderDirection
   cancellationReason: OrderDirection
   notes: OrderDirection
@@ -2229,6 +2233,7 @@ input AppointmentUpdateInput {
   metadata: JSON
   bookedAt: DateTime
   confirmedAt: DateTime
+  reminderSentAt: DateTime
   cancelledAt: DateTime
   cancellationReason: String
   notes: String
@@ -2326,6 +2331,7 @@ input AppointmentCreateInput {
   metadata: JSON
   bookedAt: DateTime
   confirmedAt: DateTime
+  reminderSentAt: DateTime
   cancelledAt: DateTime
   cancellationReason: String
   notes: String
@@ -3210,6 +3216,9 @@ type MessageLog {
   sentAt: DateTime
   channel: String
   status: String
+  recipientAddress: String
+  subject: String
+  kind: String
   errorMessage: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3229,6 +3238,9 @@ input MessageLogWhereInput {
   sentAt: DateTimeNullableFilter
   channel: StringFilter
   status: StringNullableFilter
+  recipientAddress: StringFilter
+  subject: StringFilter
+  kind: StringFilter
   errorMessage: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -3239,6 +3251,9 @@ input MessageLogOrderByInput {
   sentAt: OrderDirection
   channel: OrderDirection
   status: OrderDirection
+  recipientAddress: OrderDirection
+  subject: OrderDirection
+  kind: OrderDirection
   errorMessage: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -3250,6 +3265,9 @@ input MessageLogUpdateInput {
   sentAt: DateTime
   channel: String
   status: String
+  recipientAddress: String
+  subject: String
+  kind: String
   errorMessage: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3272,6 +3290,9 @@ input MessageLogCreateInput {
   sentAt: DateTime
   channel: String
   status: String
+  recipientAddress: String
+  subject: String
+  kind: String
   errorMessage: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3478,6 +3499,7 @@ type ClientMembership {
   nextBillingDate: DateTime
   status: String
   pausedUntil: DateTime
+  providerSubscriptionId: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3497,6 +3519,7 @@ input ClientMembershipWhereInput {
   nextBillingDate: DateTimeNullableFilter
   status: StringNullableFilter
   pausedUntil: DateTimeNullableFilter
+  providerSubscriptionId: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -3507,6 +3530,7 @@ input ClientMembershipOrderByInput {
   nextBillingDate: OrderDirection
   status: OrderDirection
   pausedUntil: OrderDirection
+  providerSubscriptionId: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -3518,6 +3542,7 @@ input ClientMembershipUpdateInput {
   nextBillingDate: DateTime
   status: String
   pausedUntil: DateTime
+  providerSubscriptionId: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3540,6 +3565,7 @@ input ClientMembershipCreateInput {
   nextBillingDate: DateTime
   status: String
   pausedUntil: DateTime
+  providerSubscriptionId: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -4384,6 +4410,7 @@ type StoreSettings {
   scope: String
   name: String
   description: String
+  tagline: String
   themeHue: Int
   logoIcon: String
   logoColor: String
@@ -4405,6 +4432,7 @@ input StoreSettingsWhereInput {
   scope: StringFilter
   name: StringFilter
   description: StringFilter
+  tagline: StringFilter
   themeHue: IntFilter
   logoIcon: StringFilter
   logoColor: StringFilter
@@ -4418,6 +4446,7 @@ input StoreSettingsOrderByInput {
   scope: OrderDirection
   name: OrderDirection
   description: OrderDirection
+  tagline: OrderDirection
   themeHue: OrderDirection
   logoIcon: OrderDirection
   logoColor: OrderDirection
@@ -4429,6 +4458,7 @@ input StoreSettingsUpdateInput {
   scope: String
   name: String
   description: String
+  tagline: String
   themeHue: Int
   logoIcon: String
   logoColor: String
@@ -4446,6 +4476,7 @@ input StoreSettingsCreateInput {
   scope: String
   name: String
   description: String
+  tagline: String
   themeHue: Int
   logoIcon: String
   logoColor: String
@@ -7656,11 +7687,15 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   registerSalonCustomer(name: String!, email: String!, password: String!, phone: String): Boolean!
   bookAppointment(serviceIds: [ID!]!, stylistId: ID!, locationId: ID, startTime: String!, clientName: String!, clientEmail: String!, clientPhone: String, clientNotes: String, clientId: ID, policyAccepted: Boolean, policyVersion: String, requestKey: String): BookAppointmentResult
+  startDepositCheckout(appointmentId: ID!, accessToken: String): StartDepositCheckoutResult
+  confirmDepositCheckout(appointmentId: ID!, accessToken: String): ConfirmDepositCheckoutResult
   processPayment(appointmentId: ID!, paymentMethod: String!, providerCode: String, idempotencyKey: String!, tipAmount: Int, discountAmount: Int): ProcessPaymentResult
   confirmPayment(paymentSessionId: ID!): ConfirmPaymentResult
   refundPayment(paymentSessionId: ID!, amount: Int, reason: String, idempotencyKey: String): RefundPaymentResult
   distributeTip(paymentId: ID!): DistributeTipResult
   purchaseGiftCard(amount: Int!, recipientEmail: String, recipientName: String, message: String, purchaserEmail: String!, purchaserName: String!, providerCode: String, idempotencyKey: String!): PurchaseGiftCardResult
+  startGiftCardCheckout(amount: Int!, purchaserName: String!, purchaserEmail: String!, recipientName: String, recipientEmail: String, message: String): StartGiftCardCheckoutResult
+  confirmGiftCardOrder(sessionId: ID!, token: String!): GiftCardOrderResult
   confirmGiftCardPurchase(paymentSessionId: ID!): ConfirmGiftCardPurchaseResult
   applyGiftCardBalance(giftCardId: ID!, action: String!, amount: Int!, appointmentId: ID, reason: String, idempotencyKey: String!): ApplyGiftCardBalanceResult
   transitionAppointment(appointmentId: ID!, status: String!, reason: String): TransitionAppointmentResult
@@ -7690,7 +7725,10 @@ type Mutation {
   reviewConsultation(submissionId: ID!, status: String!, reason: String!, idempotencyKey: String!): ConsultationWorkflowResult
   runSalonOnboarding(seed: JSON): RunSalonOnboardingResult
   completeAppointmentCheckout(appointmentId: ID!, paymentMethod: String!, tipAmount: Int!, discountAmount: Int!, retailItems: JSON, clientPackageId: ID, clientMembershipId: ID, idempotencyKey: String!): CompleteAppointmentCheckoutResult
-  upsertSalonStoreSettings(name: String!, description: String, themeHue: Int!, primaryLocationId: ID!, logoIcon: String, logoColor: String): SalonStoreSettingsMutationResult!
+  startDeskCardPayment(appointmentId: ID!, tipAmount: Int!, discountAmount: Int!, retailItems: JSON, clientPackageId: ID, clientMembershipId: ID): DeskCardPaymentResult
+  checkDeskCardPayment(sessionId: ID!): DeskCardPaymentResult
+  cancelDeskCardPayment(sessionId: ID!): DeskCardPaymentResult
+  upsertSalonStoreSettings(name: String!, description: String, tagline: String, themeHue: Int!, primaryLocationId: ID!, logoIcon: String, logoColor: String): SalonStoreSettingsMutationResult!
   saveSalonRecord(kind: String!, id: ID, input: JSON!, idempotencyKey: String!): SalonManagementResult
 }
 
@@ -7698,6 +7736,21 @@ type BookAppointmentResult {
   success: Boolean!
   appointmentId: ID
   error: String
+  depositAmount: Int
+  depositAccessToken: String
+}
+
+type StartDepositCheckoutResult {
+  success: Boolean!
+  error: String
+  url: String
+}
+
+type ConfirmDepositCheckoutResult {
+  success: Boolean!
+  error: String
+  paid: Boolean!
+  status: String
 }
 
 type ProcessPaymentResult {
@@ -7735,6 +7788,21 @@ type PurchaseGiftCardResult {
   error: String
 }
 
+type StartGiftCardCheckoutResult {
+  success: Boolean!
+  error: String
+  url: String
+}
+
+type GiftCardOrderResult {
+  success: Boolean!
+  error: String
+  status: String
+  code: String
+  amount: Int
+  recipientEmail: String
+}
+
 type ConfirmGiftCardPurchaseResult {
   success: Boolean!
   error: String
@@ -7763,6 +7831,7 @@ type ProcessAppointmentDepositResult {
   paymentSessionId: ID
   status: String
   error: String
+  checkoutUrl: String
 }
 
 type RedeemClientPackageResult {
@@ -7864,10 +7933,21 @@ type CompleteAppointmentCheckoutResult {
   error: String
 }
 
+type DeskCardPaymentResult {
+  success: Boolean!
+  error: String
+  sessionId: ID
+  url: String
+  amount: Int
+  status: String
+  recorded: Boolean!
+}
+
 type SalonStoreSettingsMutationResult {
   id: ID!
   name: String!
   description: String
+  tagline: String
   themeHue: Int!
   primaryLocationId: ID!
 }
@@ -8084,6 +8164,7 @@ type Query {
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
+  deskCardPayment(appointmentId: ID!): DeskCardPaymentResult
   redirectToInit: Boolean
   checkAvailability(stylistId: ID!, date: String!, serviceDuration: Int!, serviceId: ID, locationId: ID): AvailabilityResult
   calculateCommission(stylistId: ID!, startDate: String!, endDate: String!): CommissionResult
@@ -8218,6 +8299,7 @@ type PublicSalonStorefrontSettings {
   configured: Boolean!
   name: String
   description: String
+  tagline: String
   themeHue: Int!
   logoIcon: String!
   logoColor: String!

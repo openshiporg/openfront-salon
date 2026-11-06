@@ -71,6 +71,8 @@ export interface CreateCheckoutInput {
   cancelUrl: string;
   customerEmail?: string | null;
   metadata: Record<string, string>;
+  /** Close the hosted page after this many minutes (Stripe allows 30 to 1440). */
+  expiresInMinutes?: number;
 }
 
 export interface CheckoutResult {
@@ -92,10 +94,43 @@ export interface CheckoutObservation {
   refundedAmount: number;
 }
 
+export interface SubscriptionCheckoutInput {
+  provider: PaymentProviderConfig;
+  /** Recurring price per interval, in minor units. */
+  amount: number;
+  currency: string;
+  interval: "month";
+  idempotencyKey: string;
+  description: string;
+  successUrl: string;
+  cancelUrl: string;
+  customerEmail?: string | null;
+  metadata: Record<string, string>;
+}
+
+export interface SubscriptionObservation {
+  status: "pending" | "completed" | "cancelled";
+  providerReference: string;
+  subscriptionId: string | null;
+  amount: number | null;
+  currency: string | null;
+  /** End of the paid period, ISO. */
+  currentPeriodEnd: string | null;
+}
+
 export interface PaymentAdapter {
   /** Hosted checkout for online payments. Adapters that cannot take online payments leave these undefined. */
   createCheckout?(input: CreateCheckoutInput): Promise<CheckoutResult>;
   retrieveCheckout?(input: { provider: PaymentProviderConfig; providerReference: string }): Promise<CheckoutObservation>;
+  /** Closes an unpaid hosted checkout so it can no longer be paid. */
+  expireCheckout?(input: { provider: PaymentProviderConfig; providerReference: string }): Promise<void>;
+  /** Hosted checkout that starts a recurring subscription (memberships). */
+  createSubscriptionCheckout?(input: SubscriptionCheckoutInput): Promise<CheckoutResult>;
+  retrieveSubscriptionCheckout?(input: { provider: PaymentProviderConfig; providerReference: string }): Promise<SubscriptionObservation>;
+  /** Stops renewing at the end of the paid period. */
+  cancelSubscription?(input: { provider: PaymentProviderConfig; subscriptionId: string }): Promise<void>;
+  /** Pause (skip invoices) or resume billing. */
+  setSubscriptionPaused?(input: { provider: PaymentProviderConfig; subscriptionId: string; paused: boolean }): Promise<void>;
   createSession(input: CreatePaymentSessionInput): Promise<PaymentSessionResult>;
   confirm(input: PaymentOperationInput): Promise<PaymentOperationResult>;
   refund(input: PaymentOperationInput): Promise<PaymentOperationResult>;

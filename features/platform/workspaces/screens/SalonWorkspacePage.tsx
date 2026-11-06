@@ -247,7 +247,8 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
   const webhooks = data.records.filter((record) => record.id.startsWith('webhook:'));
   const notInstalled = providers.filter((record) => record.status === 'Not installed');
   const installed = providers.length - notInstalled.length;
-  const queued = metricValue(data.metrics, 'Queued, not delivered');
+  const queued = 0;
+  const recorded = metricValue(data.metrics, 'Changes recorded');
   const failed = metricValue(data.metrics, 'Failed events');
   const groups = [...events.reduce((map, record) => {
     const key = `${record.title}|${record.status}`;
@@ -266,7 +267,7 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
         title={data.title}
         status={providers.length > 0 && installed === 0 ? <TitleStatus tone="rose">No payment provider installed</TitleStatus>
           : data.attentionCount ? <TitleStatus tone="amber">{data.attentionLabel || `${data.attentionCount} need attention`}</TitleStatus>
-          : providers.length ? <TitleStatus tone="emerald">No delivery backlog</TitleStatus> : null}
+          : providers.length ? <TitleStatus tone="emerald">No failed events</TitleStatus> : null}
       />
       {providers.length > 0 && installed === 0 ? (
         <Notice tone="rose" title="No payment provider installed">{notInstalled.map((record) => record.title).join(', ')}</Notice>
@@ -274,7 +275,7 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
         <Notice tone="amber" title={`${plural(notInstalled.length, 'payment provider')} not installed`}>{notInstalled.map((record) => record.title).join(', ')}</Notice>
       ) : null}
       {queued + failed > 0 ? (
-        <Notice tone={failed ? 'rose' : 'amber'} title={[queued ? `${queued} events queued, not delivered` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(' · ')} />
+        <Notice tone="rose" title={`${plural(failed, 'event')} failed`} />
       ) : null}
 
       <section aria-labelledby="providers" className="grid gap-2">
@@ -296,9 +297,9 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
       </section>
 
       <section aria-labelledby="undelivered" className="grid gap-2">
-        <h2 id="undelivered" className="flex items-baseline gap-2 text-sm font-semibold">Undelivered events<span className="text-xs font-normal tabular-nums text-muted-foreground">{queued + failed}</span></h2>
-        <DataTable label="Undelivered events by type" head={[{ label: 'Event type' }, { label: 'Status' }, { label: 'Count', className: 'text-right' }, { label: 'Most attempts', className: 'hidden sm:table-cell text-right' }, { label: 'Oldest', className: 'hidden md:table-cell' }, { label: 'Latest', className: 'hidden md:table-cell' }]}>
-          {groups.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">Every event has been delivered.</Td></tr> : groups.map((group) => (
+        <h2 id="undelivered" className="flex items-baseline gap-2 text-sm font-semibold">Failed events<span className="text-xs font-normal tabular-nums text-muted-foreground">{queued + failed}</span></h2>
+        <DataTable label="Failed events by type" head={[{ label: 'Event type' }, { label: 'Status' }, { label: 'Count', className: 'text-right' }, { label: 'Most attempts', className: 'hidden sm:table-cell text-right' }, { label: 'Oldest', className: 'hidden md:table-cell' }, { label: 'Latest', className: 'hidden md:table-cell' }]}>
+          {groups.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No failed events.{recorded ? ` ${recorded.toLocaleString('en-US')} changes recorded in the audit log.` : ''}</Td></tr> : groups.map((group) => (
             <tr key={`${group.type}|${group.status}`}>
               <Td className="font-medium">{group.type}</Td>
               <Td><StatusCell tone={statusTone(group.status)}>{group.status === 'dead_letter' ? 'Failed' : labelize(group.status)}</StatusCell></Td>
@@ -316,7 +317,7 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
               Raw events · latest {events.length}{queued + failed > events.length ? ` of ${queued + failed}` : ''}
             </summary>
             <div className="relative overflow-x-auto border-t">
-              <table className="w-full border-collapse text-sm" aria-label="Raw undelivered events">
+              <table className="w-full border-collapse text-sm" aria-label="Raw failed events">
                 <thead><tr className="text-left text-xs text-muted-foreground"><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Occurred</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Event</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Record</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Status</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 text-right font-medium">Attempts</th></tr></thead>
                 <tbody>
                   {events.map((record) => (
@@ -357,7 +358,6 @@ function EngagementView({ data, timeZone }: ViewProps) {
   const waitlist = data.records.filter((record) => !record.id.startsWith('message:'));
   const messages = data.records.filter((record) => record.id.startsWith('message:'));
   const failed = metricValue(data.metrics, 'Delivery failures');
-  const undelivered = metricValue(data.metrics, 'Events not delivered');
   return (
     <>
       <PageHeader
@@ -367,7 +367,6 @@ function EngagementView({ data, timeZone }: ViewProps) {
         actions={<Track><PillLink href="/dashboard/platform/waitlist" variant="quiet"><ListOrdered />Walk-in waitlist</PillLink></Track>}
       />
       {failed ? <Notice tone="rose" title={`${plural(failed, 'message')} failed to deliver`} /> : null}
-      {undelivered ? <Notice title={`${undelivered} events queued, not delivered`}><Link href="/dashboard/platform/integrations" className="underline underline-offset-4 hover:text-foreground">Review in Integrations</Link></Notice> : null}
 
       <section aria-labelledby="to-contact" className="grid gap-2">
         <h2 id="to-contact" className="flex items-baseline gap-2 text-sm font-semibold">Booking waitlist<span className="text-xs font-normal tabular-nums text-muted-foreground">{waitlist.length}</span></h2>

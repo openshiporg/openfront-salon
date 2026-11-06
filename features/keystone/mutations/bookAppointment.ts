@@ -3,7 +3,8 @@ import { graphql } from "@keystone-6/core";
 import { assertCurrentWorkflowAuthority } from "./currentWorkflowAuthority";
 import { acquireSalonCapacityFence } from "../scheduling/capacityFence";
 import type { Context } from ".keystone/types";
-import { sendAppointmentConfirmation } from "../lib/mail";
+import { appointmentEmailSubject, sendAppointmentConfirmation } from "../lib/mail";
+import { sendLogged } from "../lib/messageLog";
 import { getStorefrontMessageBrand } from "../lib/storefrontBranding";
 import { permissions, type Session } from "../access";
 import { captureServiceSnapshot } from "../serviceSnapshot";
@@ -479,7 +480,7 @@ export const bookAppointment = graphql.field({
         const totalPrice = booking.services.reduce((sum: number, service: any) => sum + servicePriceCents(service), 0);
         const messageBrand = await getStorefrontMessageBrand(context);
 
-        await sendAppointmentConfirmation({
+        const confirmation = {
           to: clientEmail,
           clientName,
           serviceName: booking.services.map((service: any) => service.name).join(", "),
@@ -490,7 +491,8 @@ export const bookAppointment = graphql.field({
           price: totalPrice / 100,
           storefrontName: messageBrand.name,
           themeHue: messageBrand.themeHue,
-        });
+        };
+        await sendLogged(context, { to: clientEmail, kind: "appointment_confirmation", subject: await appointmentEmailSubject(confirmation), send: () => sendAppointmentConfirmation(confirmation) });
       } catch (emailError) {
         console.error("Failed to send appointment confirmation email:", emailError);
       }

@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import type { Context } from ".keystone/types";
 import { canTransitionPayment, paymentRecordStatus, type PaymentLifecycleStatus } from "./payment-lifecycle";
 import { applyObservation, SESSION_QUERY } from "./depositCheckout";
+import { settleOnlineGiftCard } from "./onlineGiftCardService";
+import { recordMembershipRenewal, settleOnlineMembership } from "./onlineMembershipService";
 import { parseProviderWebhook, paymentProviderFromRecord } from "./utils/paymentProviderAdapter";
 
 export type PaymentWebhookOutcome = {
@@ -34,7 +36,9 @@ export async function reconcilePaymentWebhook(
   const replayKey = `${provider.id}:${event.eventId}`;
   const payloadHash = createHash("sha256").update(payload).digest("hex");
 
-  return context.transaction(async (transactionContext) => {
+  let onlineGiftSessionId: string | null = null;
+  let onlineMembershipSessionId: string | null = null;
+  const outcome = await context.transaction(async (transactionContext) => {
     await transactionContext.prisma.$executeRawUnsafe(
       "SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))",
       "salon-payment-webhook",
@@ -147,6 +151,8 @@ export async function reconcilePaymentWebhook(
           query: "id",
         });
       }
+      if (targetStatus === "completed" && sessionData.purpose === "gift_card" && sessionData.online) onlineGiftSessionId = session.id;
+      if (targetStatus === "completed" && sessionData.purpose === "membership" && sessionData.online) onlineMembershipSessionId = session.id;
       if (targetStatus === "completed" && sessionData.purpose === "gift_card" && typeof sessionData.giftCardId === "string") {
         const giftCard = await sudo.query.GiftCard.findOne({ where: { id: sessionData.giftCardId }, query: "id initialValue" });
         if (giftCard) {
@@ -180,4 +186,13 @@ export async function reconcilePaymentWebhook(
     else await (sudo.query as any).PaymentWebhookEvent.createOne({ data: eventData, query: "id" });
     return { replayed: false, processed: eventStatus === "processed", status: eventStatus };
   }, { maxWait: 5_000, timeout: 30_000 });
+  // An online gift card the webhook activated still owes the recipient their code.
+  if (onlineGiftSessionId) await settleOnlineGiftCard(context, onlineGiftSessionId).catch((error) => console.error("Gift card follow-up failed:", error));
+  // A membership bought online is created from Stripe's subscription; later months arrive as paid invoices.
+  if (onlineMembershipSessionId) await settleOnlineMembership(context, onlineMembershipSessionId).catch((error) => console.error("Membership follow-up failed:", error));
+  const invoice = event.data as Record<string, any> | undefined;
+  if (invoice?.kind === "subscription_invoice" && invoice.subscriptionId && invoice.billingReason !== "subscription_create" && Number(event.amount) > 0) {
+    await recordMembershipRenewal(context, { subscriptionId: invoice.subscriptionId, invoiceId: invoice.invoiceId, amount: Number(event.amount), periodEnd: invoice.periodEnd || null });
+  }
+  return outcome;
 }

@@ -10,7 +10,9 @@ export function CheckoutActionForm({
   action,
   children,
   alreadyCheckedOut,
+  id,
 }: {
+  id?: string;
   action: (formData: FormData) => Promise<CheckoutMutationFeedback>;
   children: ReactNode;
   alreadyCheckedOut: boolean;
@@ -51,7 +53,7 @@ export function CheckoutActionForm({
           : 'Complete checkout';
 
   return (
-    <form action={submitAction} aria-busy={pending}>
+    <form id={id} action={submitAction} aria-busy={pending}>
       {children}
       <div className={`${trackClass} mt-4 flex w-full`}>
         <button

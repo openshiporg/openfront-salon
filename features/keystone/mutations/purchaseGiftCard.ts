@@ -3,6 +3,7 @@ import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
 import { sendGiftCardEmail } from "../lib/mail";
+import { sendLogged } from "../lib/messageLog";
 import { getStorefrontMessageBrand } from "../lib/storefrontBranding";
 import { assertPaymentTransition, paymentRecordStatus, type PaymentLifecycleStatus } from "../payment-lifecycle";
 import { confirmProviderPayment, createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
@@ -187,7 +188,8 @@ export async function confirmGiftCardPurchaseTransaction(context: Context, payme
     if (result.email && process.env.NODE_ENV !== "test") {
       try {
         const messageBrand = await getStorefrontMessageBrand(context);
-        await sendGiftCardEmail({ ...result.email, senderName: "A client", storefrontName: messageBrand.name, themeHue: messageBrand.themeHue });
+        const email = result.email;
+        await sendLogged(context, { to: email.to, kind: "gift_card", subject: `$${email.amount} gift card`, send: () => sendGiftCardEmail({ ...email, senderName: "A client", storefrontName: messageBrand.name, themeHue: messageBrand.themeHue }) });
       } catch (error) { console.error("Gift card email failed:", error); }
     }
     return { success: true, error: null, code: result.code };
