@@ -92,6 +92,7 @@ export async function BenefitsPage() {
                       <ActionForm action={setBenefitStatus} submitLabel="Resume" variant="raised" className="contents"><input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="active" /></ActionForm>
                     )}
                     <ActionForm action={setBenefitStatus} submitLabel="Cancel" confirm="Cancel membership" variant="danger" className="contents"><input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="cancelled" /></ActionForm>
+                    {item.providerSubscriptionId ? <ActionForm action={setBenefitStatus} submitLabel="Cancel & refund" confirm="Cancel today and refund the latest month to the card" variant="danger" className="contents"><input type="hidden" name="kind" value="membership" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="status" value="refunded" /></ActionForm> : null}
                   </div>
                 ) : null}
               </Td>

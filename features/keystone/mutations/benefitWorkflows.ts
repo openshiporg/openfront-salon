@@ -2,7 +2,7 @@ import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
 import { serializableWorkflow } from "./serializableWorkflow";
-import { syncMembershipBilling } from "../onlineMembershipService";
+import { cancelAndRefundMembership, syncMembershipBilling } from "../onlineMembershipService";
 
 type Result = { success: boolean; recordId: string | null; error: string | null };
 const denied = { success: false, recordId: null };
@@ -76,6 +76,10 @@ export async function setClientBenefitStatusTransaction(context: Context, args: 
   try {
     const sudo = context.sudo();
     if (args.kind === "membership") {
+      if (args.status === "refunded") {
+        await cancelAndRefundMembership(context, args.id);
+        return { success: true, recordId: args.id, error: null };
+      }
       if (!["active", "paused", "cancelled"].includes(args.status)) throw new Error("Membership status is invalid");
       const record = await sudo.query.ClientMembership.findOne({ where: { id: args.id }, query: "id status" });
       if (!record) throw new Error("Membership not found");

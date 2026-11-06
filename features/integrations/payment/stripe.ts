@@ -107,6 +107,26 @@ export const stripePaymentAdapter: PaymentAdapter = {
   async cancelSubscription({ subscriptionId }) {
     await stripeClient().subscriptions.update(subscriptionId, { cancel_at_period_end: true });
   },
+  async cancelSubscriptionAndRefund({ subscriptionId, idempotencyKey }) {
+    const stripe = stripeClient();
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const invoiceId = id(subscription.latest_invoice as string | { id: string } | null);
+    let refundId: string | null = null;
+    let amount = 0;
+    if (invoiceId) {
+      // Basil API: an invoice's PaymentIntent is listed under invoice payments.
+      const payments = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 5 } as any);
+      const paid = payments.data.find((entry: any) => entry.status === "paid" && entry.payment?.payment_intent);
+      const intent = paid ? id((paid as any).payment.payment_intent) : null;
+      if (intent) {
+        const refund = await stripe.refunds.create({ payment_intent: intent, reason: "requested_by_customer" }, { idempotencyKey: `${idempotencyKey}:refund` });
+        refundId = refund.id;
+        amount = refund.amount;
+      }
+    }
+    if (subscription.status !== "canceled") await stripe.subscriptions.cancel(subscriptionId);
+    return { refundId, amount };
+  },
   async setSubscriptionPaused({ subscriptionId, paused }) {
     await stripeClient().subscriptions.update(subscriptionId, { pause_collection: paused ? { behavior: "void" } : null } as any);
   },

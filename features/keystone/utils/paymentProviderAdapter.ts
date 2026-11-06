@@ -48,6 +48,12 @@ export async function cancelProviderSubscription(input: { provider: PaymentProvi
   return adapter.cancelSubscription(input);
 }
 
+export async function cancelProviderSubscriptionAndRefund(input: { provider: PaymentProviderConfig; subscriptionId: string; idempotencyKey: string }) {
+  const adapter = await getPaymentAdapter(input.provider);
+  if (!adapter.cancelSubscriptionAndRefund) throw new Error("Provider does not take subscriptions");
+  return adapter.cancelSubscriptionAndRefund(input);
+}
+
 export async function setProviderSubscriptionPaused(input: { provider: PaymentProviderConfig; subscriptionId: string; paused: boolean }) {
   const adapter = await getPaymentAdapter(input.provider);
   if (!adapter.setSubscriptionPaused) throw new Error("Provider does not take subscriptions");

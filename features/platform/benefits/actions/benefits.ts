@@ -6,7 +6,7 @@ import { dollarsToCents, fail, ok, operationKey, workflowState, type FormState }
 
 export interface MembershipPlan { id: string; name: string; description?: string | null; monthlyPrice: number; discountPercent?: number | null; isActive?: boolean | null; includedServices: { id: string; name?: string | null }[] }
 export interface PackagePlan { id: string; name: string; description?: string | null; totalPrice: number; savingsAmount?: number | null; validDays?: number | null; isActive?: boolean | null; services: { id: string; name?: string | null }[] }
-export interface Enrollment { id: string; status?: string | null; startDate?: string | null; nextBillingDate?: string | null; pausedUntil?: string | null; client?: { id: string; name?: string | null; email?: string | null } | null; membership?: { name?: string | null } | null }
+export interface Enrollment { id: string; status?: string | null; startDate?: string | null; nextBillingDate?: string | null; pausedUntil?: string | null; providerSubscriptionId?: string | null; client?: { id: string; name?: string | null; email?: string | null } | null; membership?: { name?: string | null } | null }
 export interface OwnedPackage { id: string; status?: string | null; purchasedAt?: string | null; expiresAt?: string | null; totalValue: number; usedValue?: number | null; client?: { id: string; name?: string | null; email?: string | null } | null; package?: { name?: string | null } | null }
 
 export async function getBenefits() {
@@ -17,7 +17,7 @@ export async function getBenefits() {
     query Benefits {
       memberships(orderBy: { name: asc }, take: 100) { id name description monthlyPrice discountPercent isActive includedServices { id name } }
       servicePackages(orderBy: { name: asc }, take: 100) { id name description totalPrice savingsAmount validDays isActive services { id name } }
-      clientMemberships(orderBy: { startDate: desc }, take: 200) { id status startDate nextBillingDate pausedUntil client { id name email } membership { name } }
+      clientMemberships(orderBy: { startDate: desc }, take: 200) { id status startDate nextBillingDate pausedUntil providerSubscriptionId client { id name email } membership { name } }
       clientPackages(orderBy: { purchasedAt: desc }, take: 200) { id status purchasedAt expiresAt totalValue usedValue client { id name email } package { name } }
       services(where: { status: { equals: active } }, orderBy: { name: asc }, take: 200) { id name }
       clients(where: { user: { email: { not: { equals: "" } } } }, orderBy: { updatedAt: desc }, take: 500) { user { id name email } }

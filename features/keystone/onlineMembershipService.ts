@@ -5,6 +5,7 @@ import { trustedOrigin } from "./lib/trustedOrigin";
 import { serializableWorkflow } from "./mutations/serializableWorkflow";
 import {
   cancelProviderSubscription,
+  cancelProviderSubscriptionAndRefund,
   createProviderSubscriptionCheckout,
   paymentProviderFromRecord,
   retrieveProviderSubscriptionCheckout,
@@ -143,3 +144,33 @@ export async function syncMembershipBilling(context: Context, clientMembershipId
   else await setProviderSubscriptionPaused({ provider: config, subscriptionId: membership.providerSubscriptionId, paused: status === "paused" });
 }
 
+
+/**
+ * Cancel and refund (Mindbody / Square): ends an online membership today, stops Stripe billing now, and
+ * refunds the latest month back to the card. The matching salon Payment is marked refunded.
+ */
+export async function cancelAndRefundMembership(context: Context, clientMembershipId: string) {
+  const sudo = context.sudo();
+  const membership = await sudo.query.ClientMembership.findOne({ where: { id: clientMembershipId }, query: "id status providerSubscriptionId" });
+  if (!membership) throw new Error("Membership not found");
+  if (!membership.providerSubscriptionId) throw new Error("Only memberships bought online can be refunded here. Refund an in-salon sale from Sales & refunds.");
+  const provider = await onlineDepositProvider(sudo);
+  if (!provider) throw new Error("Stripe isn't connected, so this membership can't be refunded here. Refund it in Stripe.");
+  const refund = await cancelProviderSubscriptionAndRefund({ provider: paymentProviderFromRecord(provider as any), subscriptionId: membership.providerSubscriptionId, idempotencyKey: `membership-refund:${membership.id}` });
+  const now = new Date().toISOString();
+  await sudo.query.ClientMembership.updateOne({ where: { id: membership.id }, data: { status: "cancelled", pausedUntil: null, nextBillingDate: null }, query: "id" });
+  if (refund.amount > 0) {
+    // The latest month: the newest renewal if there is one, otherwise the sign-up payment.
+    const signup = await sudo.prisma.paymentSession.findFirst({ where: { data: { path: ["clientMembershipId"], equals: membership.id } }, select: { id: true, payment: { select: { id: true } } } });
+    const sessions = signup ? [signup] : [];
+    const signupPaymentId = signup?.payment?.id || null;
+    const target = signupPaymentId
+      ? await sudo.query.Payment.findOne({ where: { id: signupPaymentId }, query: "id status totalAmount" })
+      : null;
+    if (target && target.status === "completed") {
+      await sudo.query.Payment.updateOne({ where: { id: target.id }, data: { status: refund.amount >= Number(target.totalAmount) ? "refunded" : "partially_refunded", refundedAmount: refund.amount, refundedAt: now, refundReason: "Membership cancelled and refunded", stripeRefundId: refund.refundId || "" }, query: "id" });
+    }
+    if (sessions[0]?.id) await sudo.query.PaymentSession.updateOne({ where: { id: sessions[0].id }, data: { status: "refunded" }, query: "id" }).catch(() => undefined);
+  }
+  return refund;
+}

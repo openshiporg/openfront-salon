@@ -129,6 +129,8 @@ export interface PaymentAdapter {
   retrieveSubscriptionCheckout?(input: { provider: PaymentProviderConfig; providerReference: string }): Promise<SubscriptionObservation>;
   /** Stops renewing at the end of the paid period. */
   cancelSubscription?(input: { provider: PaymentProviderConfig; subscriptionId: string }): Promise<void>;
+  /** Ends the subscription now and refunds its latest paid invoice (Mindbody/Square "cancel and refund"). */
+  cancelSubscriptionAndRefund?(input: { provider: PaymentProviderConfig; subscriptionId: string; idempotencyKey: string }): Promise<{ refundId: string | null; amount: number }>;
   /** Pause (skip invoices) or resume billing. */
   setSubscriptionPaused?(input: { provider: PaymentProviderConfig; subscriptionId: string; paused: boolean }): Promise<void>;
   createSession(input: CreatePaymentSessionInput): Promise<PaymentSessionResult>;
