@@ -241,6 +241,40 @@ function ServiceTakingsTable({ rows }: { rows: ServiceTakingsRow[] | null }) {
 }
 
 /* Integrations: the real exception first, events grouped by type, raw list on demand. */
+/** E-commerce's Stripe preset, for the salon: which env vars are set, where Stripe should send events, and which ones. */
+function StripeSetupGuide({ setup, hasProvider }: { setup: StripeSetupStatus; hasProvider: boolean }) {
+  const ready = setup.envVars.every((envVar) => envVar.set);
+  return (
+    <section aria-labelledby="stripe-setup" className="grid gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="stripe-setup" className="text-sm font-semibold">Stripe setup</h2>
+        {!hasProvider && setup.keyConfigured ? <SetUpStripe /> : null}
+      </div>
+      <div className="grid gap-3 rounded-[6px] border bg-background px-4 py-3 text-sm">
+        <p className="text-muted-foreground">
+          {ready ? 'Stripe is connected. Card deposits, desk card, gift cards and memberships settle through the webhook below.' : 'For Stripe to work, add these environment variables to the server, then redeploy.'}
+        </p>
+        <ul className="grid gap-1.5">
+          {setup.envVars.map((envVar) => (
+            <li key={envVar.name} className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+              <StatusCell tone={envVar.set ? 'emerald' : 'rose'}><code className="font-mono text-xs">{envVar.name}</code></StatusCell>
+              <span className="text-xs text-muted-foreground">{envVar.set ? 'Set' : 'Missing'} · {envVar.purpose}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="grid gap-1">
+          <p className="text-xs font-medium">Webhook endpoint (Stripe Dashboard → Developers → Webhooks → Add endpoint)</p>
+          <code className="select-all rounded-[4px] border bg-muted/40 px-2 py-1 font-mono text-xs [overflow-wrap:anywhere]">{setup.webhookUrl}</code>
+        </div>
+        <div className="grid gap-1">
+          <p className="text-xs font-medium">Events to send</p>
+          <p className="font-mono text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">{setup.webhookEvents.join(', ')}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeSetup?: StripeSetupStatus | null }) {
   const providers = data.records.filter((record) => record.id.startsWith('provider:'));
   const events = data.records.filter((record) => record.id.startsWith('event:'));
@@ -295,6 +329,8 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
           ))}
         </DataTable>
       </section>
+
+      {stripeSetup?.canManagePayments ? <StripeSetupGuide setup={stripeSetup} hasProvider={providers.some((record) => record.subtitle?.startsWith('stripe '))} /> : null}
 
       <section aria-labelledby="undelivered" className="grid gap-2">
         <h2 id="undelivered" className="flex items-baseline gap-2 text-sm font-semibold">Failed events<span className="text-xs font-normal tabular-nums text-muted-foreground">{queued + failed}</span></h2>
