@@ -1,6 +1,7 @@
 'use server' 
 
 import { createTransport, getTestMessageUrl } from "nodemailer";
+import { emailButton, emailHeading, emailLayout, emailMuted, emailPanel, emailParagraph, emailTotals, escapeHtml } from "./email-layout";
 
 // Utility function to get base URL for emails
 function getBaseUrlForEmails(): string {
@@ -32,38 +33,13 @@ const transport = createTransport({
 });
 
 function passwordResetEmail({ url }: { url: string }): string {
-  const backgroundColor = "#f9f9f9";
-  const textColor = "#444444";
-  const mainBackgroundColor = "#ffffff";
-  const buttonBackgroundColor = "#346df1";
-  const buttonBorderColor = "#346df1";
-  const buttonTextColor = "#ffffff";
-
-  return `
-    <body style="background: ${backgroundColor};">
-      <table width="100%" border="0" cellspacing="20" cellpadding="0" style="background: ${mainBackgroundColor}; max-width: 600px; margin: auto; border-radius: 10px;">
-        <tr>
-          <td align="center" style="padding: 10px 0px 0px 0px; font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            Please click below to reset your password
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 20px 0;">
-            <table border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <td align="center" style="border-radius: 5px;" bgcolor="${buttonBackgroundColor}"><a href="${url}" target="_blank" style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${buttonTextColor}; text-decoration: none; border-radius: 5px; padding: 10px 20px; border: 1px solid ${buttonBorderColor}; display: inline-block; font-weight: bold;">Reset Password</a></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${textColor};">
-            If you did not request this email you can safely ignore it.
-          </td>
-        </tr>
-      </table>
-    </body>
-  `;
+  return emailLayout({
+    preheader: "Use this link to choose a new password.",
+    title: "Reset your password",
+    body: `${emailParagraph("We received a request to reset the password for your account. Use the button below to choose a new one.")}
+${emailButton("Reset password", url)}
+${emailMuted("If you did not request this, you can safely ignore this email. Your password will not change.")}`,
+  });
 }
 
 export async function sendPasswordResetEmail(resetToken: string, to: string, baseUrl?: string): Promise<void> {
@@ -97,105 +73,18 @@ function appointmentConfirmationEmail(params: {
   reminder?: boolean;
   manageUrl?: string | null;
 }): string {
-  const backgroundColor = "#f9f9f9";
-  const textColor = "#444444";
-  const mainBackgroundColor = "#ffffff";
-  const primaryColor = `hsl(${params.themeHue} 45% 38%)`;
-  const borderColor = "#e5e7eb";
-
-  return `
-    <body style="background: ${backgroundColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: ${backgroundColor}; padding: 40px 0;">
-        <tr>
-          <td align="center">
-            <table width="600" border="0" cellspacing="0" cellpadding="0" style="background: ${mainBackgroundColor}; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-
-              <!-- Header -->
-              <tr>
-                <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 2px solid ${primaryColor};">
-                  <h1 style="margin: 0; font-size: 28px; color: ${primaryColor}; font-weight: bold;">${params.reminder ? "See you tomorrow" : "Appointment Confirmed!"}</h1>
-                </td>
-              </tr>
-
-              <!-- Greeting -->
-              <tr>
-                <td style="padding: 30px 40px 20px 40px;">
-                  <p style="margin: 0; font-size: 16px; color: ${textColor}; line-height: 1.6;">
-                    Hi ${params.clientName},
-                  </p>
-                  <p style="margin: 15px 0 0 0; font-size: 16px; color: ${textColor}; line-height: 1.6;">
-                    ${params.reminder ? "This is a reminder of your appointment tomorrow." : "We're excited to see you! Your appointment has been confirmed."}
-                  </p>
-                </td>
-              </tr>
-
-              <!-- Appointment Details -->
-              <tr>
-                <td style="padding: 20px 40px;">
-                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f8f9fa; border-radius: 8px; border: 1px solid ${borderColor};">
-                    <tr>
-                      <td style="padding: 25px;">
-                        <h2 style="margin: 0 0 20px 0; font-size: 18px; color: ${textColor}; font-weight: 600;">Appointment Details</h2>
-
-                        <table width="100%" border="0" cellspacing="0" cellpadding="8">
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280; width: 120px;">Service:</td>
-                            <td style="font-size: 14px; color: ${textColor}; font-weight: 500;">${params.serviceName}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280;">Stylist:</td>
-                            <td style="font-size: 14px; color: ${textColor}; font-weight: 500;">${params.stylistName}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280;">Date:</td>
-                            <td style="font-size: 14px; color: ${textColor}; font-weight: 500;">${params.appointmentDate}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280;">Time:</td>
-                            <td style="font-size: 14px; color: ${textColor}; font-weight: 500;">${params.appointmentTime}</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280;">Duration:</td>
-                            <td style="font-size: 14px; color: ${textColor}; font-weight: 500;">${params.duration} minutes</td>
-                          </tr>
-                          <tr>
-                            <td style="font-size: 14px; color: #6b7280; padding-top: 10px; border-top: 1px solid ${borderColor};">Price:</td>
-                            <td style="font-size: 16px; color: ${primaryColor}; font-weight: bold; padding-top: 10px; border-top: 1px solid ${borderColor};">$${params.price.toFixed(2)}</td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- Important Info -->
-              <tr>
-                <td style="padding: 20px 40px;">
-                  <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
-                      <strong>Please arrive 10 minutes early</strong> to ensure we can start your appointment on time.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 30px 40px; border-top: 1px solid ${borderColor}; text-align: center;">
-                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
-                    ${params.manageUrl ? `Need to change it? <a href="${params.manageUrl}" style="color: ${primaryColor};">Reschedule or cancel</a>.` : "Need to reschedule? Please call us or visit our website."}
-                  </p>
-                  ${params.storefrontName ? `<p style="margin: 15px 0 0 0; font-size: 12px; color: #9ca3af;">${params.storefrontName}${process.env.SMTP_STORE_LINK ? ` | ${process.env.SMTP_STORE_LINK}` : ""}</p>` : ""}
-                </td>
-              </tr>
-
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-  `;
+  return emailLayout({
+    storeName: params.storefrontName || undefined,
+    preheader: params.reminder ? "A reminder of your appointment tomorrow." : "Your appointment is confirmed.",
+    title: params.reminder ? "See you tomorrow" : "Appointment confirmed",
+    body: `${emailParagraph(`Hi ${escapeHtml(params.clientName)},`)}
+${emailParagraph(params.reminder ? "This is a reminder of your appointment tomorrow." : "We're excited to see you! Your appointment has been confirmed.")}
+${emailHeading("Appointment details")}
+${emailPanel(`<strong>Service:</strong> ${escapeHtml(params.serviceName)}<br><strong>Stylist:</strong> ${escapeHtml(params.stylistName)}<br><strong>Date:</strong> ${escapeHtml(params.appointmentDate)}<br><strong>Time:</strong> ${escapeHtml(params.appointmentTime)}<br><strong>Duration:</strong> ${escapeHtml(params.duration)} minutes`)}
+${emailTotals([{ label: "Price", value: `$${params.price.toFixed(2)}` }])}
+${emailParagraph("<strong>Please arrive 10 minutes early</strong> so we can start your appointment on time.")}
+${params.manageUrl ? emailButton("Reschedule or cancel", params.manageUrl) : emailMuted("Need to reschedule? Please call us or visit our website.")}`,
+  });
 }
 
 export async function sendAppointmentConfirmation(params: {
@@ -246,90 +135,18 @@ function giftCardEmail(params: {
   storefrontName: string | null;
   themeHue: number;
 }): string {
-  const backgroundColor = "#f9f9f9";
-  const textColor = "#444444";
-  const mainBackgroundColor = "#ffffff";
-  const primaryColor = `hsl(${params.themeHue} 45% 38%)`;
-  const secondaryColor = `hsl(${params.themeHue} 45% 58%)`;
-
-  return `
-    <body style="background: ${backgroundColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: ${backgroundColor}; padding: 40px 0;">
-        <tr>
-          <td align="center">
-            <table width="600" border="0" cellspacing="0" cellpadding="0" style="background: ${mainBackgroundColor}; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-
-              <!-- Header -->
-              <tr>
-                <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}); border-radius: 12px 12px 0 0;">
-                  <h1 style="margin: 0; font-size: 32px; color: #ffffff; font-weight: bold;">You've Received a Gift Card!</h1>
-                  <p style="margin: 10px 0 0 0; font-size: 18px; color: #ffffff;">From ${params.senderName}</p>
-                </td>
-              </tr>
-
-              <!-- Greeting -->
-              <tr>
-                <td style="padding: 30px 40px 20px 40px;">
-                  <p style="margin: 0; font-size: 16px; color: ${textColor}; line-height: 1.6;">
-                    Hi ${params.recipientName},
-                  </p>
-                  ${params.message ? `
-                    <div style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-left: 4px solid ${primaryColor}; border-radius: 4px;">
-                      <p style="margin: 0; font-size: 15px; color: ${textColor}; font-style: italic; line-height: 1.6;">
-                        "${params.message}"
-                      </p>
-                    </div>
-                  ` : ''}
-                </td>
-              </tr>
-
-              <!-- Gift Card Amount -->
-              <tr>
-                <td style="padding: 20px 40px;">
-                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f8f9fa; border-radius: 8px; border: 2px solid ${primaryColor};">
-                    <tr>
-                      <td style="padding: 30px; text-align: center;">
-                        <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">Gift Card Value</p>
-                        <p style="margin: 10px 0 20px 0; font-size: 48px; color: ${primaryColor}; font-weight: bold;">$${params.amount.toFixed(2)}</p>
-                        <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">Gift Card Code</p>
-                        <p style="margin: 10px 0 0 0; font-size: 24px; color: ${textColor}; font-weight: bold; letter-spacing: 2px; font-family: 'Courier New', monospace;">
-                          ${params.code}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-
-              <!-- Redemption Instructions -->
-              <tr>
-                <td style="padding: 20px 40px 40px 40px;">
-                  <h3 style="margin: 0 0 15px 0; font-size: 18px; color: ${textColor};">How to Use Your Gift Card</h3>
-                  <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: ${textColor}; line-height: 1.8;">
-                    <li>Book an appointment online or call us</li>
-                    <li>Give the front desk this code when you pay</li>
-                    <li>Enjoy your salon experience!</li>
-                  </ol>
-                  ${process.env.SMTP_STORE_LINK ? `<div style="margin-top: 20px; text-align: center;"><a href="${process.env.SMTP_STORE_LINK}/book" style="display: inline-block; padding: 15px 30px; background: ${primaryColor}; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Book Your Appointment</a></div>` : ""}
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 30px 40px; border-top: 1px solid #e5e7eb; text-align: center;">
-                  <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.6;">
-                    This gift card is valid for one year and can be used for any service or product.<br/>
-                    Questions? Contact us at ${process.env.SMTP_FROM}
-                  </p>
-                </td>
-              </tr>
-
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-  `;
+  return emailLayout({
+    storeName: params.storefrontName || undefined,
+    preheader: `${params.senderName} sent you a gift card.`,
+    title: "You've received a gift card",
+    body: `${emailParagraph(`Hi ${escapeHtml(params.recipientName)}, ${escapeHtml(params.senderName)} sent you a gift card.`)}
+${params.message ? emailPanel(`&ldquo;${escapeHtml(params.message)}&rdquo;`) : ""}
+${emailPanel(`<span style="font-size:13px;text-transform:uppercase;letter-spacing:1px;">Gift card value</span><br><span style="font-size:36px;font-weight:700;line-height:48px;">$${params.amount.toFixed(2)}</span><br><span style="font-size:13px;text-transform:uppercase;letter-spacing:1px;">Code</span><br><span style="font-family:Menlo,Consolas,monospace;font-size:22px;font-weight:700;letter-spacing:2px;">${escapeHtml(params.code)}</span>`, "center")}
+${emailHeading("How to use it")}
+${emailParagraph("Book an appointment online or call us, then give the front desk this code when you pay.")}
+${process.env.SMTP_STORE_LINK ? emailButton("Book your appointment", `${process.env.SMTP_STORE_LINK}/book`) : ""}
+${emailMuted("This gift card is valid for one year and can be used for any service or product.")}`,
+  });
 }
 
 export async function sendGiftCardEmail(params: {
@@ -373,20 +190,14 @@ export async function sendAppointmentNoticeEmail(params: {
   actionLabel?: string | null;
 }): Promise<void> {
   if (!hasSmtpConfiguration()) throw new Error("Email is not configured (SMTP_HOST / SMTP_FROM)");
-  const esc = (value: string) => value.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-  const primary = `hsl(${params.themeHue} 45% 38%)`;
-  const rows = params.rows.map(([label, value]) => `<tr><td style="font-size:14px;color:#6b7280;width:120px;padding:6px 0;">${esc(label)}</td><td style="font-size:14px;color:#444;font-weight:500;padding:6px 0;">${esc(value)}</td></tr>`).join("");
-  const html = `
-    <body style="background:#f9f9f9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-      <table width="100%" cellspacing="0" cellpadding="0" style="padding:40px 0;"><tr><td align="center">
-        <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:12px;">
-          <tr><td style="padding:36px 40px 16px;border-bottom:2px solid ${primary};text-align:center;"><h1 style="margin:0;font-size:26px;color:${primary};">${esc(params.heading)}</h1></td></tr>
-          <tr><td style="padding:24px 40px 8px;font-size:16px;line-height:1.6;color:#444;"><p style="margin:0;">Hi ${esc(params.clientName)},</p><p style="margin:12px 0 0;">${esc(params.body)}</p></td></tr>
-          <tr><td style="padding:12px 40px;"><table width="100%" cellspacing="0" cellpadding="0" style="background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;"><tr><td style="padding:18px 22px;"><table width="100%">${rows}</table></td></tr></table></td></tr>
-          ${params.actionUrl ? `<tr><td align="center" style="padding:16px 40px;"><a href="${esc(params.actionUrl)}" style="display:inline-block;background:${primary};color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px;font-size:15px;">${esc(params.actionLabel || "Book again")}</a></td></tr>` : ""}
-          <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">${esc(params.storefrontName || "")}${process.env.SMTP_STORE_LINK ? ` | ${esc(process.env.SMTP_STORE_LINK)}` : ""}</td></tr>
-        </table>
-      </td></tr></table>
-    </body>`;
+  const html = emailLayout({
+    storeName: params.storefrontName || undefined,
+    preheader: params.body,
+    title: params.heading,
+    body: `${emailParagraph(`Hi ${escapeHtml(params.clientName)},`)}
+${emailParagraph(escapeHtml(params.body))}
+${emailPanel(params.rows.map(([label, value]) => `<strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}`).join("<br>"))}
+${params.actionUrl ? emailButton(params.actionLabel || "Book again", params.actionUrl) : ""}`,
+  });
   await transport.sendMail({ to: params.to, from: process.env.SMTP_FROM, subject: params.subject, html });
 }
