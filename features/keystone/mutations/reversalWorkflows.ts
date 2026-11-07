@@ -101,14 +101,15 @@ export async function reverseSalonTransactionTransaction(context: Context, args:
       const fullCommercialReversal = requestedSubtotal === remainingNet && requestedTax === remainingTax && args.tipCents === remainingTip;
       if ((args.type === "void" || args.type === "refund") && !fullCommercialReversal) throw new Error("Void and refund require the full remaining sale; use partial_refund for line-level recovery");
       if (args.type === "partial_refund" && fullCommercialReversal) throw new Error("Use refund or void for a full remaining sale reversal");
-      const refundCents = requestedSubtotal + requestedTax + args.tipCents;
+      // Value handed back to the client's package was never paid in cash, so it is not refunded to the card or till.
+      const refundCents = requestedSubtotal + requestedTax + args.tipCents - args.restorePackageCents;
       const remainingPayment = Number(payment.totalAmount || 0) - Number(payment.refundedAmount || 0);
       const checkoutRefundCents = Math.min(refundCents, remainingPayment);
       const depositRefundCents = refundCents - checkoutRefundCents;
       const checkoutMetadata = transaction.metadata && typeof transaction.metadata === "object" ? transaction.metadata as Record<string, any> : {};
       const priorDepositAdjustments = await query.DepositAdjustment.findMany({ where: { reversal: { transaction: { id: { equals: transaction.id } } } }, take: 1000, query: "amountDelta" });
       const remainingDeposit = Number(checkoutMetadata.depositCredit || 0) - priorDepositAdjustments.reduce((sum: number, item: any) => sum + Math.abs(Number(item.amountDelta || 0)), 0);
-      if (refundCents <= 0 || depositRefundCents > remainingDeposit) throw new Error("Payment reversal does not conserve captured checkout and deposit cents");
+      if (refundCents < 0 || (refundCents === 0 && args.restorePackageCents <= 0) || depositRefundCents > remainingDeposit) throw new Error("Payment reversal does not conserve captured checkout and deposit cents");
       const appointmentSessions = depositRefundCents > 0 ? await sudo.query.PaymentSession.findMany({
         where: { appointment: { id: { equals: transaction.appointment.id } } }, take: 50,
         query: "id status data providerReference idempotencyKey provider { id code adapter config isInstalled } payment { id status totalAmount refundedAmount }",
