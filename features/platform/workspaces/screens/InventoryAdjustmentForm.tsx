@@ -25,10 +25,10 @@ export function InventoryAdjustmentForm({ actorId, productId, locations, allowNe
     } catch { setBlocked(true); }
     setReady(true);
   }, [key, actorId, productId]);
-  if (!actorId) return <p role="alert" className="text-xs">We couldn't confirm your account. Reload the page and try again.</p>;
+  if (!actorId) return <p role="alert" className="text-xs">We couldn’t confirm your account. Reload the page and try again.</p>;
   if (!ready) return <p role="status" className="text-xs">Loading…</p>;
-  if (blocked) return <p role="alert" className="text-xs">This browser can't save pending stock adjustments. Enable site storage and reload.</p>;
-  if (!saved && !allowNew) return <p className="text-xs">This product can't take new adjustments.</p>;
+  if (blocked) return <p role="alert" className="text-xs">This browser can’t save pending stock adjustments. Enable site storage and reload.</p>;
+  if (!saved && !allowNew) return <p className="text-xs">This product can’t take new adjustments.</p>;
   async function submit(form: FormData) {
     if (busy) return;
     setInputError('');
@@ -61,7 +61,7 @@ export function InventoryAdjustmentForm({ actorId, productId, locations, allowNe
         </>}
         <div className={`${trackClass} col-span-2 justify-self-start`}><button disabled={busy || (!saved && locations.length === 0)} className={pillClass('primary', 'md')}>{busy ? 'Saving…' : saved ? 'Retry adjustment' : 'Record stock'}</button></div>
       </form>
-      {result?.status === 'unverified' && <p role="alert">We couldn't confirm this adjustment. Retry it; it won't be applied twice.</p>}
+      {result?.status === 'unverified' && <p role="alert">We couldn’t confirm this adjustment. Retry it; it won’t be applied twice.</p>}
     </>}
     {result?.status === 'acknowledged' && <div className={`${trackClass} justify-self-start`}><button type="button" className={pillClass('raised', 'sm')} onClick={() => {
       // Only an acknowledged, exact owned record may release the local slot.

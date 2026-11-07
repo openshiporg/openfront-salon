@@ -10,8 +10,10 @@ import {
 import { permissions } from "../access";
 
 import { trackingFields } from "./trackingFields";
+import { historyDeleteGuard } from "../lib/deleteHistoryGuard";
 
 export const MessageTemplate = list({
+  hooks: { validateDelete: historyDeleteGuard('MessageTemplate') },
   access: {
     operation: {
       query: permissions.canManageClients,

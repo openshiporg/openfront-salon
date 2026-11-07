@@ -6,6 +6,9 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
   {
+    // Same files as next's config, which is where the react-hooks plugin is registered; without
+    // this, any .cjs test made `eslint .` fail with "could not find plugin react-hooks".
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     // Keystone's generated context and the NKS-owned dashboard APIs are
     // intentionally dynamic. Keep lint useful without treating their
     // established `any`/generator conventions as launch-blocking errors.
@@ -20,6 +23,14 @@ export default defineConfig([
       "react-hooks/refs": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/static-components": "warn",
+    },
+  },
+  {
+    // CommonJS test harnesses: require() and a local `module` object are the point.
+    files: ["**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@next/next/no-assign-module-variable": "off",
     },
   },
   {

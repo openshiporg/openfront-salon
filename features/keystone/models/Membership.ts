@@ -9,8 +9,10 @@ import {
 
 import { permissions } from "../access";
 import { trackingFields } from "./trackingFields";
+import { historyDeleteGuard } from "../lib/deleteHistoryGuard";
 
 export const Membership = list({
+  hooks: { validateDelete: historyDeleteGuard('Membership') },
   access: {
     operation: {
       query: () => true,

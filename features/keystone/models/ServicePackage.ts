@@ -10,8 +10,10 @@ import {
 import { permissions } from "../access";
 
 import { trackingFields } from "./trackingFields";
+import { historyDeleteGuard } from "../lib/deleteHistoryGuard";
 
 export const ServicePackage = list({
+  hooks: { validateDelete: historyDeleteGuard('ServicePackage') },
   access: {
     operation: {
       query: ({ session }) => permissions.canManageCatalog({ session }) || permissions.canManageClients({ session }),

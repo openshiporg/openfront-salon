@@ -7,7 +7,7 @@ import {
   json,
 } from "@keystone-6/core/fields";
 
-import { permissions, rules } from "../access";
+import { rules } from "../access";
 
 import { trackingFields } from "./trackingFields";
 
@@ -15,9 +15,11 @@ export const ClientPoints = list({
   access: {
     operation: {
       query: () => true,
-      create: permissions.canManageClients,
-      update: permissions.canManageClients,
-      delete: permissions.canManageClients,
+      // Balances change only through the points ledger (adjustClientPoints, referrals, checkout),
+      // which records who changed them and why.
+      create: () => false,
+      update: () => false,
+      delete: () => false,
     },
     filter: {
       query: rules.canReadClientPoints,

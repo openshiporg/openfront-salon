@@ -7,7 +7,7 @@ export async function AccountSignUpPage({ searchParams }: { searchParams: Promis
     <div className="sf-carton-band"><span className="sf-shade" aria-hidden="true" /></div>
     <div className="grid gap-5 p-[var(--sf-space-sm)] md:p-[var(--sf-space-md)]">
       <h1 className="sf-display text-[length:var(--sf-text-3xl)]">Create account</h1>
-      {error === "failed" ? <p role="alert" className="sf-alert">We couldn't create your account. Use a new email and a password of 12–128 characters, or sign in.</p> : null}
+      {error === "failed" ? <p role="alert" className="sf-alert">We couldn’t create your account. Use a new email and a password of 12–128 characters, or sign in.</p> : null}
       <label className="sf-field">Name<input name="name" className="sf-input" autoComplete="name" required maxLength={120} /></label>
       <label className="sf-field">Email<input name="email" className="sf-input" type="email" autoComplete="email" required maxLength={254} /></label>
       <label className="sf-field">Phone <span className="sf-field-hint">Optional</span><input name="phone" className="sf-input" type="tel" autoComplete="tel" maxLength={40} /></label>

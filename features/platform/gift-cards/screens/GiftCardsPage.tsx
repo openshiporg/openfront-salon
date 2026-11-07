@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import Link from "next/link";
 import { Gift, Search } from 'lucide-react';
 import { changeGiftCardBalance, getGiftCards, refundGiftCardToCard, sellGiftCard, type PlatformGiftCard } from '../actions/giftCards';
 import { ActionForm } from '../../components/ActionForm';
@@ -63,7 +64,7 @@ export async function GiftCardsPage({ searchParams }: { searchParams?: Promise<{
                       {data.giftCards.length > 3 ? <p className="text-xs text-muted-foreground">{data.giftCards.length - 3} more below</p> : null}
                     </dl>
                   )}
-                  <a href="/dashboard/platform/gift-cards" className="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</a>
+                  <Link href="/dashboard/platform/gift-cards" className="mt-2 inline-block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear</Link>
                 </div>
               ) : null}
             </Panel>

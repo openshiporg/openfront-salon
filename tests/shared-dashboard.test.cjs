@@ -23,6 +23,7 @@ function sandbox({ env = {}, mocks = {}, stubUnknown = false } = {}) {
     cache.set(filename, module);
     function localRequire(specifier) {
       if (Object.hasOwn(mocks, specifier)) return mocks[specifier];
+      if (specifier.startsWith('node:')) return require(specifier);
       const resolved = specifier.startsWith('@/') ? path.join(root, specifier.slice(2))
         : specifier.startsWith('.') ? path.resolve(path.dirname(filename), specifier) : null;
       if (resolved && fs.existsSync(`${resolved}.ts`)) return load(`${resolved}.ts`);
@@ -73,7 +74,7 @@ function middlewareRun({ pathname, user = null, env = {} }) {
     'next/server': {
       NextResponse: { redirect: url => ({ redirect: new URL(url).pathname }), next: () => ({ next: true }) },
     },
-    '@/features/dashboard/lib/getBaseUrl': { getGraphQLEndpoint: async () => 'https://test.invalid/api/graphql' },
+    '@/features/dashboard/lib/getBaseUrl': { getGraphQLEndpoint: async () => 'https://test.invalid/api/graphql', getServerGraphQLTarget: async () => ({ endpoint: 'https://test.invalid/api/graphql' }) },
     'graphql-request': { GraphQLClient: class {} },
   } }).load('features/dashboard/middleware.ts');
   const url = `https://shop.invalid${pathname}`;

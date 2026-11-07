@@ -6,8 +6,10 @@ import { isSignedIn, permissions } from '../access'
 import { workflowOwned } from "../privacy";
 
 import { trackingFields } from "./trackingFields";
+import { historyDeleteGuard } from "../lib/deleteHistoryGuard";
 
 export const Role = list({
+  hooks: { validateDelete: historyDeleteGuard('Role') },
   access: {
     operation: {
       ...allOperations(permissions.canManageRoles),
