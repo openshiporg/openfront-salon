@@ -27,6 +27,11 @@ function parseLines(value: unknown): LineInput[] {
   });
 }
 
+/** Giving value back reopens a fully-used package only. A cancelled or expired package stays closed. */
+export function packageStatusAfterRestore(current: string | null | undefined) {
+  return current === "cancelled" || current === "expired" ? current : "active";
+}
+
 export async function reverseSalonTransactionTransaction(context: Context, args: {
   transactionId: string; type: "void" | "refund" | "partial_refund" | "compensation";
   lines: unknown; tipCents: number; restorePackageCents: number; reason: string; idempotencyKey: string;
@@ -204,10 +209,10 @@ export async function reverseSalonTransactionTransaction(context: Context, args:
       }
       if (args.restorePackageCents > 0) {
         if (args.restorePackageCents > requestedSubtotal || args.restorePackageCents > Number(checkoutMetadata.packageCredit || 0)) throw new Error("Package restoration exceeds the reversed package-funded value");
-        const usage = (await sudo.query.ClientPackageUsage.findMany({ where: { appointment: { id: { equals: transaction.appointment.id } } }, take: 1, query: "id valueUsed clientPackage { id usedValue totalValue }" }))[0];
+        const usage = (await sudo.query.ClientPackageUsage.findMany({ where: { appointment: { id: { equals: transaction.appointment.id } } }, take: 1, query: "id valueUsed clientPackage { id status usedValue totalValue }" }))[0];
         if (!usage?.clientPackage || args.restorePackageCents > Number(usage.valueUsed || 0)) throw new Error("Package usage evidence is unavailable");
         const nextUsed = Math.max(0, Number(usage.clientPackage.usedValue || 0) - args.restorePackageCents);
-        await sudo.query.ClientPackage.updateOne({ where: { id: usage.clientPackage.id }, data: { usedValue: nextUsed, status: "active" }, query: "id" });
+        await sudo.query.ClientPackage.updateOne({ where: { id: usage.clientPackage.id }, data: { usedValue: nextUsed, status: packageStatusAfterRestore(usage.clientPackage.status) }, query: "id" });
         await query.ClientPackageAdjustment.createOne({ data: { clientPackage: { connect: { id: usage.clientPackage.id } }, reversal: { connect: { id: reversal.id } }, valueDelta: -args.restorePackageCents,
           reason, actor: { connect: { id: context.session!.itemId } }, postedAt: now, idempotencyKey: `${args.idempotencyKey}:package`, evidence: { sourceUsageId: usage.id } }, query: "id" });
       }
