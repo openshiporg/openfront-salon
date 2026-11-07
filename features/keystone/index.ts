@@ -7,6 +7,7 @@ import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { permissions } from "./access";
 import { s3ForcePathStyle } from "./lib/s3-storage";
+import { pooledDatabaseUrl } from './database-url';
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -115,7 +116,7 @@ export default withAuth(
   config({
     db: {
       provider: "postgresql",
-      url: databaseURL,
+      url: pooledDatabaseUrl(databaseURL),
     },
     lists: models,
     storage: {
