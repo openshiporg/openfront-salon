@@ -6,7 +6,7 @@ import { serializableWorkflow } from "./serializableWorkflow";
 
 const config = {
   client: { list: "Client", permission: permissions.canManageClients, fields: ["name", "email", "phone", "homeLocationId"] },
-  staff: { list: "Stylist", permission: permissions.canManagePeople, fields: ["name", "email", "phone", "locationIds", "serviceIds", "tier", "role", "status", "baseCommissionRate", "bio", "photoId"] },
+  staff: { list: "Stylist", permission: (args: { session?: any }) => permissions.canManagePeople(args) || permissions.canManageSalon(args), fields: ["name", "email", "phone", "locationIds", "serviceIds", "tier", "role", "status", "baseCommissionRate", "bio", "photoId"] },
   location: { list: "Location", permission: permissions.canManageSalon, fields: ["name", "address", "city", "state", "zipCode", "phone", "email", "timezone", "hours", "isActive"] },
   resource: { list: "SalonResource", permission: permissions.canManageResources, fields: ["name", "type", "locationId", "capacity", "isActive"] },
   product: { list: "Product", permission: permissions.canManageInventory, fields: ["name", "sku", "price", "cost", "reorderPoint", "category", "description", "isActive"] },
