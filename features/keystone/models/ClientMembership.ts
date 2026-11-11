@@ -7,7 +7,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { rules } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 
 import { trackingFields } from "./trackingFields";
 
@@ -23,7 +22,6 @@ export const ClientMembership = list({
       query: rules.canReadClientMemberships,
     },
   },
-  hooks: createLifecycleHooks("client_membership", ["status", "startDate", "nextBillingDate", "pausedUntil", "clientId", "membershipId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "membership", "status", "startDate", "nextBillingDate"],

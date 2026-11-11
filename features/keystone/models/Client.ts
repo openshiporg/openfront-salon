@@ -11,7 +11,6 @@ import {
 
 import { permissions, rules } from "../access";
 import { ownCareRead } from "../privacy";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 /** Visit stats are recomputed by the server (sudo); people and API callers cannot write them. */
@@ -29,7 +28,6 @@ export const Client = list({
       query: rules.canReadClients,
     },
   },
-  hooks: createLifecycleHooks("client", ["userId", "preferredStylistId", "homeLocationId", "totalVisits", "lifetimeValue", "marketingConsent"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["user", "hairType", "preferredStylist", "totalVisits", "lifetimeSpend"],

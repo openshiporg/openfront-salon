@@ -10,7 +10,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 export const SalonResource = list({
@@ -22,7 +21,6 @@ export const SalonResource = list({
       delete: () => false,
     },
   },
-  hooks: createLifecycleHooks("salon_resource", ["name", "type", "capacity", "isActive", "revision", "locationId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "type", "location", "capacity", "isActive"],

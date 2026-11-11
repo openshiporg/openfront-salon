@@ -9,7 +9,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 export const StylistSchedule = list({
@@ -28,7 +27,6 @@ export const StylistSchedule = list({
       },
     },
   },
-  hooks: createLifecycleHooks("stylist_schedule", ["type", "dayOfWeek", "localDate", "startTime", "endTime", "isAvailable", "revision", "stylistId", "locationId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["stylist", "dayOfWeek", "startTime", "endTime", "isAvailable"],

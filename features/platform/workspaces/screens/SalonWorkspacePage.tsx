@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Armchair, ArrowUpRight, CalendarClock, ChevronRight, ListOrdered, ShieldCheck } from 'lucide-react';
+import { Armchair, ArrowUpRight, CalendarClock, ListOrdered, ShieldCheck } from 'lucide-react';
 import { getSalonManagementWorkspace, getSalonWorkspace, SalonManagementData, SalonManagementKind, transitionWaitlistFromWorkspace, WorkspaceBreakdown, WorkspaceData, WorkspaceMetric, WorkspaceRecord, WorkspaceSection } from '../actions/workspaces';
 import { SalonRecordManager, type RecordExtra } from './SalonRecordManager';
 import { InventoryIntentRecovery } from './InventoryIntentRecovery';
@@ -277,23 +277,9 @@ function StripeSetupGuide({ setup, hasProvider }: { setup: StripeSetupStatus; ha
 
 function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeSetup?: StripeSetupStatus | null }) {
   const providers = data.records.filter((record) => record.id.startsWith('provider:'));
-  const events = data.records.filter((record) => record.id.startsWith('event:'));
   const webhooks = data.records.filter((record) => record.id.startsWith('webhook:'));
   const notInstalled = providers.filter((record) => record.status === 'Not installed');
   const installed = providers.length - notInstalled.length;
-  const queued = 0;
-  const recorded = metricValue(data.metrics, 'Changes recorded');
-  const failed = metricValue(data.metrics, 'Failed events');
-  const groups = [...events.reduce((map, record) => {
-    const key = `${record.title}|${record.status}`;
-    const group = map.get(key) || { type: record.title, status: record.status || '', count: 0, attempts: 0, oldest: record.occurredAt, newest: record.occurredAt };
-    group.count += 1;
-    group.attempts = Math.max(group.attempts, record.metric || 0);
-    if (record.occurredAt && (!group.oldest || record.occurredAt < group.oldest)) group.oldest = record.occurredAt;
-    if (record.occurredAt && (!group.newest || record.occurredAt > group.newest)) group.newest = record.occurredAt;
-    map.set(key, group);
-    return map;
-  }, new Map<string, { type: string; status: string; count: number; attempts: number; oldest?: string | null; newest?: string | null }>()).values()].sort((a, b) => b.count - a.count);
 
   return (
     <>
@@ -301,15 +287,12 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
         title={data.title}
         status={providers.length > 0 && installed === 0 ? <TitleStatus tone="rose">No payment provider installed</TitleStatus>
           : data.attentionCount ? <TitleStatus tone="amber">{data.attentionLabel || `${data.attentionCount} need attention`}</TitleStatus>
-          : providers.length ? <TitleStatus tone="emerald">No failed events</TitleStatus> : null}
+          : providers.length ? <TitleStatus tone="emerald">Providers installed</TitleStatus> : null}
       />
       {providers.length > 0 && installed === 0 ? (
         <Notice tone="rose" title="No payment provider installed">{notInstalled.map((record) => record.title).join(', ')}</Notice>
       ) : notInstalled.length ? (
         <Notice tone="amber" title={`${plural(notInstalled.length, 'payment provider')} not installed`}>{notInstalled.map((record) => record.title).join(', ')}</Notice>
-      ) : null}
-      {queued + failed > 0 ? (
-        <Notice tone="rose" title={`${plural(failed, 'event')} failed`} />
       ) : null}
 
       <section aria-labelledby="providers" className="grid gap-2">
@@ -331,46 +314,6 @@ function IntegrationsView({ data, timeZone, stripeSetup }: ViewProps & { stripeS
       </section>
 
       {stripeSetup?.canManagePayments ? <StripeSetupGuide setup={stripeSetup} hasProvider={providers.some((record) => record.subtitle?.startsWith('stripe '))} /> : null}
-
-      <section aria-labelledby="undelivered" className="grid gap-2">
-        <h2 id="undelivered" className="flex items-baseline gap-2 text-sm font-semibold">Failed events<span className="text-xs font-normal tabular-nums text-muted-foreground">{queued + failed}</span></h2>
-        <DataTable label="Failed events by type" head={[{ label: 'Event type' }, { label: 'Status' }, { label: 'Count', className: 'text-right' }, { label: 'Most attempts', className: 'hidden sm:table-cell text-right' }, { label: 'Oldest', className: 'hidden md:table-cell' }, { label: 'Latest', className: 'hidden md:table-cell' }]}>
-          {groups.length === 0 ? <tr><Td colSpan={6} className="py-4 text-muted-foreground">No failed events.{recorded ? ` ${recorded.toLocaleString('en-US')} ${recorded === 1 ? 'event' : 'events'} delivered: client notices by email, everything else to the audit log.` : ''}</Td></tr> : groups.map((group) => (
-            <tr key={`${group.type}|${group.status}`}>
-              <Td className="font-medium">{group.type}</Td>
-              <Td><StatusCell tone={statusTone(group.status)}>{group.status === 'dead_letter' ? 'Failed' : labelize(group.status)}</StatusCell></Td>
-              <Td className="text-right font-medium tabular-nums">{group.count}</Td>
-              <Td className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">{group.attempts}</Td>
-              <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">{formatDate(group.oldest, timeZone) || '—'}</Td>
-              <Td className="hidden whitespace-nowrap tabular-nums text-muted-foreground md:table-cell">{formatDate(group.newest, timeZone) || '—'}</Td>
-            </tr>
-          ))}
-        </DataTable>
-        {events.length ? (
-          <details className="group rounded-[6px] border bg-background">
-            <summary className="flex h-9 cursor-pointer list-none items-center px-3 text-sm font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
-              <ChevronRight aria-hidden="true" className="mr-1.5 size-3.5 transition-transform duration-150 ease-out group-open:rotate-90" />
-              Raw events · latest {events.length}{queued + failed > events.length ? ` of ${queued + failed}` : ''}
-            </summary>
-            <div className="relative overflow-x-auto border-t">
-              <table className="w-full border-collapse text-sm" aria-label="Raw failed events">
-                <thead><tr className="text-left text-xs text-muted-foreground"><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Occurred</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Event</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Record</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 font-medium">Status</th><th scope="col" className="h-9 border-b bg-muted/40 px-3 text-right font-medium">Attempts</th></tr></thead>
-                <tbody>
-                  {events.map((record) => (
-                    <tr key={record.id}>
-                      <Td className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDate(record.occurredAt, timeZone) || '—'}</Td>
-                      <Td>{record.title}</Td>
-                      <Td className="!whitespace-normal break-all font-mono text-xs text-muted-foreground">{record.subtitle}</Td>
-                      <Td className="whitespace-nowrap">{labelize(record.status)}</Td>
-                      <Td className="text-right tabular-nums">{record.metric ?? 0}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        ) : null}
-      </section>
 
       <section aria-labelledby="webhooks" className="grid gap-2">
         <h2 id="webhooks" className="text-sm font-semibold">Recent provider webhooks</h2>

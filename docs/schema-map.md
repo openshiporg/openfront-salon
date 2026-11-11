@@ -6,7 +6,6 @@ Conventions in this schema:
 
 - **Workflow-only writes.** Most business lists have `create/update/delete: () => false`. They change only through a custom mutation that re-checks the actor's role, runs in a serializable transaction with advisory locks, and is idempotent by key. A page can therefore only do what a mutation allows.
 - **Append-only evidence.** Revisions, transitions, reviews, ledger entries, reversals and adjustments are never edited. Corrections are new rows.
-- **Lifecycle events.** `createLifecycleHooks(aggregate, fields)` writes a `DomainEvent` (status `pending`) for every tracked change. No dispatcher consumes them yet.
 - **Money** is integer cents. **Times** are instants; salon wall-clock comes from `Location.timezone`.
 - **Who creates:** M = merchant/staff (dashboard), C = customer (storefront), S = system (workflow side effect or seed).
 
@@ -106,7 +105,6 @@ Conventions in this schema:
 |---|---|---|---|---|
 | MessageTemplate | Message copy | name, type, content, variables, isActive | M / S (seed) | No sender reads it |
 | MessageLog | Message delivery record | channel, status, errorMessage, sentAt | M | No dispatcher writes it |
-| DomainEvent | Lifecycle outbox | eventType, aggregate, status, attempts | S (hooks) | Pending forever; no dispatcher |
 | WidgetConfiguration | Embedded booking widget settings | colours, embedCode, copy | M (list access) | No widget runtime serves it |
 
 ## Merchant workflows
@@ -128,7 +126,7 @@ Conventions in this schema:
 | W13 | Reputation | client reviews a visit → approve for the storefront | Review |
 | W14 | Retail stock | products → adjust stock → reorder | Product, InventoryMovement |
 | W15 | Read the business | revenue, tips, refunds, cancellations, unpaid commission | Payment, Appointment, Commission |
-| W16 | Systems | providers, webhooks, event backlog | PaymentProvider, PaymentWebhookEvent, DomainEvent |
+| W16 | Systems | providers, webhooks | PaymentProvider, PaymentWebhookEvent |
 | W17 | Communications | templates, message log | MessageTemplate, MessageLog |
 
 ## Coverage (before this pass)

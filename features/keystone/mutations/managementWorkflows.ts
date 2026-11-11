@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
-import { enqueueDomainEvent } from "../lifecycle";
 import { serializableWorkflow } from "./serializableWorkflow";
 
 const config = {
@@ -34,8 +33,6 @@ export async function saveSalonRecordTransaction(context: Context, args: { kind:
   try {
     return await serializableWorkflow(context, "salon-management", [eventKey, `${kind}:${args.id || input.email || input.sku || input.name}`], async tx => {
       const sudo = tx.sudo(), query = sudo.query as any;
-      const existing = await query.DomainEvent.findOne({ where: { eventKey }, query: "aggregateId payload" });
-      if (existing) { if (existing.payload?.requestHash !== requestHash) throw new Error("Operation key was reused with different input"); return { success: true, recordId: existing.aggregateId, error: null }; }
       const priorQueries: Record<Kind, string> = {
         client: "id user { id email } homeLocation { id }",
         staff: "id status tier role baseCommissionRate user { id email } locations { id }",
@@ -212,7 +209,6 @@ export async function saveSalonRecordTransaction(context: Context, args: { kind:
         data = { name, slug, description: text(input.description), displayOrder, sortOrder: displayOrder, isVisible };
       }
       const record = prior ? await query[definition.list].updateOne({ where: { id: prior.id }, data, query: "id" }) : await query[definition.list].createOne({ data, query: "id" });
-      await enqueueDomainEvent(tx, { eventKey, eventType: "salon.management.recorded.v1", aggregateType: kind, aggregateId: record.id, operation: prior ? "update" : "create", payload: { requestHash, fields: Object.keys(input), actorId: context.session!.itemId } });
       return { success: true, recordId: record.id, error: null };
     });
   } catch (error) { return { ...denied, error: error instanceof Error && SAFE_MANAGEMENT_ERRORS.has(error.message) ? error.message : "Record could not be saved; check uniqueness, selections, and active bookings before retrying." }; }

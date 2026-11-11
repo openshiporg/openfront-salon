@@ -12,7 +12,6 @@ import {
 
 import { permissions, rules } from "../access";
 import { operationalRead } from "../privacy";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 export const Appointment = list({
@@ -27,7 +26,6 @@ export const Appointment = list({
       query: rules.canReadAppointments,
     },
   },
-  hooks: createLifecycleHooks("appointment", ["startTime", "endTime", "duration", "status", "depositAmount", "depositPaid", "locationId", "clientId", "stylistId", "resourceId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["client", "stylist", "startTime", "status", "duration"],

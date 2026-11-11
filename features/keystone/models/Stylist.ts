@@ -10,7 +10,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 export const Stylist = list({
@@ -22,7 +21,6 @@ export const Stylist = list({
       delete: () => false,
     },
   },
-  hooks: createLifecycleHooks("stylist", ["role", "tier", "baseCommissionRate", "status", "isActive", "userId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["user", "tier", "commissionRate", "isActive"],

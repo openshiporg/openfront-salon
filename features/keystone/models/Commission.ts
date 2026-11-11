@@ -9,7 +9,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { rules } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 
 import { trackingFields } from "./trackingFields";
 
@@ -25,7 +24,6 @@ export const Commission = list({
       query: rules.canReadCommissions,
     },
   },
-  hooks: createLifecycleHooks("commission", ["saleAmount", "commissionRate", "commissionAmount", "isPaid", "paidAt", "stylistId", "serviceId", "paymentId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["stylist", "payment", "saleAmount", "commissionRate", "commissionAmount", "isPaid"],

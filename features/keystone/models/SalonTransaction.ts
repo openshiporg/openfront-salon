@@ -9,7 +9,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { rules } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 import { transactionReceiptTotals } from "../transactionReceipt";
 
@@ -32,7 +31,6 @@ export const SalonTransaction = list({
       query: rules.canReadSalonTransactions,
     },
   },
-  hooks: createLifecycleHooks("salon_transaction", ["type", "tip", "paymentMethod", "paymentStatus", "status", "completedAt", "locationId", "clientId", "appointmentId", "staffId"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["type", "client", "staff", "total", "paymentStatus", "status"],

@@ -2,7 +2,6 @@ import { list } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { integer, json, relationship, select, text } from "@keystone-6/core/fields";
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 import { currentStockContext, stockLocationWhere } from "../inventory/locationAuthority";
 
@@ -26,9 +25,6 @@ export const InventoryMovement = list({
       },
     },
   },
-  hooks: createLifecycleHooks("inventory_movement", [
-    "type", "delta", "balanceBefore", "balanceAfter", "reason", "idempotencyKey", "locationId", "productId", "appointmentId",
-  ]),
   fields: {
     type: select({
       type: "enum",

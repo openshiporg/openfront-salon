@@ -991,28 +991,6 @@ model ClientPackageUsage {
   @@index([serviceId])
 }
 
-model DomainEvent {
-  id            String                   @id @default(cuid())
-  eventKey      String                   @unique @default("")
-  eventType     String                   @default("")
-  eventVersion  Int                      @default(1)
-  aggregateType String                   @default("")
-  aggregateId   String                   @default("")
-  operation     DomainEventOperationType
-  actorId       String                   @default("")
-  locationId    String                   @default("")
-  payload       Json?
-  payloadHash   String                   @default("")
-  occurredAt    DateTime
-  status        DomainEventStatusType    @default(pending)
-  attempts      Int                      @default(0)
-  availableAt   DateTime                 @default(now())
-  deliveredAt   DateTime?
-  lastError     String                   @default("")
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @default(now()) @updatedAt
-}
-
 model InventoryMovement {
   id                                             String                    @id @default(cuid())
   type                                           InventoryMovementTypeType
@@ -1507,19 +1485,6 @@ enum SalonTransactionStatusType {
 enum SalonTransactionLineItemItemTypeType {
   service
   product
-}
-
-enum DomainEventOperationType {
-  create
-  update
-  delete
-}
-
-enum DomainEventStatusType {
-  pending
-  processing
-  delivered
-  dead_letter
 }
 
 enum InventoryMovementTypeType {

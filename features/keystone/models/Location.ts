@@ -7,7 +7,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 import { trackingFields } from "./trackingFields";
 
 export const Location = list({
@@ -22,7 +21,6 @@ export const Location = list({
       query: ({ session }) => (permissions.canManageSalon({ session }) ? true : { isActive: { equals: true } }),
     },
   },
-  hooks: createLifecycleHooks("location", ["name", "city", "state", "timezone", "isActive"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "city", "state", "phone", "isActive"],

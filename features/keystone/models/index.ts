@@ -41,7 +41,6 @@ import { SalonTransaction } from './SalonTransaction';
 import { SalonTransactionLineItem } from './SalonTransactionLineItem';
 import { ClientPackage } from './ClientPackage';
 import { ClientPackageUsage } from './ClientPackageUsage';
-import { DomainEvent } from './DomainEvent';
 import { InventoryMovement } from './InventoryMovement';
 import { ServiceSegment } from './ServiceSegment';
 import { AppointmentSegment } from './AppointmentSegment';
@@ -101,7 +100,6 @@ export const models = {
   SalonTransactionLineItem,
   ClientPackage,
   ClientPackageUsage,
-  DomainEvent,
   InventoryMovement,
   ServiceSegment,
   AppointmentSegment,

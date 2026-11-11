@@ -7,7 +7,6 @@ import {
 } from "@keystone-6/core/fields";
 
 import { permissions } from "../access";
-import { createLifecycleHooks } from "../lifecycle";
 
 import { trackingFields } from "./trackingFields";
 
@@ -23,7 +22,6 @@ export const Product = list({
       query: ({ session }) => (permissions.canManageInventory({ session }) || permissions.canManageCatalog({ session }) ? true : { isActive: { equals: true } }),
     },
   },
-  hooks: createLifecycleHooks("product", ["name", "sku", "price", "cost", "quantity", "reorderPoint", "isActive"]),
   ui: { hideCreate: true, hideDelete: true,
     listView: {
       initialColumns: ["name", "sku", "price", "quantity", "category", "isActive"],
