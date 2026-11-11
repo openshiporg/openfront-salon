@@ -414,7 +414,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
         <div className="sf-bk-done sf-bk-panel">
           <span className="sf-bk-done-mark" aria-hidden="true"><Check /></span>
           <h1 className="sf-bk-title">You&apos;re booked</h1>
-          <p className="sf-bk-lede">We&apos;ve sent the details to <span className="text-[var(--sf-ink)]">{clientInfo.email}</span>.</p>
+          <p className="sf-bk-lede">Your booking is confirmed. Keep this page or your account for the details.</p>
           <dl className="sf-bk-visit sf-bk-visit-ruled">
             <div><dt>Service</dt><dd>{service?.name || "—"}</dd></div>
             <div><dt>Stylist</dt><dd>{stylist?.user?.name || "—"}</dd></div>
