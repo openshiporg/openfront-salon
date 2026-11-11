@@ -162,6 +162,11 @@ test('sidebar shows only lists and platform pages the session can see', () => {
     { href: '/dashboard/platform/analytics' }, { href: '/platform/users?tab=1' }];
   assert.deepEqual(plain(access.visiblePlatformItems(items, lists, staff)).map(item => item.href),
     ['/dashboard/platform/orders', '/dashboard/platform/analytics']);
+  const guarded = [{ href: '/dashboard/platform/clients', requires: ['canManageClients'] }, { href: '/dashboard/platform/schedules', requires: ['canManageSchedules', 'canManageOwnSchedule'] }, { href: '/dashboard/platform/notes' }];
+  const hrefs = (role) => plain(access.visiblePlatformItems(guarded, [], { role: { canAccessDashboard: true, ...role } })).map(item => item.href);
+  assert.deepEqual(hrefs({ canManageOwnSchedule: true }), ['/dashboard/platform/schedules', '/dashboard/platform/notes']);
+  assert.deepEqual(hrefs({ canManageClients: true }), ['/dashboard/platform/clients', '/dashboard/platform/notes']);
+  assert.equal(hrefs({ canManageSalon: true }).length, 3);
   const customer = { role: { canAccessDashboard: false } };
   assert.equal(access.visibleSidebarLists(lists, customer).length, 0);
   assert.equal(access.visiblePlatformItems(items, lists, customer).length, 0);
