@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { Check } from "lucide-react"
 import { confirmDepositCheckout } from "../lib/data/deposits"
 import { PayDepositButton } from "../components/PayDepositButton"
@@ -10,10 +11,17 @@ interface Props {
 /** Where Stripe Checkout sends the guest back. The deposit is confirmed by reading the Checkout from Stripe, not from this URL. */
 export async function DepositReturnPage({ searchParams }: Props) {
   const { id, token, result } = await searchParams
-  if (!id) {
-    return <Message title="Deposit" body="We could not find that booking." />
-  }
+  if (!id) notFound()
   const status = await confirmDepositCheckout(id, token || null)
+  if (!status.ok && status.error === "Appointment not found") notFound()
+  if (status.status === "refunded" || status.status === "cancelled") {
+    return (
+      <Message
+        title={status.status === "refunded" ? "Deposit refunded" : "Booking cancelled"}
+        body={status.status === "refunded" ? "This booking was cancelled and the deposit was refunded to your card." : "This booking was cancelled. No deposit is due."}
+      />
+    )
+  }
   if (status.paid) {
     return (
       <div className="sf-page-pad">

@@ -32,7 +32,8 @@ export async function CheckoutWorkflowPage({ params, searchParams }: PageProps) 
   const { appointment } = result.data;
   const clientName = appointmentContact(appointment).name;
   const paid = appointment.transaction?.status === 'completed' || appointment.payment?.status === 'completed';
-  const deskCard = paid ? null : await getDeskCard(appointment.id);
+  const closed = !paid && ['cancelled', 'no_show'].includes(appointment.status || '');
+  const deskCard = paid || closed ? null : await getDeskCard(appointment.id);
 
   return (
     <PlatformPage breadcrumbs={[{ type: 'link', label: 'Checkout', href: '/platform/checkout' }, { type: 'page', label: clientName }]}>
@@ -41,13 +42,16 @@ export async function CheckoutWorkflowPage({ params, searchParams }: PageProps) 
         status={<TitleStatus tone={paid ? 'emerald' : appointmentTone[appointment.status || ''] || 'blue'}>{paid ? 'Paid' : appointmentLabel[appointment.status || ''] || 'Checkout'}</TitleStatus>}
         actions={<Track><PillLink href={`/dashboard/platform/appointments/${appointment.id}`}>Appointment<ArrowUpRight /></PillLink></Track>}
       />
-      {paid ? null : (
+      {closed ? (
+        <p className="text-sm text-muted-foreground">This appointment is {appointmentLabel[appointment.status || ''] ? appointmentLabel[appointment.status || ''].toLowerCase() : 'closed'}, so there is nothing to check out.</p>
+      ) : null}
+      {paid || closed ? null : (
         <form method="get" className="flex w-full flex-wrap items-center gap-2 lg:max-w-[20rem] lg:self-end xl:max-w-[22rem]" aria-label="Search retail products at this appointment location">
           <label className="relative min-w-0 flex-1"><span className="sr-only">Retail product name or SKU</span><Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input name="retailSearch" type="search" defaultValue={retailSearch} maxLength={80} placeholder="Find retail by name or SKU" className={`${inputClass} pl-8`} /></label>
           <div className={trackClass}><button type="submit" className={pillClass('raised')}>Search stock</button></div>
         </form>
       )}
-      <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} showClient={false} deskCard={deskCard} />
+      {closed ? null : <CheckoutWorkflowCard appointment={appointment} retailPage={retailPage} retailSearch={retailSearch} showClient={false} deskCard={deskCard} />}
     </PlatformPage>
   );
 }

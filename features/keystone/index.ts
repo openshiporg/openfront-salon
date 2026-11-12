@@ -113,6 +113,24 @@ const { withAuth } = createAuth({
   `,
 });
 
+/** Lists a session cannot create in or read are hidden from it, by the same operation access the server enforces. */
+function withPermissionUi(lists: Record<string, any>) {
+  return Object.fromEntries(Object.entries(lists).map(([key, list]) => {
+    const operation = list?.access?.operation;
+    if (!operation || typeof operation !== "object") return [key, list];
+    const allowed = (name: "create" | "query") => (args: any) => {
+      const rule = operation[name];
+      return typeof rule === "function" ? Boolean(rule({ ...args, operation: name, listKey: key })) : rule !== false;
+    };
+    const ui = list.ui ?? {};
+    return [key, { ...list, ui: {
+      ...ui,
+      hideCreate: ui.hideCreate ?? ((args: any) => !allowed("create")(args)),
+      isHidden: ui.isHidden ?? ((args: any) => !allowed("query")(args)),
+    } }];
+  }));
+}
+
 export default withAuth(
   config({
     db: {
@@ -121,7 +139,7 @@ export default withAuth(
       // Keystone returns failed queries as values; this makes them throw so transactions roll back.
       extendPrismaClient: throwKeystonePrismaErrors,
     },
-    lists: models,
+    lists: withPermissionUi(models),
     storage: {
       my_images: {
         kind: "s3",

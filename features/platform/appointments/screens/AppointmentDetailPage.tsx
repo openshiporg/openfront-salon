@@ -78,7 +78,7 @@ export async function AppointmentDetailPage({ params }: PageProps) {
             : appointment.depositAmount && (appointment.depositPaid || !['cancelled', 'no_show', 'completed'].includes(status)) ? <span className={appointment.depositPaid ? 'inline-flex items-center gap-1.5' : 'inline-flex items-center gap-1.5 font-medium text-amber-800 dark:text-amber-300'}><StatusDot tone={appointment.depositPaid ? 'emerald' : 'amber'} />{appointment.depositPaid ? 'Deposit paid' : 'Deposit due'} {usd(appointment.depositAmount)}</span> : null}
           {appointment.services.some((service) => service.requiresConsultation) ? <span className="inline-flex items-center gap-1.5 text-sky-800 dark:text-sky-300"><StatusDot tone="sky" />Consultation required</span> : null}
         </>}
-        actions={capabilities.payments && (hasCheckout || !['cancelled', 'no_show', 'completed'].includes(status)) ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
+        actions={capabilities.payments && !['cancelled', 'no_show'].includes(status) && (hasCheckout || status !== 'completed') ? <Track><PillLink href={`/dashboard/platform/checkout/${appointment.id}`} variant="primary"><CreditCard />{hasCheckout ? 'Review checkout' : 'Start checkout'}</PillLink></Track> : null}
       />
 
       {careAlerts.length || needsPatchTest ? (

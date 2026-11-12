@@ -71,14 +71,15 @@ function appointmentConfirmationEmail(params: {
   storefrontName: string | null;
   themeHue: number;
   reminder?: boolean;
+  depositDue?: boolean;
   manageUrl?: string | null;
 }): string {
   return emailLayout({
     storeName: params.storefrontName || undefined,
-    preheader: params.reminder ? "A reminder of your appointment tomorrow." : "Your appointment is confirmed.",
-    title: params.reminder ? "See you tomorrow" : "Appointment confirmed",
+    preheader: params.reminder ? "A reminder of your appointment tomorrow." : params.depositDue ? "Your appointment is booked once the deposit is paid." : "Your appointment is confirmed.",
+    title: params.reminder ? "See you tomorrow" : params.depositDue ? "Appointment requested" : "Appointment confirmed",
     body: `${emailParagraph(`Hi ${escapeHtml(params.clientName)},`)}
-${emailParagraph(params.reminder ? "This is a reminder of your appointment tomorrow." : "We're excited to see you! Your appointment has been confirmed.")}
+${emailParagraph(params.reminder ? "This is a reminder of your appointment tomorrow." : params.depositDue ? "Thanks for booking. Your time is confirmed once the deposit is paid; until then it is not held." : "We're excited to see you! Your appointment has been confirmed.")}
 ${emailHeading("Appointment details")}
 ${emailPanel(`<strong>Service:</strong> ${escapeHtml(params.serviceName)}<br><strong>Stylist:</strong> ${escapeHtml(params.stylistName)}<br><strong>Date:</strong> ${escapeHtml(params.appointmentDate)}<br><strong>Time:</strong> ${escapeHtml(params.appointmentTime)}<br><strong>Duration:</strong> ${escapeHtml(params.duration)} minutes`)}
 ${emailTotals([{ label: "Price", value: `$${params.price.toFixed(2)}` }])}
@@ -99,6 +100,7 @@ export async function sendAppointmentConfirmation(params: {
   storefrontName: string | null;
   themeHue: number;
   reminder?: boolean;
+  depositDue?: boolean;
   manageUrl?: string | null;
 }): Promise<void> {
   if (!hasSmtpConfiguration()) throw new Error("Email is not configured (SMTP_HOST / SMTP_FROM)");
@@ -120,9 +122,10 @@ export async function sendAppointmentConfirmation(params: {
   }
 }
 
-export async function appointmentEmailSubject(params: { appointmentDate: string; appointmentTime: string; reminder?: boolean; storefrontName?: string | null }) {
+export async function appointmentEmailSubject(params: { appointmentDate: string; appointmentTime: string; reminder?: boolean; depositDue?: boolean; storefrontName?: string | null }) {
   return params.reminder
     ? `Reminder: ${params.appointmentDate} at ${params.appointmentTime}${params.storefrontName ? ` · ${params.storefrontName}` : ""}`
+    : params.depositDue ? `Appointment requested, deposit due - ${params.appointmentDate} at ${params.appointmentTime}`
     : `Appointment Confirmed - ${params.appointmentDate} at ${params.appointmentTime}`;
 }
 

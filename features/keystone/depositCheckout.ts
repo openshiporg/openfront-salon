@@ -227,14 +227,15 @@ export async function confirmDepositCheckoutTransaction(context: Context, args: 
       orderBy: { createdAt: "desc" }, take: 20, query: SESSION_QUERY,
     });
     const target = sessions.find((row: any) => dataOf(row.data).purpose === "appointment_deposit" && dataOf(row.data).checkout && row.providerReference);
-    if (!target?.provider) return { success: true, error: null, paid: Boolean(appointment.depositPaid), status: appointment.depositPaid ? "completed" : null };
+    const closed = ["cancelled", "no_show"].includes(appointment.status || "");
+    if (!target?.provider) return { success: true, error: null, paid: Boolean(appointment.depositPaid), status: appointment.depositPaid ? "completed" : closed ? "cancelled" : null };
     const observation = await retrieveProviderCheckout({ provider: paymentProviderFromRecord(target.provider as any), providerReference: target.providerReference });
     const plan = await serializableWorkflow(context, "salon-deposit-checkout", [`appointment:${appointment.id}`], async (tx) => {
       const sudo = tx.sudo();
       const fresh = await sudo.query.PaymentSession.findOne({ where: { id: target.id }, query: SESSION_QUERY });
       return applyObservation(sudo, fresh, observation);
     });
-    return { success: true, error: null, paid: plan.status === "completed" || plan.status === "partially_refunded", status: plan.status };
+    return { success: true, error: null, paid: plan.status === "completed" || plan.status === "partially_refunded", status: plan.status === "refunded" ? "refunded" : closed && plan.status !== "completed" ? "cancelled" : plan.status };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Unable to check the deposit.", paid: false, status: null };
   }

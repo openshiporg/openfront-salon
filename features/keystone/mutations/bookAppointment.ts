@@ -491,6 +491,7 @@ export const bookAppointment = graphql.field({
           price: totalPrice / 100,
           storefrontName: messageBrand.name,
           themeHue: messageBrand.themeHue,
+          depositDue: booking.services.some((service: any) => Number(service.depositAmount || 0) > 0),
         };
         await sendLogged(context, { to: clientEmail, kind: "appointment_confirmation", subject: await appointmentEmailSubject(confirmation), send: () => sendAppointmentConfirmation(confirmation) });
       } catch (emailError) {

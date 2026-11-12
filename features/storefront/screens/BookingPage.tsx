@@ -421,7 +421,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
             <div><dt>When</dt><dd>{dateLabel && selectedTimeLabel ? `${dateLabel}, ${selectedTimeLabel}` : "—"}</dd></div>
             {location ? <div><dt>Where</dt><dd>{location.name}</dd></div> : null}
             <div><dt>Price</dt><dd className="sf-num">{formatMenuPrice(service?.basePrice)}</dd></div>
-            <div><dt>Reference</dt><dd className="sf-bk-ref">{bookingId}</dd></div>
+            <div><dt>Reference</dt><dd className="sf-bk-ref">{(bookingId || "").slice(-8).toUpperCase()}</dd></div>
           </dl>
           {deposit && bookingId ? (
             <div className="sf-bk-deposit">
