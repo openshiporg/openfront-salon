@@ -1,4 +1,4 @@
-// Crawl every dashboard and storefront page as the demo admin; prints PASS/FAIL per page.
+// Crawl every dashboard and storefront page as the admin; prints PASS/FAIL per page.
 // Usage: CRAWL_BASE=http://localhost:3964 CRAWL_LOGINS=/path/salon.json node scripts/r6-crawl.mjs
 import fs from 'node:fs'
 import { chromium } from '/Users/junaid/Code/vibeghost/vibeghost/node_modules/playwright/index.mjs'

@@ -88,7 +88,7 @@ export function OnboardingCards({
   const cards = steps.filter(({ href }) => !dismissedSteps.includes(href));
   const cardCount = cards.length;
   const [showCompleted, setShowCompleted] = React.useState(cardCount > 0);
-  // null while unknown; the demo-seed card only applies to an empty salon.
+  // null while unknown; the setup-seed card only applies to an empty salon.
   const [hasRecords, setHasRecords] = React.useState<boolean | null>(null);
   const eligible = Boolean(userRole?.canManageOnboarding) && onboardingStatus !== "completed" && onboardingStatus !== "dismissed";
 

@@ -12,7 +12,7 @@ import { createProviderCheckout, expireProviderCheckout, paymentProviderFromReco
 /**
  * Front-desk card payment (Boulevard / Square Appointments style): checkout prices the visit, Stripe takes the card
  * on a hosted page (opened at the desk or sent to the client's phone as a link), and the sale is recorded against the
- * Stripe PaymentIntent only after Stripe reports it paid, for exactly the priced total. Stripe TEST keys in the demo.
+ * Stripe PaymentIntent only after Stripe reports it paid, for exactly the priced total.
  */
 
 const OPEN = ["pending", "requires_action", "authorized"];

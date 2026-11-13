@@ -166,7 +166,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ isOpen, onClose }) 
                       <SummaryLine count={displayNames.services.length} label="service" />
                       <SummaryLine count={displayNames.staff.length} label="staff profile" />
                       <SummaryLine count={displayNames.clients.length} label="client profile" />
-                      <SummaryLine count={displayNames.appointments.length} label="sample appointment" />
+                      <SummaryLine count={displayNames.appointments.length} label="appointment" />
                     </div>
                   </>
                 ) : !isLoading ? (

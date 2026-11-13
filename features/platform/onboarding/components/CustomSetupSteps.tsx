@@ -71,14 +71,14 @@ export function CustomSetupSteps({ currentJson, onJsonUpdate = () => {}, onBack 
   };
 
   const generateAIPrompt = () => {
-    return `I need help customizing my salon setup seed JSON. The JSON includes storefront identity and theme, resources, services, artist schedules, client records, memberships, sample appointments, and relative /images paths for services, artists, and the gallery.
+    return `I need help customizing my salon setup seed JSON. The JSON includes storefront identity and theme, resources, services, artist schedules, client records, memberships, appointments, and relative /images paths for services, artists, and the gallery.
 
 First summarize what this seed currently contains. Then ask what I want to change about:
 - services, prices, durations, deposits, and required resources
 - artist roles, specialties, portraits, and weekly schedules
 - clients, preferences, and memberships
 - service and gallery imagePath values under /images/
-- sample appointments and payment-provider configuration
+- appointments and payment-provider configuration
 
 After I answer, return one complete valid JSON object with the same top-level keys so I can paste it back into the salon setup dialog.`;
   };
@@ -136,7 +136,7 @@ After I answer, return one complete valid JSON object with the same top-level ke
     {
       number: 3,
       title: 'Customize Your Seed',
-      description: 'Update services, artists, schedules, memberships, images, or sample appointments.',
+      description: 'Update services, artists, schedules, memberships, images, or appointments.',
       content: (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
