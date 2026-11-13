@@ -6,6 +6,7 @@ import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
 import { permissions } from "./access";
+import { withFilterAccess } from "./filterAccess";
 import { s3ForcePathStyle } from "./lib/s3-storage";
 import { pooledDatabaseUrl } from './database-url';
 import { throwKeystonePrismaErrors } from './lib/keystonePrismaErrors';
@@ -131,7 +132,7 @@ function withPermissionUi(lists: Record<string, any>) {
   }));
 }
 
-export default withAuth(
+const authedConfig = withAuth(
   config({
     db: {
       provider: "postgresql",
@@ -163,3 +164,6 @@ export default withAuth(
     },
   })
 );
+
+// Applied after withAuth so the auth-added fields (reset tokens) are covered too.
+export default { ...authedConfig, lists: withFilterAccess(authedConfig.lists as Record<string, any>) } as typeof authedConfig;
