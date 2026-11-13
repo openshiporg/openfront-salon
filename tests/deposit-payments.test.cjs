@@ -28,7 +28,7 @@ function load(relative, stubs = {}) {
   return run(path.resolve(root, relative));
 }
 
-const { planCheckoutSettlement, tokenMatches, depositAccessToken } = load('features/keystone/depositCheckout.ts');
+const { planCheckoutSettlement, applyObservation, tokenMatches, depositAccessToken } = load('features/keystone/depositCheckout.ts');
 const pending = { status: 'pending', amount: 5000, currency: 'usd', refundedAmount: 0 };
 const paid = (over = {}) => ({ status: 'completed', amount: 5000, currency: 'usd', refundedAmount: 0, ...over });
 
@@ -84,6 +84,17 @@ test('an expired checkout cancels the open deposit but never erases a captured o
   const captured = planCheckoutSettlement({ ...pending, status: 'completed' }, expired);
   assert.equal(captured.status, 'completed');
   assert.equal(captured.changed, false);
+});
+
+test('a paid deposit puts the Stripe PaymentIntent on its Payment row once', async () => {
+  const writes = [];
+  const sudo = { query: new Proxy({}, { get: (_t, list) => ({ updateOne: async (args) => { writes.push({ list, ...args }); return { id: 'x' }; } }) }) };
+  const session = { id: 's1', status: 'pending', amount: 5000, currency: 'usd', data: { purpose: 'appointment_deposit' }, payment: { id: 'p1', status: 'pending', refundedAmount: 0, stripePaymentIntentId: '' }, appointment: { id: 'a1', status: 'pending', transaction: null } };
+  await applyObservation(sudo, session, { status: 'completed', providerReference: 'cs_test_1', paymentIntentId: 'pi_123', amount: 5000, currency: 'usd', refundedAmount: 0 });
+  assert.equal(writes.find((write) => write.list === 'Payment').data.stripePaymentIntentId, 'pi_123');
+  writes.length = 0;
+  await applyObservation(sudo, { ...session, status: 'completed', payment: { ...session.payment, status: 'completed', stripePaymentIntentId: 'pi_123' } }, { status: 'completed', providerReference: 'cs_test_1', paymentIntentId: 'pi_123', amount: 5000, currency: 'usd', refundedAmount: 5000 });
+  assert.equal('stripePaymentIntentId' in writes.find((write) => write.list === 'Payment').data, false, 'never rewritten');
 });
 
 test('the booking access token is bound to one appointment and one secret', () => {

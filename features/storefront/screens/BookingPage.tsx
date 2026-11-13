@@ -612,7 +612,7 @@ export function BookingPage({ initialServiceCatalog, preselectedService = null, 
                     <p role="status" className="sf-bk-notice">This time is inside the notice window, so it can&apos;t be cancelled or rescheduled online. Contact the salon to change it.</p>
                   ) : null}
                   <label className="sf-bk-policy">
-                    <input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} />
+                    <span className="sf-bk-policy-box"><input type="checkbox" required checked={policyAccepted} onChange={event => setPolicyAccepted(event.target.checked)} /></span>
                     <span>I agree to the booking policy: cancel at least {formatNotice(bookingContext?.policy.cancellationNoticeMinutes)} and reschedule at least {formatNotice(bookingContext?.policy.rescheduleNoticeMinutes)} before my appointment.</span>
                   </label>
                 </form>

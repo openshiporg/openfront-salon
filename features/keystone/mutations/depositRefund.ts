@@ -55,7 +55,7 @@ export async function refundAppointmentDeposit(context: Context, input: { paymen
     return await serializableWorkflow(context, "salon-domain-resource", [`deposit:${input.paymentSessionId}`], async tx => {
       const current = await currentStockContext(tx, "return");
       const sudo = current.sudo();
-      const session = await sudo.query.PaymentSession.findOne({ where: { id: input.paymentSessionId }, query: "id amount data payment { id refundedAmount } appointment { id }" });
+      const session = await sudo.query.PaymentSession.findOne({ where: { id: input.paymentSessionId }, query: "id amount data payment { id refundedAmount stripePaymentIntentId stripeRefundId } appointment { id }" });
       const data = session!.data as any, operation = data.refundOperations?.[key];
       if (!operation) throw new Error("Refund operation evidence is missing");
       if (operation.status === "completed") return { success: true, refundId: operation.refundId || null, status: operation.resultStatus, error: null };
@@ -67,7 +67,17 @@ export async function refundAppointmentDeposit(context: Context, input: { paymen
       const next = { ...operation, status: completed ? "completed" : result.status === "failed" ? "failed" : "pending", resultStatus: completed ? status : result.status, refundId: result.data?.refundId || null, updatedAt: now };
       await sudo.query.PaymentSession.updateOne({ where: { id: session!.id }, data: { ...(completed ? { status, refundedAt: now } : {}), data: { ...data, refundOperations: { ...data.refundOperations, [key]: next } } }, query: "id" });
       if (completed) {
-        await sudo.query.Payment.updateOne({ where: { id: session!.payment!.id }, data: { status, refundedAmount: refunded, refundReason: operation.reason, refundedAt: now }, query: "id" });
+        const refundId = typeof result.data?.refundId === "string" ? result.data.refundId : "";
+        const priorRefunds = session!.payment!.stripeRefundId || "";
+        await sudo.query.Payment.updateOne({
+          where: { id: session!.payment!.id },
+          data: {
+            status, refundedAmount: refunded, refundReason: operation.reason, refundedAt: now,
+            ...(refundId && !priorRefunds.split(",").includes(refundId) ? { stripeRefundId: priorRefunds ? `${priorRefunds},${refundId}` : refundId } : {}),
+            ...(providerReference.startsWith("pi_") && !session!.payment!.stripePaymentIntentId ? { stripePaymentIntentId: providerReference } : {}),
+          },
+          query: "id",
+        });
         if (session!.appointment?.id) await sudo.query.Appointment.updateOne({ where: { id: session!.appointment.id }, data: { depositPaid: refunded < session!.amount }, query: "id" });
       }
       return { success: completed, refundId: typeof result.data?.refundId === "string" ? result.data.refundId : null, status: completed ? status : result.status, error: completed ? null : "Refund is not completed; reconcile the same operation before retrying" };

@@ -149,7 +149,7 @@ export async function HomePage() {
             <section className="sf-home-stylists" aria-labelledby="home-stylists">
               <div className="mb-4 flex items-center justify-between gap-4">
                 <h2 id="home-stylists" className="sf-label">Stylists</h2>
-                {active.length > 3 ? <Link href="/team" className="sf-more !min-h-0 text-[length:var(--sf-text-sm)]">View all<ChevronRight aria-hidden="true" /></Link> : null}
+                {active.length > 3 ? <Link href="/team" className="sf-more -my-3 text-[length:var(--sf-text-sm)]">View all<ChevronRight aria-hidden="true" /></Link> : null}
               </div>
               <ul className="grid grid-cols-3 gap-4">
                 {active.slice(0, 3).map((stylist) => {
@@ -207,7 +207,7 @@ export async function HomePage() {
                         </span>
                       </Link>
                     ) : null}
-                    <Link href={bookHref({ stylistId: row[row.length - 1].id })} aria-label="See all times" className="col-start-3 inline-flex h-11 w-8 items-center justify-center text-[var(--sf-ink-3)]"><ChevronRight className="h-5 w-5" aria-hidden="true" /></Link>
+                    <Link href={bookHref({ stylistId: row[row.length - 1].id })} aria-label="See all times" className="col-start-3 -mr-2 inline-flex h-11 w-11 items-center justify-center text-[var(--sf-ink-3)]"><ChevronRight className="h-5 w-5" aria-hidden="true" /></Link>
                   </div>
                 </div>
               ))}

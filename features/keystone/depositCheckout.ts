@@ -115,6 +115,8 @@ export async function applyObservation(sudo: Context, session: any, observation:
         status: paymentRecordStatus(plan.status),
         ...(session.payment.status !== "completed" && plan.status !== "cancelled" ? { processedAt: now } : {}),
         ...(refunded ? { refundedAmount: plan.refundedAmount, refundedAt: now } : {}),
+        // The accountant's record carries the Stripe PaymentIntent, not only the session JSON.
+        ...(observation.paymentIntentId?.startsWith("pi_") && !session.payment.stripePaymentIntentId ? { stripePaymentIntentId: observation.paymentIntentId } : {}),
       },
       query: "id",
     });
@@ -132,7 +134,7 @@ export async function applyObservation(sudo: Context, session: any, observation:
   return plan;
 }
 
-export const SESSION_QUERY = "id amount currency status providerReference idempotencyKey data provider { id code adapter config } payment { id status refundedAmount } appointment { id status transaction { id } client { user { id } } }";
+export const SESSION_QUERY = "id amount currency status providerReference idempotencyKey data provider { id code adapter config } payment { id status refundedAmount stripePaymentIntentId } appointment { id status transaction { id } client { user { id } } }";
 
 /** Opens (or reuses) a Stripe Checkout for the appointment's deposit and returns its URL. */
 export async function startDepositCheckoutTransaction(context: Context, args: { appointmentId: string; accessToken?: string | null }) {

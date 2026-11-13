@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight, ReceiptText, Search } from 'lucide-react';
-import { getSales, type Sale } from '../actions/sales';
+import { getDeposits, getSales, type DepositPayment, type Sale } from '../actions/sales';
 import { EmptyState, ErrorState, inputClass, labelize, PageHeader, PillLink, PlatformPage, SegmentTabs, StatusCell, Track, usd, type Tone } from '../../components/salon-ui';
 import { cn } from '@/lib/utils';
 import { stackBodyClass, stackCellClass, stackHeadClass, stackRowClass, stackTableClass, stackThClass, stackWrapClass } from '../../appointments/lib/stackTable';
@@ -25,7 +25,7 @@ export async function SalesListPage({ searchParams }: { searchParams?: Promise<{
   const params = searchParams ? await searchParams : {};
   const status = tabs.some((tab) => tab.value === params.status) ? params.status! : 'all';
   const q = (params.q || '').slice(0, 100);
-  const [data, timeZone] = await Promise.all([getSales(status, q), getSalonTimezone()]);
+  const [data, deposits, timeZone] = await Promise.all([getSales(status, q), q ? Promise.resolve(null) : getDeposits(), getSalonTimezone()]);
   const query = (value: string) => {
     const next = new URLSearchParams();
     if (value !== 'all') next.set('status', value);
@@ -91,9 +91,57 @@ export async function SalesListPage({ searchParams }: { searchParams?: Promise<{
               </table>
             </div>
           )}
+          {deposits?.length ? <DepositsTable deposits={deposits.filter((deposit) => status === 'all' || deposit.status === statusFor[status])} timeZone={timeZone} /> : null}
         </>
       )}
     </PlatformPage>
+  );
+}
+
+const statusFor: Record<string, string> = { paid: 'completed', partial: 'partially_refunded', refunded: 'refunded' };
+
+/** Online and desk deposits: money taken before the visit, listed with their Stripe ids so the books reconcile. */
+function DepositsTable({ deposits, timeZone }: { deposits: DepositPayment[]; timeZone?: string }) {
+  if (!deposits.length) return null;
+  return (
+    <section aria-labelledby="sales-deposits" className="grid gap-2">
+      <h2 id="sales-deposits" className="text-sm font-semibold">Deposits</h2>
+      <div className={stackWrapClass}>
+        <table className={stackTableClass} aria-labelledby="sales-deposits">
+          <thead className={stackHeadClass}>
+            <tr>
+              {['Paid', 'Client', 'Payment', 'Stripe'].map((label) => <th key={label} scope="col" className={stackThClass}>{label}</th>)}
+              <th scope="col" className={cn(stackThClass, 'text-right')}>Net</th>
+              <th scope="col" className={stackThClass}><span className="sr-only">Open</span></th>
+            </tr>
+          </thead>
+          <tbody className={stackBodyClass}>
+            {deposits.map((deposit) => {
+              const appointment = deposit.session?.appointment;
+              const refunded = deposit.refundedAmount || 0;
+              const at = deposit.processedAt || deposit.createdAt;
+              const when = at ? new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone }) : '—';
+              const client = appointment?.client?.displayName || (appointment ? appointmentContact({ metadata: appointment.metadata }).name : 'Walk-in');
+              const href = appointment ? `/dashboard/platform/appointments/${appointment.id}` : null;
+              const ids = [deposit.stripePaymentIntentId, ...(deposit.stripeRefundId || '').split(',')].filter(Boolean);
+              return (
+                <tr key={deposit.id} className={cn(stackRowClass, 'grid-cols-[minmax(0,1fr)_auto]')}>
+                  <td className={cn(stackCellClass, 'col-span-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground lg:text-sm lg:text-foreground')}>{when}</td>
+                  <td className={cn(stackCellClass, 'font-semibold lg:min-w-36')}>{href ? <Link href={href} className="block truncate underline-offset-4 hover:underline">{client}</Link> : client}</td>
+                  <td className={cn(stackCellClass, 'col-start-1')}><StatusCell tone={paymentTone[deposit.status] || 'zinc'}>{`Deposit · ${paymentLabel[deposit.status] || labelize(deposit.status)}`}</StatusCell></td>
+                  <td className={cn(stackCellClass, 'col-start-1 min-w-0 break-all text-xs text-muted-foreground')}>{ids.length ? ids.join(' · ') : labelize(deposit.paymentMethod)}</td>
+                  <td className={cn(stackCellClass, 'col-start-2 row-start-2 text-right tabular-nums')}>
+                    <div className="font-semibold">{usd(deposit.totalAmount - refunded)}</div>
+                    {refunded ? <div className="text-xs text-muted-foreground">of {usd(deposit.totalAmount)}</div> : null}
+                  </td>
+                  <td className={cn(stackCellClass, 'col-start-2 row-start-3 text-right lg:w-px')}>{href ? <PillLink href={href} size="sm" variant="quiet">Open<ArrowUpRight /></PillLink> : null}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

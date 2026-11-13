@@ -27,6 +27,30 @@ export interface Sale {
   lineItems: SaleLine[];
   reversals: SaleReversal[];
 }
+/** An appointment deposit: its own Payment, tied to the visit through its payment session (Payment.appointment belongs to checkout). */
+export interface DepositPayment {
+  id: string; status: string; totalAmount: number; refundedAmount?: number | null; paymentMethod: string; processedAt?: string | null; refundedAt?: string | null; createdAt?: string | null;
+  stripePaymentIntentId?: string | null; stripeRefundId?: string | null;
+  session?: { id: string; data?: unknown; appointment?: { id: string; startTime?: string | null; metadata?: unknown; client?: { id: string; displayName?: string | null } | null } | null } | null;
+}
+
+// Deposits are the payments whose session belongs to a visit but which checkout never claimed.
+// Package sales also carry a visit session, so the session's purpose decides.
+const DEPOSIT_WHERE = `{ appointment: null, session: { NOT: [{ appointment: null }] }, status: { in: ["completed", "partially_refunded", "refunded"] } }`;
+
+export async function getDeposits() {
+  const response = await keystoneClient<{ payments: DepositPayment[] }>(`
+    query Deposits {
+      payments(where: ${DEPOSIT_WHERE}, orderBy: { createdAt: desc }, take: 100) {
+        id status totalAmount refundedAmount paymentMethod processedAt refundedAt createdAt stripePaymentIntentId stripeRefundId
+        session { id data appointment { id startTime metadata client { id displayName } } }
+      }
+    }
+  `);
+  if (!response.success) return null;
+  return (response.data.payments || []).filter((payment) => (payment.session?.data as { purpose?: string } | null)?.purpose === 'appointment_deposit');
+}
+
 export interface SaleCompensation {
   commissions: { id: string; commissionAmount: number; isPaid?: boolean | null; service?: { name?: string | null } | null; stylist?: Person; adjustments: { amountDelta: number }[] }[];
   tips: { id: string; amountDelta: number; type: string; payoutStatus: string; practitioner?: Person }[];
