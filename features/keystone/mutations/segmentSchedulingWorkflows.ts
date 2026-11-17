@@ -99,10 +99,6 @@ function validateSequence(items: AllocationInput[]) {
   for (let left = 0; left < items.length; left += 1) for (let right = left + 1; right < items.length; right += 1) {
     const a = items[left]; const b = items[right];
     const overlaps = a.startOffsetMinutes < b.startOffsetMinutes + b.durationMinutes && b.startOffsetMinutes < a.startOffsetMinutes + a.durationMinutes;
-    if (scheduleIntervalsOverlapWithBuffer(
-      a.startOffsetMinutes * 60_000, (a.startOffsetMinutes + a.durationMinutes) * 60_000,
-      b.startOffsetMinutes * 60_000, (b.startOffsetMinutes + b.durationMinutes) * 60_000,
-    ) && a.practitionerId && a.practitionerId === b.practitionerId) throw new Error("One practitioner cannot be allocated to overlapping or back-to-back segments without a buffer");
     if (overlaps && a.lineItemId !== b.lineItemId && (!a.parallelGroup || a.parallelGroup !== b.parallelGroup)) {
       throw new Error("Parallel service segments must share an explicit parallel group");
     }
