@@ -260,8 +260,8 @@ export async function computeStylistAvailability({
   });
   const segments = await (sudo.query as any).AppointmentSegment.findMany({
     where: { appointment: { status: { in: [...ACTIVE_APPOINTMENT_STATUSES] }, ...(excludeAppointmentId ? { NOT: { id: { equals: excludeAppointmentId } } } : {}) },
-      status: { in: ["planned", "started"] }, plannedStart: { lt: dayEnd.toISOString() }, plannedEnd: { gt: new Date(dayStart.getTime() - BOOKING_BUFFER_MINUTES * 60_000).toISOString() } },
-    take: 5000, query: "id plannedStart plannedEnd practitioner { id } resource { id } resourceUnits",
+      status: { in: ["planned", "started"] }, plannedStart: { lt: dayEnd.toISOString() }, plannedEnd: { gt: new Date(dayStart.getTime() - MAX_BUFFER_MINUTES * 60_000).toISOString() } },
+    take: 5000, query: "id plannedStart plannedEnd practitioner { id } resource { id } resourceUnits lineItem { service { bufferMinutes } }",
   });
   if (appointments.length >= 2000 || resourceAppointments.length >= 2000 || segments.length >= 5000) throw new Error("Schedule is too large to safely evaluate; narrow the operating window");
   const services = serviceIds.length ? await sudo.query.Service.findMany({
@@ -303,7 +303,7 @@ export async function computeStylistAvailability({
       if (appointment.segments?.length) return false;
       const appointmentStart = new Date(appointment.startTime).getTime();
       return overlap(instant, instantEnd, appointmentStart, appointmentStart + (Number(appointment.duration || serviceDuration) + serviceBuffer(appointment.services)) * 60_000);
-    }) || segments.some((segment: any) => segment.practitioner?.id === stylistId && overlap(instant, instantEnd, new Date(segment.plannedStart).getTime(), new Date(segment.plannedEnd).getTime() + BOOKING_BUFFER_MINUTES * 60_000));
+    }) || segments.some((segment: any) => segment.practitioner?.id === stylistId && overlap(instant, instantEnd, new Date(segment.plannedStart).getTime(), new Date(segment.plannedEnd).getTime() + serviceBuffer(segment.lineItem?.service ? [segment.lineItem.service] : null) * 60_000));
 
     let selectedResource: any = null;
     if (requiredResources.length) {
