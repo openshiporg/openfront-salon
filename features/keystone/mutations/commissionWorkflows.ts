@@ -99,7 +99,7 @@ export async function payoutCommissionsTransaction(
         const commissions = await sudo.query.Commission.findMany({
           where: { id: { in: ids } },
           take: 200,
-          query: "id isPaid paidAt commissionAmount notes stylist { id }",
+          query: "id isPaid paidAt commissionAmount notes stylist { id } adjustments { amountDelta }",
         });
         if (commissions.length !== ids.length) throw new Error("One or more commissions were not found");
 
@@ -109,8 +109,11 @@ export async function payoutCommissionsTransaction(
         const paidAt = new Date().toISOString();
         const ref = payoutReference(reference);
         let payoutCount = 0;
+        let totalAmount = 0;
         for (const commission of commissions) {
           if (commission.isPaid) continue;
+          // What is paid is the commission less any refund clawback already posted against it.
+          totalAmount += Number(commission.commissionAmount || 0) + (commission.adjustments || []).reduce((sum: number, a: any) => sum + Number(a.amountDelta || 0), 0);
           await sudo.query.Commission.updateOne({
             where: { id: commission.id },
             data: { isPaid: true, paidAt, ...(ref ? { notes: [commission.notes, `Payout reference: ${ref}`].filter(Boolean).join("\n") } : {}) },
@@ -122,7 +125,7 @@ export async function payoutCommissionsTransaction(
         return {
           success: true,
           payoutCount,
-          totalAmount: commissions.reduce((sum: number, commission: any) => sum + Number(commission.commissionAmount || 0), 0),
+          totalAmount,
           error: null,
         };
       },
@@ -167,7 +170,8 @@ export async function payoutGratuitiesTransaction(context: Context, stylistId: s
     return await serializableWorkflow(context, "salon-gratuity-payout", [`gratuity-payout:${id}`], async (transactionContext) => {
       const sudo = transactionContext.sudo();
       const entries = await sudo.query.GratuityLedgerEntry.findMany({
-        where: { practitioner: { id: { equals: id } }, type: { equals: "allocation" }, payoutStatus: { equals: "payable" }, NOT: { payment: { paymentMethod: { equals: "cash" } } } },
+        // Card-tip allocations owed, less recoveries from refunded sales; both are settled by this payout.
+        where: { practitioner: { id: { equals: id } }, OR: [{ type: { equals: "allocation" }, payoutStatus: { equals: "payable" } }, { type: { equals: "recovery" }, payoutStatus: { equals: "recovery_due" } }], NOT: { payment: { paymentMethod: { equals: "cash" } } } },
         take: 500,
         query: "id amountDelta evidence",
       });

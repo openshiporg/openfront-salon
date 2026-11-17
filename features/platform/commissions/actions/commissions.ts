@@ -76,7 +76,7 @@ function buildWhere(status?: string | null) {
 }
 
 type Ledger = {
-  commissions: Array<{ isPaid?: boolean | null; commissionAmount?: number | null; saleAmount?: number | null; stylist?: { id: string; user?: { name?: string | null } | null } | null }>;
+  commissions: Array<{ isPaid?: boolean | null; commissionAmount?: number | null; adjustments?: Array<{ amountDelta?: number | null }> | null; saleAmount?: number | null; stylist?: { id: string; user?: { name?: string | null } | null } | null }>;
   tips: Array<{ amountDelta?: number | null; payoutStatus?: string | null; payment?: { paymentMethod?: string | null } | null; practitioner?: { id: string; user?: { name?: string | null } | null } | null }>;
 };
 
@@ -93,14 +93,16 @@ function summarize({ commissions, tips }: Ledger): StylistCommissionSummary[] {
   for (const commission of commissions) {
     const current = entry(commission.stylist?.id, commission.stylist?.user?.name);
     current.grossSales += commission.saleAmount || 0;
+    // A refund's clawback (CommissionAdjustment) on a commission not yet paid comes off what is owed.
+    const adjusted = (commission.adjustments || []).reduce((sum, a) => sum + (a.amountDelta || 0), 0);
     if (commission.isPaid) current.paidAmount += commission.commissionAmount || 0;
     else {
       current.unpaidCount += 1;
-      current.unpaidAmount += commission.commissionAmount || 0;
+      current.unpaidAmount += (commission.commissionAmount || 0) + adjusted;
     }
   }
   for (const tip of tips) {
-    if (tip.payoutStatus !== 'payable') continue;
+    if (tip.payoutStatus !== 'payable' && tip.payoutStatus !== 'recovery_due') continue;
     entry(tip.practitioner?.id, tip.practitioner?.user?.name).tipsOwed += tip.amountDelta || 0;
   }
 
@@ -121,8 +123,8 @@ export async function getCommissionOperations(status?: string | null): Promise<C
         commissions(where: $where, orderBy: { createdAt: desc }, take: 200) {
           ${COMMISSION_QUERY}
         }
-        ledger: commissions(take: 5000) { isPaid commissionAmount saleAmount stylist { id user { name } } }
-        tips: gratuityLedgerEntries(where: { type: { equals: allocation } }, take: 5000) { amountDelta payoutStatus payment { paymentMethod } practitioner { id user { name } } }
+        ledger: commissions(take: 5000) { isPaid commissionAmount adjustments { amountDelta } saleAmount stylist { id user { name } } }
+        tips: gratuityLedgerEntries(where: { type: { in: [allocation, recovery] } }, take: 5000) { amountDelta payoutStatus payment { paymentMethod } practitioner { id user { name } } }
         unpaidCount: commissionsCount(where: { isPaid: { equals: false } })
         paidCount: commissionsCount(where: { isPaid: { equals: true } })
         totalCount: commissionsCount
