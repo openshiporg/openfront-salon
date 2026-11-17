@@ -5,7 +5,7 @@ import { isPolicyDeadlineOpen } from "../bookingPolicy";
 import { paymentRecordStatus } from "../payment-lifecycle";
 import { createProviderPaymentSession, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { serializableWorkflow } from "./serializableWorkflow";
-import { startDepositCheckoutTransaction } from "../depositCheckout";
+import { closeOpenDepositCheckouts, startDepositCheckoutTransaction } from "../depositCheckout";
 import { assertServiceDayOpen, assertStartPassed } from "../appointmentTiming";
 
 type AppointmentTransition = "confirmed" | "in_progress" | "cancelled" | "no_show";
@@ -148,6 +148,8 @@ export async function processAppointmentDepositTransaction(
       const chosen = (await context.sudo().query.PaymentProvider.findMany({ where: { code: { equals: args.providerCode }, isInstalled: { equals: true } }, take: 1, query: "adapter" }))[0];
       if (chosen?.adapter === "stripe") return await collectDepositOnline(context, args.appointmentId);
     }
+    // A desk deposit: an online deposit page the client opened and left is closed (or recorded if they paid) first.
+    await closeOpenDepositCheckouts(context, args.appointmentId);
     // Match checkout's appointment lock so a deposit cannot be created across settlement.
     return await serializableWorkflow(context, "salon-domain-resource", [
       `appointment:${args.appointmentId}`,

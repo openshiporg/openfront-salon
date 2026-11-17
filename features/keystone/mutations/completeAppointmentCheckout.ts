@@ -13,6 +13,7 @@ import { originalCheckoutScope } from "../inventory/originalCheckoutScope";
 import { checkoutSettlement } from "../settlement";
 import { assertNoUnreconciledPackageUsage } from "../checkoutBoundaries";
 import { assertNoUnresolvedAppointmentPaymentSessions } from "../depositBoundaries";
+import { closeOpenDepositCheckouts } from "../depositCheckout";
 import { assertNoOpenDeskCard } from "../deskCardBoundary";
 
 const TAX_RATE = Number.parseFloat(process.env.TAX_RATE || "0.08");
@@ -127,6 +128,8 @@ export async function completeAppointmentCheckoutTransaction(
   }
 
   const requestHash = checkoutRequestHash(args, retail);
+  // The client is at the desk: an online deposit page they opened and left is closed (or recorded if they paid) first.
+  await closeOpenDepositCheckouts(context, args.appointmentId);
 
   try {
     return await serializableWorkflow(context, "salon-domain-resource", [

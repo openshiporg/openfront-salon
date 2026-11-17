@@ -6,7 +6,7 @@ import type { CheckoutObservation } from "../integrations/payment";
 import { canTransitionPayment, paymentRecordStatus, type PaymentLifecycleStatus } from "./payment-lifecycle";
 import { trustedOrigin } from "./lib/trustedOrigin";
 import { serializableWorkflow } from "./mutations/serializableWorkflow";
-import { createProviderCheckout, paymentProviderFromRecord, retrieveProviderCheckout } from "./utils/paymentProviderAdapter";
+import { createProviderCheckout, expireProviderCheckout, paymentProviderFromRecord, retrieveProviderCheckout } from "./utils/paymentProviderAdapter";
 
 /** Online deposits: a Stripe Checkout per appointment deposit, confirmed by reading the Checkout back from the provider. */
 
@@ -252,4 +252,34 @@ export async function reconcileDepositSessionTransaction(context: Context, payme
     const sudo = tx.sudo();
     return applyObservation(sudo, await sudo.query.PaymentSession.findOne({ where: { id: session.id }, query: SESSION_QUERY }), observation);
   });
+}
+
+/**
+ * The client is at the desk: close the visit's unfinished online deposit pages so checkout or a desk deposit can go ahead.
+ * Each page is expired at Stripe and read back, so one the client did pay is recorded as the deposit. An attempt whose page
+ * never reached the client (no Stripe reference after ten minutes) is marked failed.
+ */
+export async function closeOpenDepositCheckouts(context: Context, appointmentId: string) {
+  const sudo = context.sudo();
+  const open = await sudo.query.PaymentSession.findMany({
+    where: { appointment: { id: { equals: appointmentId } }, status: { in: OPEN_STATUSES as any } }, take: 20, query: `${SESSION_QUERY} createdAt`,
+  });
+  for (const row of open.filter((r: any) => dataOf(r.data).purpose === "appointment_deposit" && dataOf(r.data).checkout)) {
+    try {
+      if (!row.providerReference) {
+        if (Date.now() - new Date(row.createdAt as string).getTime() > 10 * 60_000) await sudo.query.PaymentSession.updateOne({ where: { id: row.id }, data: { status: "failed", failedAt: new Date().toISOString() }, query: "id" });
+        continue;
+      }
+      if (!row.provider) continue;
+      const provider = paymentProviderFromRecord(row.provider as any);
+      await expireProviderCheckout({ provider, providerReference: row.providerReference });
+      const observation = await retrieveProviderCheckout({ provider, providerReference: row.providerReference });
+      await serializableWorkflow(context, "salon-deposit-checkout", [`appointment:${appointmentId}`], async (tx) => {
+        const txSudo = tx.sudo();
+        return applyObservation(txSudo, await txSudo.query.PaymentSession.findOne({ where: { id: row.id }, query: SESSION_QUERY }), observation);
+      });
+    } catch (error) {
+      console.error("Open deposit page could not be closed:", error);
+    }
+  }
 }
