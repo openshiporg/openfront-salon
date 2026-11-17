@@ -3,6 +3,7 @@ import { graphql } from "@keystone-6/core";
 import type { Context } from ".keystone/types";
 import { permissions } from "../access";
 import { currentStockContext, assertStockLocation } from "../inventory/locationAuthority";
+import { depositRefundReference } from "./depositRefund";
 import { refundProviderPayment, paymentProviderFromRecord } from "../utils/paymentProviderAdapter";
 import { recordInventoryMovement } from "./inventoryWorkflows";
 import { recomputeClientStats } from "../clientStats";
@@ -114,11 +115,14 @@ export async function reverseSalonTransactionTransaction(context: Context, args:
         where: { appointment: { id: { equals: transaction.appointment.id } } }, take: 50,
         query: "id status data providerReference idempotencyKey provider { id code adapter config isInstalled } payment { id status totalAmount refundedAmount }",
       }) : [];
-      const depositSession: any = appointmentSessions.find((session: any) => session.id !== payment.session.id && session.data?.purpose === "appointment_deposit");
-      if (depositRefundCents > 0 && (!depositSession?.provider || !depositSession.providerReference || !depositSession.payment)) throw new Error("Applied deposit payment evidence is unavailable");
+      // The deposit that was actually captured (checkout applies only completed or partially refunded ones), never a cancelled or failed attempt.
+      const depositSession: any = appointmentSessions.find((session: any) => session.id !== payment.session.id && session.data?.purpose === "appointment_deposit" && ["completed", "partially_refunded"].includes(session.payment?.status));
+      // An online deposit's reference is the Stripe Checkout (cs_); the refund goes to its PaymentIntent.
+      const depositReference = depositSession ? depositRefundReference(depositSession) : null;
+      if (depositRefundCents > 0 && (!depositSession?.provider || !depositReference || !depositSession.payment)) throw new Error("Applied deposit payment evidence is unavailable");
       const providers = [
         ...(checkoutRefundCents > 0 ? [{ suffix: "checkout", provider: payment.session.provider, providerReference: payment.session.providerReference, amount: checkoutRefundCents }] : []),
-        ...(depositRefundCents > 0 ? [{ suffix: "deposit", provider: depositSession.provider, providerReference: depositSession.providerReference, amount: depositRefundCents }] : []),
+        ...(depositRefundCents > 0 ? [{ suffix: "deposit", provider: depositSession.provider, providerReference: depositReference, amount: depositRefundCents }] : []),
       ];
       // Validate all caller-controlled compensation BEFORE reserving/provider I/O.
       if (args.restorePackageCents > 0) {
