@@ -186,3 +186,29 @@ export async function getClientPortalData() {
     return { status: "unavailable" } as const;
   }
 }
+
+/** Client "forgot password": email a reset link, or set the new password from that link. */
+export async function portalRequestReset(formData: FormData) {
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  if (!email) redirect("/account/reset?status=missing");
+  const response = await keystoneClient<{ sendUserPasswordResetLink: boolean }>(
+    `mutation($email: String!) { sendUserPasswordResetLink(email: $email) }`,
+    { email },
+  );
+  redirect(`/account/reset?status=${response.success && response.data?.sendUserPasswordResetLink === true ? "sent" : "failed"}`);
+}
+
+export async function portalRedeemReset(formData: FormData) {
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const token = String(formData.get("token") || "");
+  const password = String(formData.get("password") || "");
+  const back = `/account/reset?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+  if (!email || !token || password.length < 8) redirect(`${back}&status=short`);
+  const response = await keystoneClient<{ redeemUserPasswordResetToken: { code: string } | null }>(
+    `mutation($email: String!, $token: String!, $password: String!) { redeemUserPasswordResetToken(email: $email, token: $token, password: $password) { code } }`,
+    { email, token, password },
+  );
+  if (!response.success) redirect(`${back}&status=failed`);
+  if (response.data?.redeemUserPasswordResetToken?.code) redirect("/account/reset?status=expired");
+  redirect("/account/signin?reset=done");
+}

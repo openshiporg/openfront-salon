@@ -9,10 +9,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: await storefrontTitle("Sign in") };
 }
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ error?: string; consultation?: string; consultationTemplate?: string; consultationKey?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ error?: string; reset?: string; consultation?: string; consultationTemplate?: string; consultationKey?: string }> }) {
   const [params, portal, email] = await Promise.all([searchParams, getClientPortalData(), getSignInEmail()]);
   if (portal.status === "available") redirect("/account");
   const consultationUnresolved = params.consultation === "unresolved";
   const consultationAttempt = parseConsultationRetryAttempt(params.consultation, params.consultationTemplate, params.consultationKey);
-  return <AccountSignInPage error={params.error} email={email} consultationUnresolved={consultationUnresolved} consultationAttempt={consultationAttempt} />;
+  return <AccountSignInPage error={params.error} reset={params.reset} email={email} consultationUnresolved={consultationUnresolved} consultationAttempt={consultationAttempt} />;
 }

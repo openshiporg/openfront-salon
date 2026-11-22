@@ -80,8 +80,10 @@ const { withAuth } = createAuth({
   },
   passwordResetLink: {
     async sendToken(args) {
-      // send the email
-      await sendPasswordResetEmail(args.token, args.identity);
+      // Staff reset on the dashboard; clients reset on the storefront next to their sign-in.
+      const user = await args.context.sudo().query.User.findOne({ where: { id: String(args.itemId) }, query: "role { canAccessDashboard }" }).catch(() => null);
+      const path = user?.role?.canAccessDashboard ? "/dashboard/reset" : "/account/reset";
+      await sendPasswordResetEmail(args.token, args.identity, undefined, path);
     },
   },
   sessionData: `
