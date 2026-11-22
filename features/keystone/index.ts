@@ -79,6 +79,7 @@ const { withAuth } = createAuth({
     },
   },
   passwordResetLink: {
+    tokensValidForMins: 60,
     async sendToken(args) {
       // Staff reset on the dashboard; clients reset on the storefront next to their sign-in.
       const user = await args.context.sudo().query.User.findOne({ where: { id: String(args.itemId) }, query: "role { canAccessDashboard }" }).catch(() => null);
