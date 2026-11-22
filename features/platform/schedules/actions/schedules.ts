@@ -76,6 +76,7 @@ export interface ScheduleOperationsData {
 
 const STYLIST_SCHEDULE_QUERY = `
   id
+  displayName
   role
   tier
   status
@@ -160,7 +161,7 @@ export async function getScheduleOperations(): Promise<ScheduleOperationsData> {
       inactiveScheduleCount: stylistSchedulesCount(where: { type: { equals: recurring }, isAvailable: { equals: false } })
       activeProviderCount: stylistsCount(where: { isActive: { equals: true } })
       timeOff: stylistSchedules(where: { type: { equals: time_off }, isAvailable: { equals: false }, localDate: { gte: $fromDate } }, orderBy: { localDate: asc }, take: 200) {
-        id localDate startTime endTime reason revision stylist { id user { name } } location { name timezone }
+        id localDate startTime endTime reason revision stylist { id displayName user { name } } location { name timezone }
       }
       upcoming: appointments(where: { status: { in: [pending, confirmed] }, startTime: { gte: $now } }, orderBy: { startTime: asc }, take: 500) {
         id startTime duration metadata stylist { id } location { timezone } client { displayName }
@@ -197,13 +198,14 @@ export async function getScheduleOperations(): Promise<ScheduleOperationsData> {
     }).map((appointment) => ({ id: appointment.id, startTime: appointment.startTime, clientName: appointment.client?.displayName || appointmentContact({ metadata: appointment.metadata }).name, timezone: appointment.location?.timezone }));
     return [{
       id: row.id, localDate: row.localDate, startTime: row.startTime || '00:00', endTime: row.endTime || '23:59', reason: row.reason || '', revision: row.revision,
-      stylistId: row.stylist.id, stylistName: row.stylist.user?.name || 'Stylist', locationName: row.location?.name || '', clashes,
+      stylistId: row.stylist.id, stylistName: row.stylist.user?.name || (row.stylist as any).displayName || 'Stylist', locationName: row.location?.name || '', clashes,
     }];
   });
 
   return {
     timeOff,
-    stylists: response.data.stylists || [],
+    // Roles that can't read User still see the stylist's public name.
+    stylists: (response.data.stylists || []).map((stylist: any) => ({ ...stylist, user: { ...(stylist.user || {}), name: stylist.user?.name || stylist.displayName || null } })),
     scheduleCount: response.data.stylistSchedulesCount || 0,
     inactiveScheduleCount: response.data.inactiveScheduleCount || 0,
     activeProviderCount: response.data.activeProviderCount || 0,

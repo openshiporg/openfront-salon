@@ -7,7 +7,9 @@ import {
   checkbox,
   timestamp,
   json,
+  virtual,
 } from "@keystone-6/core/fields";
+import { graphql } from "@keystone-6/core";
 
 import { permissions } from "../access";
 import { trackingFields } from "./trackingFields";
@@ -27,6 +29,20 @@ export const Stylist = list({
     },
   },
   fields: {
+    // The stylist's public name (already shown on the storefront), readable by every staff role
+    // even when the role may not read User records.
+    displayName: virtual({
+      field: graphql.field({
+        type: graphql.String,
+        async resolve(item: any, _args, context) {
+          if (!item.userId) return null;
+          const user = await context.sudo().db.User.findOne({ where: { id: item.userId } });
+          return (user?.name as string | undefined) || null;
+        },
+      }),
+      ui: { itemView: { fieldMode: "hidden" }, listView: { fieldMode: "hidden" }, createView: { fieldMode: "hidden" } },
+    }),
+
     // Link to User for contact info
     user: relationship({
       ref: "User",

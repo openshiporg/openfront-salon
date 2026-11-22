@@ -1143,6 +1143,7 @@ input ServiceRelateToOneForCreateInput {
 
 type Stylist {
   id: ID!
+  displayName: String
   user: User
   role: StylistRoleType
   tier: StylistTierType
