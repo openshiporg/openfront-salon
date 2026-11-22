@@ -195,7 +195,9 @@ export async function portalRequestReset(formData: FormData) {
     `mutation($email: String!) { sendUserPasswordResetLink(email: $email) }`,
     { email },
   );
-  redirect(`/account/reset?status=${response.success && response.data?.sendUserPasswordResetLink === true ? "sent" : "failed"}`);
+  // Same answer whether or not the email has an account, so the form can't be used to find clients.
+  if (!response.success) console.error("Client password reset email failed");
+  redirect("/account/reset?status=sent");
 }
 
 export async function portalRedeemReset(formData: FormData) {
