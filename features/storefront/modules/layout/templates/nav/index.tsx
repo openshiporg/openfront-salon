@@ -52,6 +52,21 @@ export default function Nav({ brandName, logoIcon, logoColor }: NavProps) {
     setMobileMenuOpen(false)
   }, [pathname])
 
+  // While the menu is open: Escape closes it and the page behind does not scroll.
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false)
+    }
+    const previous = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    window.addEventListener("keydown", onKey)
+    return () => {
+      document.body.style.overflow = previous
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [mobileMenuOpen])
+
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || Boolean(pathname?.startsWith(href + "/"))
   const showTabBar = !NO_TAB_BAR.some((prefix) => pathname === prefix || pathname?.startsWith(prefix + "/"))

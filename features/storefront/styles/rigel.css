@@ -1124,7 +1124,17 @@ body:has(.storefront) {
   background: var(--sf-paper);
   max-height: calc(100dvh - 4.25rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
   animation: sf-sheet var(--sf-dur-short) var(--sf-ease-out);
+}
+
+/* On a phone the menu fills the screen under the header, so no page shows below it. */
+@media (max-width: 1023.98px) {
+  .storefront .sf-mobile-sheet {
+    height: calc(100dvh - 3.5rem - 1px);
+    max-height: none;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @keyframes sf-sheet {

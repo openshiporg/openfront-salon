@@ -18,7 +18,9 @@ export const Location = list({
       delete: () => false,
     },
     filter: {
-      query: ({ session }) => (permissions.canManageSalon({ session }) ? true : { isActive: { equals: true } }),
+      // Staff see every branch, so the dashboard's "today at each location" filters work for every role.
+      query: ({ session }) =>
+        permissions.canManageSalon({ session }) || permissions.canAccessDashboard({ session }) ? true : { isActive: { equals: true } },
     },
   },
   ui: { hideCreate: true, hideDelete: true,

@@ -12,7 +12,7 @@ export const clientPortal = graphql.field({
     // public form-version catalog after client authority is established.
     const appointments = await context.query.Appointment.findMany({
       where: { client: { user: { id: { equals: userId } } } }, orderBy: { startTime: "desc" }, take: 100,
-      query: `id startTime endTime duration status bookedAt confirmedAt cancelledAt cancellationReason clientNotes clientPolicy
+      query: `id startTime endTime duration status depositAmount depositPaid bookedAt confirmedAt cancelledAt cancellationReason clientNotes clientPolicy
         stylist { id user { name } } location { id name timezone }
         lineItems { id serviceTitle serviceImagePath duration price quantity service { id } }
         scheduleRevisions(orderBy: { revision: desc }, take: 10) { id revision priorStart priorEnd nextStart nextEnd scheduleHash createdAt }

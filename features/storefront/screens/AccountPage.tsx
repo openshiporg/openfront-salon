@@ -3,6 +3,7 @@ import { CalendarPlus, LogOut } from "lucide-react";
 import { cancelOwnedAppointment, portalSignOut, reviewOwnedAppointment, submitOwnedConsultation } from "../account/actions";
 import { RescheduleForm } from "../components/RescheduleForm";
 import { SignInForm } from "../components/SignInForm";
+import { PayDepositButton } from "../components/PayDepositButton";
 
 import { formatSalonDateTime as dateTime } from "@/features/lib/formatSalonDateTime";
 import { appointmentProviderLabel, segmentProviderLabel } from "../account/providerLabel";
@@ -68,6 +69,14 @@ export function AccountPage({ portal, message, consultationUnresolved = false, c
             {appointment.segments?.length > 1 ? <ol className="mt-3 grid gap-1 border-t border-[var(--sf-rule)] pt-2 text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">{appointment.segments.map((segment: any) => <li key={segment.id}>{clock(segment.plannedStart, appointment.location?.timezone)} · {SEGMENT_LABEL[segment.type] || segment.type} · {segment.durationMinutes} min{segmentProviderLabel(segment) !== appointmentProviderLabel(appointment.stylist) ? ` · ${segmentProviderLabel(segment)}` : ""}</li>)}</ol> : null}
             {policy && mutable && ((cancellationGuidance.deadline && !cancellationGuidance.expired) || (rescheduleGuidance.deadline && !rescheduleGuidance.expired)) ? <p className="mt-3 text-[length:var(--sf-text-xs)] text-[var(--sf-ink-3)]">{cancellationGuidance.deadline && !cancellationGuidance.expired ? `Cancel online until ${dateTime(cancellationGuidance.deadline, appointment.location?.timezone)}.` : null}{rescheduleGuidance.deadline && !rescheduleGuidance.expired ? ` Reschedule online until ${dateTime(rescheduleGuidance.deadline, appointment.location?.timezone)}.` : null}</p> : null}
           </div>{mutable ? <div className="grid content-start gap-4">
+            {appointment.depositAmount > 0 && !appointment.depositPaid ? (
+              <div className="grid gap-2">
+                <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">A {money(appointment.depositAmount)} deposit holds this time. Pay it now by card, or at the salon.</p>
+                <PayDepositButton appointmentId={appointment.id} accessToken={null} amount={appointment.depositAmount} />
+              </div>
+            ) : appointment.depositAmount > 0 ? (
+              <p className="text-[length:var(--sf-text-sm)] text-[var(--sf-ink-2)]">Deposit paid: {money(appointment.depositAmount)}</p>
+            ) : null}
             {appointment.lineItems?.length && rescheduleGuidance.expired && !cancellationGuidance.expired ? (
               <p role="status" className="sf-note !text-[length:var(--sf-text-xs)]">It’s too late to reschedule online. Contact the salon to change this appointment.</p>
             ) : null}
