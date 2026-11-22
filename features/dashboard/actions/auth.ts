@@ -157,7 +157,7 @@ export async function getAuthenticatedUser() {
           role {
             canAccessDashboard canManageOnboarding canManageSalon canManageAppointments canManageClients canManageCatalog
             canManageSchedules canManageOwnSchedule canManageResources canManageInventory canManagePayments
-            canManageCommissions canViewReports canManageIntegrations canIssueRefunds canManageCareRecords
+            canManageCommissions canViewReports canManageIntegrations canIssueRefunds canManageCareRecords canManageRoles
           }
         }
       }

@@ -12,8 +12,13 @@ export function canUseDashboardNav(user: SidebarUser) {
   return user?.role?.canAccessDashboard !== false
 }
 
+/** Raw model lists are for whoever sets the system up (canManageRoles: admin/developer). Front desk, stylists and managers work from the platform pages. */
+export function canSeeModels(user: SidebarUser) {
+  return canUseDashboardNav(user) && user?.role?.canManageRoles === true
+}
+
 export function visibleSidebarLists<T extends SidebarList>(lists: T[], user: SidebarUser): T[] {
-  if (!canUseDashboardNav(user)) return []
+  if (!canSeeModels(user)) return []
   return lists.filter((list) => !list.isHidden)
 }
 
@@ -35,4 +40,12 @@ export function visiblePlatformItems<T extends { href: string; requires?: readon
     const slug = item.href.split('/platform/')[1]?.split(/[/?#]/)[0]
     return !slug || !hiddenPaths.has(slug)
   })
+}
+
+/** Where "Dashboard" takes a role without the model lists: the first platform page it may open. */
+export function homePathFor(user: SidebarUser, items: readonly { href: string; requires?: readonly string[] }[]): string {
+  if (!user || canSeeModels(user)) return '/dashboard'
+  const role = user.role
+  const first = items.find((item) => !item.requires || role?.canManageSalon === true || item.requires.some((permission) => role?.[permission] === true))
+  return first ? `/dashboard${first.href}` : '/dashboard/no-access'
 }

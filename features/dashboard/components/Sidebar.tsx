@@ -41,9 +41,9 @@ import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
 import { OnboardingCards } from '@/features/platform/onboarding/components/OnboardingCards'
 import { dismissOnboarding } from '@/features/platform/onboarding/actions/onboarding'
-import { platformNavGroups, platformStandaloneItems, getPlatformNavItemsWithBasePath } from '@/features/platform/lib/navigation'
+import { platformNavGroups, platformStandaloneItems, platformNavItems, getPlatformNavItemsWithBasePath } from '@/features/platform/lib/navigation'
 import { useDashboard } from '../context/DashboardProvider'
-import { visiblePlatformItems, visibleSidebarLists } from '../lib/sidebarAccess'
+import { homePathFor, visiblePlatformItems, visibleSidebarLists } from '../lib/sidebarAccess'
 
 interface User {
   id: string;
@@ -140,7 +140,7 @@ export function Sidebar({ adminMeta, user, onOpenDialog }: SidebarProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isLinkActive('/dashboard')}>
-                <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
+                <Link href={homePathFor(user as any, platformNavItems)} onClick={() => setOpenMobile(false)}>
                   <Home className="h-4 w-4" />
                   <span>Dashboard</span>
                 </Link>

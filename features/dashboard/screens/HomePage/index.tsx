@@ -9,7 +9,10 @@ import { PlusIcon, Database } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '../../components/PageContainer'
-import { getAdminMetaAction, getListCounts } from '../../actions'
+import { redirect } from 'next/navigation'
+import { getAdminMetaAction, getAuthenticatedUser, getListCounts } from '../../actions'
+import { homePathFor } from '../../lib/sidebarAccess'
+import { platformNavItems } from '@/features/platform/lib/navigation'
 import { cn } from '@/lib/utils'
 
 interface ListCardProps {
@@ -75,6 +78,11 @@ function EmptyState() {
 }
 
 export async function HomePage() {
+  // Front desk, stylists and managers start on their own pages, not the raw model lists.
+  const me: any = await getAuthenticatedUser()
+  const home = homePathFor(me?.success ? me.data?.authenticatedItem : undefined, platformNavItems)
+  if (home !== '/dashboard') redirect(home)
+
   // Fetch admin meta server-side
   const adminMetaResponse = await getAdminMetaAction()
   
